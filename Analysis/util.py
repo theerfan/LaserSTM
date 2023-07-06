@@ -1,6 +1,6 @@
 import numpy as np
 
-#import mpmath
+# import mpmath
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -10,41 +10,52 @@ from scipy.signal import chirp, find_peaks, peak_widths
 from scipy import interpolate
 from scipy import ndimage
 from scipy.signal import savgol_filter
+from scipy.constants import c
 import csv
 
-c = 299792458.0
 
 def concatenate_arrays(*arrays):
-    return np.concatenate(arrays,axis=None)
+    return np.concatenate(arrays, axis=None)
+
 
 def split_and_concatenate(fields, scaling_factors, normalize_energy=False):
     energy_out = np.array([])
     intensity_out = np.array([])
     phase_out = np.array([])
     i = 0
-    scaling_factors["beam_area"] = (400*1e-6)**2 * (np.pi)
+    scaling_factors["beam_area"] = (400 * 1e-6) ** 2 * (np.pi)
     for field in fields:
 
         intensity = get_intensity(field)
         phase = get_phase(field)
         if not normalize_energy:
-            energy = calc_energy_expanded(field,scaling_factors["grid_spacing"][i], scaling_factors["beam_area"])
+            energy = calc_energy_expanded(
+                field, scaling_factors["grid_spacing"][i], scaling_factors["beam_area"]
+            )
         else:
-            energy = calc_energy_expanded(field,scaling_factors["grid_spacing"][i], scaling_factors["beam_area"]) / 25e-6
-            
+            energy = (
+                calc_energy_expanded(
+                    field,
+                    scaling_factors["grid_spacing"][i],
+                    scaling_factors["beam_area"],
+                )
+                / 25e-6
+            )
+
         # print(scaling_factors["grid_spacing"][i])
         # print("inside concat energy",energy)
-        #energy = np.sum(intensity)*scaling_factors["beam_area"]*scaling_factors["energy_adjust"] #assuming in uJ
+        # energy = np.sum(intensity)*scaling_factors["beam_area"]*scaling_factors["energy_adjust"] #assuming in uJ
         energy_out = concatenate_arrays(energy_out, energy)
         if np.max(intensity) > 0:
             intensity = intensity / np.max(intensity)
         intensity_out = concatenate_arrays(intensity_out, intensity)
-        
-        phase_out = concatenate_arrays(phase_out, phase/np.pi)
-#       phase_out = concatenate_arrays(phase_out, np.unwrap(phase/np.pi, period=1))
-#       phase_out = concatenate_arrays(phase_out, np.unwrap(phase))
+
+        phase_out = concatenate_arrays(phase_out, phase / np.pi)
+        #       phase_out = concatenate_arrays(phase_out, np.unwrap(phase/np.pi, period=1))
+        #       phase_out = concatenate_arrays(phase_out, np.unwrap(phase))
         i += 1
     return concatenate_arrays(intensity_out, phase_out, energy_out).astype(np.float32)
+
 
 def create_necessary_folders_and_files():
     # create output path
@@ -63,7 +74,9 @@ def to_freq_vector(time_vector):
     """
     Time vec to freq vec
     """
-    return np.fft.fftshift(np.fft.fftfreq(n=time_vector.shape[0], d=(time_vector[1] - time_vector[0])))
+    return np.fft.fftshift(
+        np.fft.fftfreq(n=time_vector.shape[0], d=(time_vector[1] - time_vector[0]))
+    )
 
 
 def get_phase(field):
@@ -71,7 +84,7 @@ def get_phase(field):
 
 
 def super_gaus(x, sigma, x0, pow=2, amp=1):
-    return amp * np.exp((-1 * ((x - x0) ** 2 / (2 * sigma ** 2)) ** pow).astype(float))
+    return amp * np.exp((-1 * ((x - x0) ** 2 / (2 * sigma**2)) ** pow).astype(float))
 
 
 def resample_method1(input_domain, target_domain, input_vector):
@@ -80,7 +93,9 @@ def resample_method1(input_domain, target_domain, input_vector):
         resampled_vector = f(target_domain)
         return resampled_vector
     except ValueError:
-        print("Likely the target wavelength vector is outside the bounds of the input vector (only interpolation\n")
+        print(
+            "Likely the target wavelength vector is outside the bounds of the input vector (only interpolation\n"
+        )
 
 
 def interpolate_Efield(efield_fd, freq_vector_old, freq_vector_new):
@@ -102,20 +117,26 @@ def interpolate_Efield(efield_fd, freq_vector_old, freq_vector_new):
     """
     real = np.real(efield_fd)
     imag = np.imag(efield_fd)
-    real_new = scipy.interpolate.griddata(freq_vector_old, real, freq_vector_new, method='linear')
-    imag_new = scipy.interpolate.griddata(freq_vector_old, imag, freq_vector_new, method='linear')
+    real_new = scipy.interpolate.griddata(
+        freq_vector_old, real, freq_vector_new, method="linear"
+    )
+    imag_new = scipy.interpolate.griddata(
+        freq_vector_old, imag, freq_vector_new, method="linear"
+    )
     efield_new = real_new + 1j * imag_new
     return efield_new
 
 
 def reorder(vec):
     vec_reordered = np.copy(vec)
-    vec_reordered[0:vec.shape[0] // 2] = vec[vec.shape[0] // 2:]
-    vec_reordered[vec.shape[0] // 2:] = vec[0:vec.shape[0] // 2]
+    vec_reordered[0 : vec.shape[0] // 2] = vec[vec.shape[0] // 2 :]
+    vec_reordered[vec.shape[0] // 2 :] = vec[0 : vec.shape[0] // 2]
     return vec_reordered
 
 
-def convert_to_wavelength(I_freq, phase_freq, freq_vec, wavelength_vector_limits, sample_points=0):
+def convert_to_wavelength(
+    I_freq, phase_freq, freq_vec, wavelength_vector_limits, sample_points=0
+):
     """
     This function converts the frequency domain signal into a wavelength domain.
     Defaults to a wavelength vector that goes from 200nm below to 200nm above the central
@@ -123,15 +144,26 @@ def convert_to_wavelength(I_freq, phase_freq, freq_vec, wavelength_vector_limits
     """
     if sample_points == 0:
         sample_points = len(freq_vec)
-    wavelength_vector = np.linspace(wavelength_vector_limits[0], wavelength_vector_limits[1], num=sample_points)
+    wavelength_vector = np.linspace(
+        wavelength_vector_limits[0], wavelength_vector_limits[1], num=sample_points
+    )
     I_freq_interp = interp1d(2 * np.pi * freq_vec, I_freq)
-    I_wavelength = (2 * np.pi * c / (wavelength_vector ** 2)) * I_freq_interp(2 * np.pi * c / wavelength_vector)
+    I_wavelength = (2 * np.pi * c / (wavelength_vector**2)) * I_freq_interp(
+        2 * np.pi * c / wavelength_vector
+    )
     phase_freq_interp = interp1d(2 * np.pi * freq_vec, phase_freq)
     phase_wavelength = phase_freq_interp(2 * np.pi * c / wavelength_vector)
     return wavelength_vector, I_wavelength, phase_wavelength
 
 
-def inten_phase_plot(domain, field, xlabel="time (s)", y1label="Norm. Intensity", normalize=True, xlims=None):
+def inten_phase_plot(
+    domain,
+    field,
+    xlabel="time (s)",
+    y1label="Norm. Intensity",
+    normalize=True,
+    xlims=None,
+):
     fig, ax = plt.subplots()
     if normalize:
         factor = np.max(np.abs(field) ** 2)
@@ -152,8 +184,15 @@ def inten_phase_plot(domain, field, xlabel="time (s)", y1label="Norm. Intensity"
     plt.show()
 
 
-def spec_phase_plot2(domain, field, xlabel="frequency (Hz)", y1label="Norm. Intensity", normalize=True, xlims=None,
-                     shift_domain=True):
+def spec_phase_plot2(
+    domain,
+    field,
+    xlabel="frequency (Hz)",
+    y1label="Norm. Intensity",
+    normalize=True,
+    xlims=None,
+    shift_domain=True,
+):
     fig, ax = plt.subplots()
     if shift_domain:
         shifted_domain = np.fft.fftshift(domain)
@@ -209,7 +248,9 @@ def get_freq_vector(time_vector):
     time_vector: 1xN numpy array
 
     return a 1xN numpy array"""
-    return np.fft.fftshift(np.fft.fftfreq(n=len(time_vector), d=time_vector[1] - time_vector[0]))
+    return np.fft.fftshift(
+        np.fft.fftfreq(n=len(time_vector), d=time_vector[1] - time_vector[0])
+    )
 
 
 def exp(x):
@@ -283,10 +324,10 @@ def find_fwhm(x, y):
     return np.asarray(dx * pw)
 
 
-'''
+"""
 find, agrlimit, limit and fwhm taken from pypret package: https://github.com/ncgeib/pypret/blob/d47deb675640439df7c8b7c08d71f45ecea3c568/pypret/lib.py#L193
 Can update these later to our own functions if need be
-'''
+"""
 
 
 def calculate_bandwidth(y, x):
@@ -297,7 +338,9 @@ def calculate_bandwidth(y, x):
     y = get_intensity(y)
     y = y / np.max(y)
     # find starting position
-    peak_position = np.argmax(y)  # defines peak, one point will be to left and one point will be to the right
+    peak_position = np.argmax(
+        y
+    )  # defines peak, one point will be to left and one point will be to the right
     end = 0
     start = 0
     for i in range(1, peak_position):
@@ -319,8 +362,7 @@ def calculate_bandwidth(y, x):
 
 
 def find(x, condition, n=1):
-    """ Return the index of the nth element that fulfills the condition.
-    """
+    """Return the index of the nth element that fulfills the condition."""
     search_n = 1
     for i in range(len(x)):
         if condition(x[i]):
@@ -331,8 +373,7 @@ def find(x, condition, n=1):
 
 
 def arglimit(y, threshold=1e-3, padding=0.0, normalize=True):
-    """ Returns the first and last index where `y >= threshold * max(abs(y))`.
-    """
+    """Returns the first and last index where `y >= threshold * max(abs(y))`."""
     t = np.abs(y)
     if normalize:
         t /= np.max(t)
@@ -350,7 +391,7 @@ def arglimit(y, threshold=1e-3, padding=0.0, normalize=True):
 
 
 def limit(x, y=None, threshold=1e-3, padding=0.25, extend=True):
-    """ Returns the maximum x-range where the y-values are sufficiently large.
+    """Returns the maximum x-range where the y-values are sufficiently large.
     Parameters
     ----------
     x : array_like
@@ -393,8 +434,8 @@ def limit(x, y=None, threshold=1e-3, padding=0.25, extend=True):
 
 
 def fwhm(x, y):
-    """ Calculates the full width at half maximum of the distribution described
-        by (x, y).
+    """Calculates the full width at half maximum of the distribution described
+    by (x, y).
     """
     xl, xr = limit(x, y, threshold=0.5, padding=0.0)
     return np.abs(xr - xl)
@@ -411,24 +452,24 @@ def freq_bw_to_wavelength(bw_freq, center, center_domain):
     """
     Converts a frequency bandwidth to a wavelength bandwidth
     """
-    if center_domain == 'frequency':
-        return bw_freq * c / center ** 2
-    elif center_domain == 'wavelength':
-        return bw_freq * center ** 2 / c
+    if center_domain == "frequency":
+        return bw_freq * c / center**2
+    elif center_domain == "wavelength":
+        return bw_freq * center**2 / c
     else:
-        raise ValueError('center_domain must be either frequency or wavelength')
+        raise ValueError("center_domain must be either frequency or wavelength")
 
 
 def wavelength_bw_to_frequency(bw_wavelength, center, center_domain):
     """
     Converts a frequency bandwidth to a wavelength bandwidth
     """
-    if center_domain == 'wavelength':
-        return bw_wavelength * c / center ** 2
-    elif center_domain == 'frequency':
-        return bw_wavelength * center ** 2 / c
+    if center_domain == "wavelength":
+        return bw_wavelength * c / center**2
+    elif center_domain == "frequency":
+        return bw_wavelength * center**2 / c
     else:
-        raise ValueError('center_domain must be either frequency or wavelength')
+        raise ValueError("center_domain must be either frequency or wavelength")
 
 
 def energy_renormalization(intensity1, intensity2):
@@ -441,15 +482,28 @@ def energy_renormalization(intensity1, intensity2):
 
 
 def energy_match(field, energy):
-    return np.sqrt(energy * get_intensity(field) / np.sum(get_intensity(field))) * np.exp(1j * get_phase(field))
+    return np.sqrt(
+        energy * get_intensity(field) / np.sum(get_intensity(field))
+    ) * np.exp(1j * get_phase(field))
+
 
 def calc_energy_expanded(field, domain_spacing, spot_area):
     return np.sum(get_intensity(field)) * domain_spacing * spot_area
+
+
 def energy_match_expanded(field, energy, domain_spacing, spot_area):
     norm_E = np.sum(get_intensity(field)) * domain_spacing * spot_area
     return np.sqrt(energy / norm_E) * field
-def frequency_to_wavelength(field_frequency, frequency, wavelength_vector_limits, central_wavelength=None,
-                            sample_points=0, wavelength_vector=None):
+
+
+def frequency_to_wavelength(
+    field_frequency,
+    frequency,
+    wavelength_vector_limits,
+    central_wavelength=None,
+    sample_points=0,
+    wavelength_vector=None,
+):
     """
     Converts a frequency domain field to a wavelength domain field
     Normally assumes frequency vector with 0 centered field so takes central wavelength as input to adjust
@@ -461,28 +515,33 @@ def frequency_to_wavelength(field_frequency, frequency, wavelength_vector_limits
     else:
         frequency_vec = frequency + c / central_wavelength
     if wavelength_vector is None and wavelength_vector_limits is None:
-        raise ValueError('Must provide either wavelength_vector or wavelength_vector_limits')
+        raise ValueError(
+            "Must provide either wavelength_vector or wavelength_vector_limits"
+        )
     elif wavelength_vector is None:
         if sample_points == 0:
             sample_points = len(frequency_vec)
 
         # check wavelength limits
         if wavelength_vector_limits[0] < c / frequency_vec[-1]:
-            raise ValueError('Lower wavelength limit is too small')
+            raise ValueError("Lower wavelength limit is too small")
         if wavelength_vector_limits[1] > c / frequency_vec[0]:
-            raise ValueError('Upper wavelength limit is too large')
-        wavelength_vector = np.linspace(wavelength_vector_limits[0], wavelength_vector_limits[1], num=sample_points)
+            raise ValueError("Upper wavelength limit is too large")
+        wavelength_vector = np.linspace(
+            wavelength_vector_limits[0], wavelength_vector_limits[1], num=sample_points
+        )
     else:
         if wavelength_vector[0] < c / frequency_vec[-1]:
-            raise ValueError('Lower wavelength limit on input vector is too small')
+            raise ValueError("Lower wavelength limit on input vector is too small")
         if wavelength_vector[-1] > c / frequency_vec[0]:
-            raise ValueError('Upper wavelength limit on input vector is too large')
+            raise ValueError("Upper wavelength limit on input vector is too large")
 
     spectrum = get_intensity(field_frequency)
     spectrum_freq_interp = interp1d(2 * np.pi * frequency_vec, spectrum)
     phase = np.unwrap(get_phase(field_frequency))
-    spectrum_wavelength = (2 * np.pi * c / (wavelength_vector ** 2)) * spectrum_freq_interp(
-        2 * np.pi * c / wavelength_vector)
+    spectrum_wavelength = (
+        2 * np.pi * c / (wavelength_vector**2)
+    ) * spectrum_freq_interp(2 * np.pi * c / wavelength_vector)
     ph_freq_interp = interp1d(2 * np.pi * frequency_vec, phase)
     ph_wavelength = ph_freq_interp(2 * np.pi * c / wavelength_vector)
 
@@ -507,28 +566,35 @@ def wavelength_to_frequency(field_wavelength, wavelength, frequency_vector):
     central_wavelength = calculate_com(field_wavelength, wavelength)
     angfreq_vector = 2 * np.pi * (frequency_vector + c / central_wavelength)
     angfreq_endpoints = [2 * np.pi * c / wavelength[-1], 2 * np.pi * c / wavelength[0]]
-    indices = [np.argmin(np.abs(angfreq_vector - angfreq_endpoints[0])) + 1,
-               np.argmin(np.abs(angfreq_vector - angfreq_endpoints[1])) - 1]
+    indices = [
+        np.argmin(np.abs(angfreq_vector - angfreq_endpoints[0])) + 1,
+        np.argmin(np.abs(angfreq_vector - angfreq_endpoints[1])) - 1,
+    ]
     spectrum_wavelength = get_intensity(field_wavelength)
     spectrum_wavelength_interp = interp1d(wavelength, spectrum_wavelength)
     phase = get_phase(field_wavelength)
-    spectrum_angfreq = (2 * np.pi * c / (angfreq_vector[indices[0]:indices[1]] ** 2)) * spectrum_wavelength_interp(
-        2 * np.pi * c / angfreq_vector[indices[0]:indices[1]])
+    spectrum_angfreq = (
+        2 * np.pi * c / (angfreq_vector[indices[0] : indices[1]] ** 2)
+    ) * spectrum_wavelength_interp(
+        2 * np.pi * c / angfreq_vector[indices[0] : indices[1]]
+    )
     phase_wavelength_interp = interp1d(wavelength, phase)
-    phase_angfreq = phase_wavelength_interp(2 * np.pi * c / angfreq_vector[indices[0]:indices[1]])
+    phase_angfreq = phase_wavelength_interp(
+        2 * np.pi * c / angfreq_vector[indices[0] : indices[1]]
+    )
     field_angfreq = np.sqrt(spectrum_angfreq) * np.exp(1j * phase_angfreq)
     field_freq = np.ones(len(frequency_vector), dtype=complex) * field_angfreq[0]
-    field_freq[indices[0]:indices[1]] = field_angfreq
+    field_freq[indices[0] : indices[1]] = field_angfreq
 
     return field_freq
 
 
 def calculate_energy(field, domain):
-    '''
+    """
     Calculates the energy of a field.
     For frequency, should multiply by 2pi to get energy per unit frequency
     For wavelength, don't need any adjustment
-    '''
+    """
     return np.sum(np.abs(field) ** 2 * (domain[1] - domain[0]))
 
 
@@ -546,7 +612,9 @@ def smooth(x, y):
     y_g1d = ndimage.gaussian_filter1d(y_sm, sigma)
 
 
-def calculate_peak_power(beam_area, pulse_width, pulse_energy=None, average_power=None, rep_rate=None):
+def calculate_peak_power(
+    beam_area, pulse_width, pulse_energy=None, average_power=None, rep_rate=None
+):
     """
     Calculates the peak power of a beam.
     """
@@ -555,7 +623,9 @@ def calculate_peak_power(beam_area, pulse_width, pulse_energy=None, average_powe
     elif pulse_energy is not None:
         pass
     else:
-        raise ValueError('Either pulse_energy or average_power and rep_rate must be specified')
+        raise ValueError(
+            "Either pulse_energy or average_power and rep_rate must be specified"
+        )
 
     return pulse_energy / (pulse_width * beam_area)
 
@@ -585,7 +655,7 @@ def calculate_beam_area(radius):
     """
     Calculates the area of a beam.
     """
-    return np.pi * radius ** 2
+    return np.pi * radius**2
 
 
 def calculate_pulse_energy(avg_power, rep_rate):
@@ -602,28 +672,34 @@ def calculate_com(field, domain):
     return np.dot(np.abs(field) ** 2, domain) / np.sum(np.abs(field) ** 2)
 
 
-def dopant_ion_concentration_to_density(dopant_ion_concentration, mass_density_dopant, substrate_molar_mass):
+def dopant_ion_concentration_to_density(
+    dopant_ion_concentration, mass_density_dopant, substrate_molar_mass
+):
     """
     Calculates the density of dopant ions in a material. Assumes in the mass density of the material is 1 g/cm^3.
     Conversion from rp photonics. https://www.rp-photonics.com/doping_concentration.html
     Example: Yb:KGW is Yb3+:KGd(WO4)2, with a Yb3+ mass density of 6.5 g/cm^3.molar mass of KGW is about 692.0203 .
     """
     # TODO: make more general for mass or density
-    return dopant_ion_concentration * mass_density_dopant / (substrate_molar_mass * 1.66e-24)
+    return (
+        dopant_ion_concentration
+        * mass_density_dopant
+        / (substrate_molar_mass * 1.66e-24)
+    )
 
 
 class UNITS:
     def __init__(self, mScale=0, sScale=0):
-        self.m = 10 ** mScale
+        self.m = 10**mScale
         self.mm = 10 ** (-3 * self.m)
         self.um = 10 ** (-6 * self.m)
         self.nm = 10 ** (-9 * self.m)
 
-        self.s = 10 ** sScale
+        self.s = 10**sScale
         self.ns = 10 ** (-9 * self.s)
         self.ps = 10 ** (-12 * self.s)
         self.fs = 10 ** (-15 * self.s)
 
-        self.J = (self.m ** 2) / (self.s ** 2)
+        self.J = (self.m**2) / (self.s**2)
         self.mJ = 10 ** (-3 * self.J)
         self.uJ = 10 ** (-6 * self.J)
