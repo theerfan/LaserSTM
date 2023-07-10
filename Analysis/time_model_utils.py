@@ -42,39 +42,24 @@ def time_prediction(
         print("Please pass in the dataset using `CustomSequenceTiming()` function.")
         sys.exit(0)
 
+    # Erfan: Check this re-write to make sure it works
+    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+
     if model_param_path is not None:
-        params = torch.load(model_param_path)
-        if type(params) == dict and "model_state_dict" in params:
+        params = torch.load(model_param_path, map_location=device)
+        if isinstance(params, dict) and "model_state_dict" in params:
             params = params["model_state_dict"]
         try:
-            if use_gpu:
-                model.load_state_dict(params)
-            else:
-                model.load_state_dict(params, map_location="cpu")
-        # Erfan: Except what? if the model is None? non-paralleled?
-        # the try-except blocks being the same here is kinda bothering me :D
+            model.load_state_dict(params)
         except:
             model = torch.nn.DataParallel(model)
-            if use_gpu:
-                model.load_state_dict(params)
-            else:
-                model.load_state_dict(params, map_location="cpu")
+            model.load_state_dict(params)
 
-    # Erfan: Why are we doing data parallelism checks again?
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
-    if use_gpu:
-        if device == "cpu":
-            Warning("GPU not available, using CPU instead.")
-        if data_parallel:
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-            else:
-                Warning("Data parallelism not available, using single GPU instead.")
-        else:
-            try:
-                model = model.module()
-            except:
-                pass
+    if device == "gpu":
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+    else:
+        model = model.to(device)
 
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
@@ -83,11 +68,12 @@ def time_prediction(
     all_preds = None
     start_time = time.time()
     final_shape = None
+    # i = 0
     with torch.no_grad():
         for j, X_batch in enumerate(test_dataloader):
             X_batch = X_batch.to(torch.float32)
-            if verbose:
-                print(f"Predicting batch {i+1}/{len(test_dataloader)}")
+            # if verbose:
+            #     print(f"Predicting batch {i+1}/{len(test_dataloader)}")
 
             if use_gpu:
                 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,10 +82,7 @@ def time_prediction(
             if final_shape is None:
                 final_shape = X_batch.shape[-1]
 
-            for i in range(100):  # need to predict 100 times
-                if not i % 10 and verbose:
-                    print("iter", i)
-
+            for _ in range(100):  # need to predict 100 times
                 pred = model(X_batch)
                 X_batch = X_batch[:, 1:, :]  # pop first
 
@@ -119,7 +102,6 @@ def time_prediction(
             all_preds[j] = pred.squeeze()
 
     end_time = time.time()
-    # Erfan: And then do the concatenation here and send it back to CPU
+    # And then we do the concatenation here and send it back to CPU
     all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
-    # all_preds = np.concatenate(all_preds, axis=0)
     return all_preds, end_time - start_time

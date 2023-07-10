@@ -4,6 +4,8 @@ import numpy as np
 import os
 from torch.utils import data
 
+from typing import Tuple
+
 
 def add_prefix(lst: list, prefix="X"):
     """
@@ -78,6 +80,43 @@ class CustomSequence(data.Dataset):
             yield data_tensor, label_tensor
 
 
+# Returns the normalized loss and the last loss
+# Over a single pass of the dataset
+def single_pass(
+    model: nn.Module,
+    dataset: CustomSequence,
+    device: torch.device,
+    optimizer: torch.optim,
+    loss_fn: nn.Module,
+    verbose: bool = False,
+) -> Tuple[float, float]:
+    data_len = len(dataset)
+    pass_loss = 0
+    pass_len = 0
+    for i in range(len(dataset)):
+        if verbose:
+            print(f"Predicting batch {(i+1) / data_len}")
+        else:
+            pass
+        sample_generator = dataset[i]
+        for X, y in sample_generator:
+            X, y = X.to(torch.float32), y.to(torch.float32)
+            X, y = X.to(device), y.to(device)
+            if optimizer is not None:
+                optimizer.zero_grad()
+            else:
+                pass
+            pred = model(X)
+            loss = loss_fn(pred, y)
+            loss.backward()
+            optimizer.step()
+            # This part is to normalize it based on the number of samples in different batches
+            pass_len += X.size(0)
+            pass_loss += loss.item() * X.size(0)
+
+    return pass_loss / pass_len, loss
+
+
 def train(
     model: nn.Module,
     train_dataset: CustomSequence,
@@ -109,6 +148,7 @@ def train(
     model.to(device)
 
     criterion = nn.MSELoss()
+    # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters())
     train_losses = []
     if val_dataset is not None:
@@ -120,24 +160,14 @@ def train(
             print("Epoch", epoch + 1, "of", num_epochs)
 
         model.train()
-        train_loss = 0
-        train_len = 0
-        for i in range(len(train_dataset)):
-            sample_generator = train_dataset[i]
-            for X, y in sample_generator:
-                # Erfan: I don't understand why this normalization is happening
-                train_len += X.size(0)
-                X, y = X.to(torch.float32), y.to(torch.float32)
-                X, y = X.to(device), y.to(device)
-                optimizer.zero_grad()
-                pred = model(X)
-                loss = criterion(pred, y)
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item() * X.size(0)
-        train_loss /= train_len
+
+        train_loss, last_train_loss = single_pass(
+            model, train_dataset, device, optimizer, criterion
+        )
+
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
+        # approved.
         if save_checkpoints:
             checkpoint_path = os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}.pth")
             torch.save(
@@ -145,33 +175,34 @@ def train(
                     "epoch": epoch,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
-                    "loss": loss.item(),
+                    "loss": last_train_loss.item(),
                 },
                 checkpoint_path,
             )
+        else:
+            pass
 
+        # Erfan: As far as I understand, validation loss is used for hyperparameter tuning
+        # are we doing that here? Or are we planning to do that later?
+        # Answer: Inshallah we'll do hyperparameter turning later.
         # Validation
         if val_dataset is not None:
             model.eval()
-            val_loss = 0
-            val_len = 0
             with torch.no_grad():
-                for i in range(len(val_dataset)):
-                    sample_generator = val_dataset[i]
-                    for X, y in sample_generator:
-                        X, y = X.to(torch.float32), y.to(torch.float32)
-                        X, y = X.to(device), y.to(device)
-                        val_len += X.size(0)
-                        pred = model(X)
-                        loss = criterion(pred, y)
-                        val_loss += loss.item() * X.size(0)
-            val_loss /= val_len
+                val_loss, _ = single_pass(
+                    model, val_dataset, device, None, criterion
+                )
+        else:
+            pass
 
         train_losses.append(train_loss)
         np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
+
         if val_dataset is not None:
             val_losses.append(val_loss)
             np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+        else:
+            pass
 
         if verbose:
             if val_dataset is not None:
@@ -180,6 +211,8 @@ def train(
                 )
             else:
                 print(f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}")
+        else:
+            pass
 
     torch.save(model.state_dict(), os.path.join(out_dir, f"{model_name}.pth"))
     return model, train_losses, val_losses
@@ -195,57 +228,105 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
 ):
+    # Erfan: This part was cleaned up with the help of GPT-4.
+    # (We'll see if it works lol)
+
+    # Load model parameters if path is provided
     if model_param_path is not None:
         params = torch.load(model_param_path)
-        if type(params) == dict and "model_state_dict" in params:
-            params = params["model_state_dict"]
+        params = (
+            params["model_state_dict"]
+            if isinstance(params, dict) and "model_state_dict" in params
+            else params
+        )
+
         try:
             model.load_state_dict(params)
-        except:
+        except RuntimeError:
             model = torch.nn.DataParallel(model)
             model.load_state_dict(params)
 
+    # Set device to GPU if available and requested, else to CPU
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+
+    # Handle GPU related warnings and operations
     if use_gpu:
-        if device == "cpu":
-            Warning("GPU not available, using CPU instead.")
+        if device.type == "cpu":
+            print("Warning: GPU not available, using CPU instead.")
+
         if data_parallel:
             if torch.cuda.device_count() > 1:
                 model = nn.DataParallel(model)
             else:
-                Warning("Data parallelism not available, using single GPU instead.")
+                print(
+                    "Warning: Data parallelism not available, using single GPU instead."
+                )
         else:
             try:
-                model = model.module()
-            except:
+                model = model.module
+            except AttributeError:
                 pass
-    model.to(device)
 
+    # Literally the same code as in time_model_utils.py
+    model = model.to(device)
     model.eval()
-    all_preds = []
+    all_preds = None
     final_shape = None
+    # i = 0
     with torch.no_grad():
-        for i in range(len(test_dataset)):
-            if verbose:
-                print(f"Predicting batch {i+1}/{len(test_dataset)}")
-            sample_generator = test_dataset[i]
-            for X, y in sample_generator:
-                X, y = X.to(torch.float32), y.to(torch.float32)
-                X, y = X.to(device), y.to(device)
-                if final_shape is None:
-                    final_shape = y.shape[1]
-                pred = model(X)
-                for _ in range(100):  # need to predict 100 times
-                    pred = model(X)
-                    X = X[:, 1:, :]  # pop first
-                    X = torch.cat(
-                        (X, torch.reshape(pred, (-1, 1, final_shape))), 1
-                    )  # add to last
-                all_preds.append(pred.squeeze().cpu().numpy())
+        for j, X_batch in enumerate(test_dataset):
+            X_batch = X_batch.to(torch.float32)
+            # if verbose:
+            #     print(f"Predicting batch {i+1}/{len(test_dataloader)}")
 
-    all_preds = np.concatenate(all_preds, axis=0)
+            if use_gpu:
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                X_batch = X_batch.to(device)
+
+            if final_shape is None:
+                final_shape = X_batch.shape[-1]
+
+            for _ in range(100):  # need to predict 100 times
+                pred = model(X_batch)
+                X_batch = X_batch[:, 1:, :]  # pop first
+
+                # add to last
+                X_batch = torch.cat(
+                    (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                )
+
+            # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
+            # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
+            if all_preds is None:
+                all_preds = torch.zeros(
+                    (len(test_dataset), *pred.squeeze().shape), device=device
+                )
+            else:
+                pass
+            all_preds[j] = pred.squeeze()
+
+    # And then we do the concatenation here and send it back to CPU
+    all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
+    
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
 
 # Erfan: I think all of this "giving the data to the model" should be repackaged into
 # one function and not be repeated everywhere.
+
+
+# Erfan-Jack Meeting:
+# 1. The sfg signal didn't look so good when the input pulse was a bit complicated
+# Re-proportion loss function to make sfg more important (1892 * 2 for shg, 348 for sfg)
+# 2. Instead of MSE, adding some convolution based-loss function might be better
+# Look up Pierson-correlation coefficient: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
+# [e.g, overkill rn]:
+# Time-Frequency Representations: If you are working with time-frequency representations like spectrograms, you can use loss functions that operate directly on these representations. For instance, you can use the spectrogram difference as a loss, or you can use perceptual loss functions that take into account human perception of audio signals. [introduces a lot of time]
+# Wasserstein Loss: The Wasserstein loss, also known as Earth Mover's Distance (EMD), is a metric used in optimal transport theory. It measures the minimum cost of transforming one distribution into another. It has been applied in signal processing tasks, including time and frequency domain analysis, to capture the structure and shape of signals.
+# 3. Check out the intPhEn part again and see what else can be done [Ae^{i\phi}}]
+# (it's more natural to the optics domain, energy is proportional to the intensity,
+# it's only 3 values for 2shg, sfg, but it's really important for how strong the non-linear process is)
+# [ you get jump disconts in 0 to 2pi, we also have to note that phase is only important when we have intensity]
+# phase unwrapping (np.unwrap) [add the inverse relation of phase/intensity to the loss function]
+# (real intensity and set threshold for it to not affect the phase too much)
+# or could cut the phase vector shorter than the intensity vector
