@@ -108,8 +108,11 @@ def single_pass(
                 pass
             pred = model(X)
             loss = loss_fn(pred, y)
-            loss.backward()
-            optimizer.step()
+            if optimizer is not None:
+                loss.backward()
+                optimizer.step()
+            else:
+                pass
             # This part is to normalize it based on the number of samples in different batches
             pass_len += X.size(0)
             pass_loss += loss.item() * X.size(0)
@@ -310,9 +313,6 @@ def predict(
     
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
-
-# Erfan: I think all of this "giving the data to the model" should be repackaged into
-# one function and not be repeated everywhere.
 
 
 # Erfan-Jack Meeting:
