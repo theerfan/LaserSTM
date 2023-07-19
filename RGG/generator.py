@@ -21,8 +21,14 @@ def visualize_gaussian(gaussian: np.ndarray):
 # of gaussian distributions
 # Output: array of size n with the combination of gaussian distributions
 def generate_gaussian_combination(
-    output_size: int, mean: float, std: float, amplitude: float, n: int
+    output_size: int,
+    mean: List[float],
+    std: List[float],
+    amplitude: List[float],
 ) -> np.ndarray:
+    # Make sure the length of the list are the same
+    assert len(mean) == len(std) == len(amplitude)
+    n = len(mean)
     gaussian = np.zeros(output_size)
     for i in range(n):
         sign = np.random.choice([-1, 1])
@@ -35,5 +41,5 @@ def generate_gaussian_combination(
     return gaussian
 
 
-a = generate_gaussian_combination(10000, [0, 0], [1, 1], [1, 1], 2)
+a = generate_gaussian_combination(10000, [0, 0], [1, 1], [1, 1])
 visualize_gaussian(a)
