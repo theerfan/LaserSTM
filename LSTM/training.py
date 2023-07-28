@@ -43,11 +43,11 @@ class LSTMModel_1(nn.Module):
         return out
 
 
-data_dir = "../processed_dataset/"
+data_dir = "/u/scratch/t/theerfan/JackData"
 train_dataset = CustomSequence(
-    data_dir, range(2), file_batch_size=1, model_batch_size=512
+    data_dir, range(20), file_batch_size=1, model_batch_size=512
 )
-val_dataset = CustomSequence(data_dir, [1], file_batch_size=1, model_batch_size=512)
+val_dataset = CustomSequence(data_dir, [3], file_batch_size=1, model_batch_size=512)
 
 
 len(train_dataset)

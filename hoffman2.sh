@@ -3,7 +3,7 @@
 #$ -pe shared 1
 #$ -cwd
 ## h_rt = run time limit
-#$ -l gpu,P4,h_rt=3:00:00
+#$ -l gpu,P4,h_rt=3:00:00,h_data=4G
 ## specifies that the standard error stream of the job is merged into the standard output stream
 #$ -j y
 ## sets the path to where the standard output stream of the job will be written
@@ -14,8 +14,10 @@
 #$ -M $USER@mail
 ## Notify when: b=begin, e=end, a=abort
 #$ -m bea
-
+. /u/local/Modules/default/init/modules.sh
 module load cuda/11.8 
 module load python/3.9.6
+
+pip3 install torch
 
 python3 LSTM/training.py
