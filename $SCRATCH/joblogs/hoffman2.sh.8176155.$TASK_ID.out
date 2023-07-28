@@ -1,0 +1,37 @@
+
+ Please notice that cuda software can only run on gpu nodes.
+ To learn how to obtain access to these node refer to:
+
+ http://hpc.ucla.edu/hoffman2 
+
+ and follow the Hoffman2 GPU queue link.
+
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: torch in /u/home/t/theerfan/.local/lib/python3.9/site-packages (2.0.1)
+Requirement already satisfied: typing-extensions in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (4.7.1)
+Requirement already satisfied: nvidia-cudnn-cu11==8.5.0.96 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (8.5.0.96)
+Requirement already satisfied: sympy in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from torch) (1.8)
+Requirement already satisfied: nvidia-cublas-cu11==11.10.3.66 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.10.3.66)
+Requirement already satisfied: nvidia-cufft-cu11==10.9.0.58 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (10.9.0.58)
+Requirement already satisfied: nvidia-nccl-cu11==2.14.3 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (2.14.3)
+Requirement already satisfied: nvidia-curand-cu11==10.2.10.91 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (10.2.10.91)
+Requirement already satisfied: nvidia-cuda-nvrtc-cu11==11.7.99 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.7.99)
+Requirement already satisfied: nvidia-cusolver-cu11==11.4.0.1 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.4.0.1)
+Requirement already satisfied: networkx in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from torch) (2.6.2)
+Requirement already satisfied: triton==2.0.0 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (2.0.0)
+Requirement already satisfied: nvidia-cuda-runtime-cu11==11.7.99 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.7.99)
+Requirement already satisfied: nvidia-cusparse-cu11==11.7.4.91 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.7.4.91)
+Requirement already satisfied: nvidia-cuda-cupti-cu11==11.7.101 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.7.101)
+Requirement already satisfied: nvidia-nvtx-cu11==11.7.91 in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (11.7.91)
+Requirement already satisfied: filelock in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from torch) (3.12.2)
+Requirement already satisfied: jinja2 in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from torch) (3.0.1)
+Requirement already satisfied: setuptools in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from nvidia-cublas-cu11==11.10.3.66->torch) (57.4.0)
+Requirement already satisfied: wheel in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from nvidia-cublas-cu11==11.10.3.66->torch) (0.41.0)
+Requirement already satisfied: cmake in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from triton==2.0.0->torch) (3.27.0)
+Requirement already satisfied: lit in /u/home/t/theerfan/.local/lib/python3.9/site-packages (from triton==2.0.0->torch) (16.0.6)
+Requirement already satisfied: MarkupSafe>=2.0 in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from jinja2->torch) (2.0.1)
+Requirement already satisfied: mpmath>=0.19 in /u/local/apps/python/3.9.6/gcc-4.8.5/lib/python3.9/site-packages (from sympy->torch) (1.2.1)
+WARNING: You are using pip version 21.2.4; however, version 23.2.1 is available.
+You should consider upgrading via the '/u/local/apps/python/3.9.6/gcc-4.8.5/bin/python3.9 -m pip install --upgrade pip' command.
+/u/home/t/theerfan/LaserSTM/LSTM/train_predict_utils.py:77: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at ../torch/csrc/utils/tensor_new.cpp:245.)
+  data_tensor = torch.tensor(data_batch)
