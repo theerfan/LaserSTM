@@ -74,8 +74,8 @@ class CustomSequence(data.Dataset):
             data_batch = data[i : i + self.model_batch_size]
             labels_batch = labels[i : i + self.model_batch_size]
 
-            data_tensor = torch.tensor(data_batch)
-            label_tensor = torch.tensor(labels_batch)
+            data_tensor = torch.tensor(np.array(data_batch))
+            label_tensor = torch.tensor(np.array(labels_batch))
 
             yield data_tensor, label_tensor
 
