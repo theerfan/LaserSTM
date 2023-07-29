@@ -43,7 +43,9 @@ class LSTMModel_1(nn.Module):
         return out
 
 
+# The data that is currently here is the V2 data (reIm)
 data_dir = "/u/scratch/t/theerfan/JackData"
+# data_dir = "processed_dataset"
 train_dataset = CustomSequence(
     data_dir, range(20), file_batch_size=1, model_batch_size=512
 )
@@ -52,7 +54,8 @@ val_dataset = CustomSequence(data_dir, [3], file_batch_size=1, model_batch_size=
 
 len(train_dataset)
 
-# 1892 * 4 + 348 * 2
+# (SHG1, SHG2) + SFG * 2
+# (1892 * 2 + 348) * 2
 model = LSTMModel_1(input_size=8264)
 
 train(
