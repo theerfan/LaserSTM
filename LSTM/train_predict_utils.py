@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from scipy.stats import pearsonr
 import os
 from torch.utils import data
 
@@ -150,7 +151,7 @@ def train(
         pass
     model.to(device)
 
-    criterion = nn.MSELoss()
+    criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters())
     train_losses = []
@@ -192,9 +193,7 @@ def train(
         if val_dataset is not None:
             model.eval()
             with torch.no_grad():
-                val_loss, _ = single_pass(
-                    model, val_dataset, device, None, criterion
-                )
+                val_loss, _ = single_pass(model, val_dataset, device, None, criterion)
         else:
             pass
 
@@ -310,9 +309,49 @@ def predict(
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
-    
+
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
+
+def re_im_sep(fields):
+    shg1 = fields[0:1892] + fields[1892 * 2 + 348 : 1892 * 3 + 348] * 1j
+    shg2 = fields[1892 : 1892 * 2] + fields[1892 * 3 + 348 : 1892 * 4 + 348] * 1j
+    sfg = (
+        fields[1892 * 2 : 1892 * 2 + 348]
+        + fields[1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
+    )
+
+    return shg1, shg2, sfg
+
+
+# This is a custom loss function that gives different weights
+# to the different parts of the signal
+def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
+    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
+    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
+
+    mse = nn.MSELoss()
+
+    shg1_loss = mse(shg1_pred, shg1_real)
+    shg2_loss = mse(shg2_pred, shg2_real)
+    sfg_loss = mse(sfg_pred, sfg_real)
+
+    return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
+
+
+def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
+    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
+    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
+
+    shg1_pearson = pearsonr(shg1_pred, shg1_real)
+    shg2_pearson = pearsonr(shg2_pred, shg2_real)
+    sfg_pearson = pearsonr(sfg_pred, sfg_real)
+
+    shg1_corr = shg1_pearson.statistic
+    shg2_corr = shg2_pearson.statistic
+    sfg_corr = sfg_pearson.statistic
+
+    return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
 
 
 # Erfan-Jack Meeting:
