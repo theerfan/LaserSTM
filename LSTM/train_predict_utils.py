@@ -312,13 +312,15 @@ def predict(
 
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
-
+# `:,` is there because we want to keep the batch dimension
+# Commenting out the `* 1j` because we want to keep the real and imaginary parts separate
+# For the purpose of calculating the loss
 def re_im_sep(fields):
-    shg1 = fields[0:1892] + fields[1892 * 2 + 348 : 1892 * 3 + 348] * 1j
-    shg2 = fields[1892 : 1892 * 2] + fields[1892 * 3 + 348 : 1892 * 4 + 348] * 1j
+    shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] #* 1j
+    shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] #* 1j
     sfg = (
-        fields[1892 * 2 : 1892 * 2 + 348]
-        + fields[1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
+        fields[:, 1892 * 2 : 1892 * 2 + 348]
+        + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] #* 1j
     )
 
     return shg1, shg2, sfg

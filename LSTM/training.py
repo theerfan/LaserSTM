@@ -1,6 +1,14 @@
-from train_predict_utils import CustomSequence, train, predict
+from train_predict_utils import (
+    CustomSequence,
+    train,
+    predict,
+    weighted_MSE,
+    pearson_corr,
+    single_pass,
+)
 import torch
 import torch.nn as nn
+from functools import partial
 
 
 class LSTMModel_1(nn.Module):
@@ -43,46 +51,73 @@ class LSTMModel_1(nn.Module):
         return out
 
 
-# The data that is currently here is the V2 data (reIm)
-data_dir = "/u/scratch/t/theerfan/JackData"
-# data_dir = "processed_dataset"
-train_dataset = CustomSequence(
-    data_dir, range(20), file_batch_size=1, model_batch_size=512
-)
-val_dataset = CustomSequence(data_dir, [3], file_batch_size=1, model_batch_size=512)
+def main_train():
+    # The data that is currently here is the V2 data (reIm)
+    data_dir = "/u/scratch/t/theerfan/JackData"
+    train_dataset = CustomSequence(
+        data_dir, range(20), file_batch_size=1, model_batch_size=512
+    )
+    val_dataset = CustomSequence(data_dir, [3], file_batch_size=1, model_batch_size=512)
+
+    # (SHG1, SHG2) + SFG * 2
+    # (1892 * 2 + 348) * 2
+    model = LSTMModel_1(input_size=8264)
+
+    train(
+        model,
+        train_dataset,
+        num_epochs=10,
+        val_dataset=val_dataset,
+        use_gpu=True,
+        data_parallel=True,
+        out_dir=".",
+        model_name="model",
+        verbose=1,
+        save_checkpoints=True,
+        custom_loss=weighted_MSE,
+    )
+
+    test_dataset = CustomSequence(
+        data_dir, [2], file_batch_size=1, model_batch_size=512, test_mode=True
+    )
+
+    predict(
+        model,
+        model_param_path="model_epoch_2.pth",
+        test_dataset=test_dataset,
+        use_gpu=True,
+        data_parallel=False,
+        output_dir=".",
+        output_name="all_preds.npy",
+        verbose=1,
+    )
 
 
-len(train_dataset)
+def test_losses():
+    data_dir = "processed_dataset"
+    test_dataset = CustomSequence(
+        data_dir, [1], file_batch_size=1, model_batch_size=512
+    )
 
-# (SHG1, SHG2) + SFG * 2
-# (1892 * 2 + 348) * 2
-model = LSTMModel_1(input_size=8264)
+    # (SHG1, SHG2) + SFG * 2
+    # (1892 * 2 + 348) * 2
+    model = LSTMModel_1(input_size=8264)
+    mse = nn.MSELoss()
 
-train(
-    model,
-    train_dataset,
-    num_epochs=10,
-    val_dataset=val_dataset,
-    use_gpu=True,
-    data_parallel=True,
-    out_dir=".",
-    model_name="model",
-    verbose=1,
-    save_checkpoints=True,
-    custom_loss=None,
-)
+    optimizer = torch.optim.Adam(model.parameters())
 
-test_dataset = CustomSequence(
-    data_dir, [2], file_batch_size=1, model_batch_size=512, test_mode=True
-)
+    normalized_mse_loss, last_mse_loss = single_pass(
+        model, test_dataset, "cpu", optimizer, mse, verbose=False
+    )
 
-predict(
-    model,
-    model_param_path="model_epoch_2.pth",
-    test_dataset=test_dataset,
-    use_gpu=True,
-    data_parallel=False,
-    output_dir=".",
-    output_name="all_preds.npy",
-    verbose=1,
-)
+    print(normalized_mse_loss, last_mse_loss)
+
+    normalized_equal_mse_loss, last_equal_mse_loss = single_pass(
+        model, test_dataset, "cpu", optimizer, weighted_MSE, verbose=False
+    )
+
+    print(normalized_equal_mse_loss, last_equal_mse_loss)
+
+
+if __name__ == "__main__":
+    main_train()
