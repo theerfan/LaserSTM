@@ -57,7 +57,9 @@ def main_train():
     train_dataset = CustomSequence(
         data_dir, range(90), file_batch_size=1, model_batch_size=512
     )
-    val_dataset = CustomSequence(data_dir, [90], file_batch_size=1, model_batch_size=512)
+    val_dataset = CustomSequence(
+        data_dir, [90], file_batch_size=1, model_batch_size=512
+    )
 
     # (SHG1, SHG2) + SFG * 2
     # (1892 * 2 + 348) * 2
