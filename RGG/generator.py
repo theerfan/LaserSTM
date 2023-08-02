@@ -20,14 +20,12 @@ def generate_gaussian(
     output_size: int,
     mean: float,
     std: float,
-    init_phases: List[float],
     energy: float = 1,
 ) -> dict:
     frequencies = np.random.normal(mean, std, output_size)
-    phases = np.array([taylor_expansion(init_phases, omega) for omega in frequencies])
     return {
         "frequencies": frequencies,
-        "phases": phases,
+        # "phases": phases,
         "energy": energy,
     }
 
@@ -36,6 +34,15 @@ def generate_gaussian(
 def visualize_gaussian(gaussian: np.ndarray):
     plt.hist(gaussian, bins=200)
     plt.show()
+
+
+# Fix the minimum value of the gaussian distribution to 0
+def fix_min(gaussian: np.ndarray):
+    if min(gaussian) < 0:
+        gaussian -= min(gaussian)
+    else:
+        pass
+    return gaussian
 
 
 # Generate combination of gaussian distributions
@@ -47,9 +54,10 @@ def generate_gaussian_combination(
     means: List[float],
     stds: List[float],
     energies: List[float],
+    init_phases: List[float],
 ) -> dict:
     # Make sure the length of the list are the same
-    assert len(means) == len(stds) == len(energies)
+    assert len(means) == len(stds)
     n = len(means)
     total_gaussian = {
         "frequencies": np.zeros(output_size),
@@ -62,18 +70,17 @@ def generate_gaussian_combination(
             output_size, means[i], stds[i], energies[i]
         )
         total_gaussian["frequencies"] += sign * current_gaussian["frequencies"]
-        total_gaussian["phases"] += sign * current_gaussian["phases"]
         total_gaussian["energy"] += sign * current_gaussian["energy"]
 
-    if min(total_gaussian["frequencies"]) < 0:
-        total_gaussian["frequencies"] -= min(total_gaussian["frequencies"])
-    else:
-        pass
+    total_gaussian["frequencies"] = fix_min(total_gaussian["frequencies"])
+    total_gaussian["energies"] = fix_min(total_gaussian["energies"])
 
-    if min(total_gaussian["energies"]) < 0:
-        total_gaussian["energies"] -= min(total_gaussian["energies"])
-    else:
-        pass
+    total_gaussian["phases"] = np.array(
+        [
+            taylor_expansion(init_phases, omega)
+            for omega in total_gaussian["frequencies"]
+        ]
+    )
 
     return total_gaussian
 
