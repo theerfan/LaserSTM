@@ -312,18 +312,23 @@ def predict(
 
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
+
 # `:,` is there because we want to keep the batch dimension
-# Commenting out the `* 1j` because we want to keep the real and imaginary parts separate
-# For the purpose of calculating the loss
 def re_im_sep(fields):
-    shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] #* 1j
-    shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] #* 1j
+    shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
+    shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
     sfg = (
         fields[:, 1892 * 2 : 1892 * 2 + 348]
-        + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] #* 1j
+        + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
     )
 
     return shg1, shg2, sfg
+
+# Complex MSE loss function, because MSE loss function
+# doesn't work with complex numbers 
+# From: https://github.com/pytorch/pytorch/issues/46642#issuecomment-1358092506
+def complex_mse(output, target):
+    return (0.5 * (output - target) ** 2).mean(dtype=torch.complex64)
 
 
 # This is a custom loss function that gives different weights
@@ -332,11 +337,9 @@ def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
     shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
     shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
 
-    mse = nn.MSELoss()
-
-    shg1_loss = mse(shg1_pred, shg1_real)
-    shg2_loss = mse(shg2_pred, shg2_real)
-    sfg_loss = mse(sfg_pred, sfg_real)
+    shg1_loss = complex_mse(shg1_pred, shg1_real)
+    shg2_loss = complex_mse(shg2_pred, shg2_real)
+    sfg_loss = complex_mse(sfg_pred, sfg_real)
 
     return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
 
