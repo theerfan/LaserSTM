@@ -3,7 +3,7 @@
 #$ -pe shared 1
 #$ -cwd
 ## h_rt = run time limit
-#$ -l gpu,V100,h_rt=5:00:00,h_data=4G
+#$ -l gpu,V100,h_rt=23:59:00,h_data=8G
 ## specifies that the standard error stream of the job is merged into the standard output stream
 #$ -j y
 ## sets the path to where the standard output stream of the job will be written
