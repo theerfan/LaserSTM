@@ -83,7 +83,7 @@ def main_train():
 
     predict(
         model,
-        model_param_path="model_epoch_2.pth",
+        # model_param_path="model_epoch_2.pth",
         test_dataset=test_dataset,
         use_gpu=True,
         data_parallel=False,
