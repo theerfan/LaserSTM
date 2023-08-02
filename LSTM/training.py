@@ -55,9 +55,9 @@ def main_train():
     # The data that is currently here is the V2 data (reIm)
     data_dir = "/u/scratch/t/theerfan/JackData"
     train_dataset = CustomSequence(
-        data_dir, range(20), file_batch_size=1, model_batch_size=512
+        data_dir, range(90), file_batch_size=1, model_batch_size=512
     )
-    val_dataset = CustomSequence(data_dir, [3], file_batch_size=1, model_batch_size=512)
+    val_dataset = CustomSequence(data_dir, [90], file_batch_size=1, model_batch_size=512)
 
     # (SHG1, SHG2) + SFG * 2
     # (1892 * 2 + 348) * 2
@@ -78,7 +78,7 @@ def main_train():
     )
 
     test_dataset = CustomSequence(
-        data_dir, [2], file_batch_size=1, model_batch_size=512, test_mode=True
+        data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
     )
 
     predict(
@@ -93,7 +93,7 @@ def main_train():
     )
 
 
-def test_losses():
+def dev_test_losses():
     data_dir = "processed_dataset"
     test_dataset = CustomSequence(
         data_dir, [1], file_batch_size=1, model_batch_size=512
