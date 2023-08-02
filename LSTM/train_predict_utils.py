@@ -172,7 +172,7 @@ def train(
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
         # approved.
-        if save_checkpoints:
+        if save_checkpoints and epoch % 10 == 0:
             checkpoint_path = os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}.pth")
             torch.save(
                 {
