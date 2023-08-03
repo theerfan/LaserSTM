@@ -21,29 +21,29 @@ def split_and_concatenate(fields, scaling_factors, normalize_energy=False):
     energy_out = np.array([])
     intensity_out = np.array([])
     phase_out = np.array([])
-    i = 0
-    scaling_factors["beam_area"] = (400*1e-6)**2 * (np.pi)
-    for field in fields:
-
+    scaling_factors["beam_area"] = (400 * 1e-6) ** 2 * (np.pi)
+    for i, field in enumerate(fields):
         intensity = get_intensity(field)
         phase = get_phase(field)
-        if not normalize_energy:
-            energy = calc_energy_expanded(field,scaling_factors["grid_spacing"][i], scaling_factors["beam_area"])
+
+        energy = calc_energy_expanded(
+            field, scaling_factors["grid_spacing"][i], scaling_factors["beam_area"]
+        )
+
+        if normalize_energy:
+            energy = energy / 25e-6
         else:
-            energy = calc_energy_expanded(field,scaling_factors["grid_spacing"][i], scaling_factors["beam_area"]) / 25e-6
-            
-        # print(scaling_factors["grid_spacing"][i])
-        # print("inside concat energy",energy)
-        #energy = np.sum(intensity)*scaling_factors["beam_area"]*scaling_factors["energy_adjust"] #assuming in uJ
-        energy_out = concatenate_arrays(energy_out, energy)
+            pass
+
         if np.max(intensity) > 0:
             intensity = intensity / np.max(intensity)
+        else:
+            pass
+
+        energy_out = concatenate_arrays(energy_out, energy)
         intensity_out = concatenate_arrays(intensity_out, intensity)
-        
-        phase_out = concatenate_arrays(phase_out, phase/np.pi)
-#       phase_out = concatenate_arrays(phase_out, np.unwrap(phase/np.pi, period=1))
-#       phase_out = concatenate_arrays(phase_out, np.unwrap(phase))
-        i += 1
+        phase_out = concatenate_arrays(phase_out, phase / np.pi)
+
     return concatenate_arrays(intensity_out, phase_out, energy_out).astype(np.float32)
 
 def create_necessary_folders_and_files():
