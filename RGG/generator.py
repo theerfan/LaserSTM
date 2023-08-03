@@ -9,9 +9,9 @@ def taylor_expansion(
     init_phases: List[float], omega: float, omega_0: float = 0
 ) -> float:
     n = len(init_phases)
-    total_phase = init_phases[0]
-    for i in range(1, n):
-        total_phase += init_phases[i] * (omega - omega_0) / factorial(i)
+    total_phase = 0
+    for i in range(n):
+        total_phase += init_phases[i] * (omega - omega_0) ** i / factorial(i)
     return total_phase
 
 
