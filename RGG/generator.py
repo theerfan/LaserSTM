@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from typing import List, Dict
 from math import factorial
 
-
+# Taylor expansion of the spectral phase
 def taylor_expansion(
     init_phases: List[float], omega: float, omega_0: float = 0
 ) -> float:
