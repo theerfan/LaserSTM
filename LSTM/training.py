@@ -1,14 +1,16 @@
-from train_predict_utils import (
-    CustomSequence,
-    train,
-    predict,
-    weighted_MSE,
-    pearson_corr,
-    single_pass,
-)
+import argparse
+from typing import Callable
+
 import torch
 import torch.nn as nn
-from functools import partial
+from train_predict_utils import (
+    CustomSequence,
+    pearson_corr,
+    predict,
+    single_pass,
+    train,
+    weighted_MSE,
+)
 
 
 class LSTMModel_1(nn.Module):
@@ -51,9 +53,37 @@ class LSTMModel_1(nn.Module):
         return out
 
 
-def main_train():
+def dev_test_losses():
+    data_dir = "processed_dataset"
+    test_dataset = CustomSequence(
+        data_dir, [1], file_batch_size=1, model_batch_size=512
+    )
+
+    # (SHG1, SHG2) + SFG * 2
+    # (1892 * 2 + 348) * 2
+    model = LSTMModel_1(input_size=8264)
+    # mse = nn.MSELoss()
+    mse = pearson_corr
+
+    optimizer = torch.optim.Adam(model.parameters())
+
+    normalized_mse_loss, last_mse_loss = single_pass(
+        model, test_dataset, "cpu", optimizer, mse, verbose=False
+    )
+
+    print(normalized_mse_loss, last_mse_loss)
+
+    normalized_equal_mse_loss, last_equal_mse_loss = single_pass(
+        model, test_dataset, "cpu", optimizer, weighted_MSE, verbose=False
+    )
+
+    print(normalized_equal_mse_loss, last_equal_mse_loss)
+
+
+def main_train(
+    data_dir: str, num_epochs: int, custom_loss: Callable, epoch_save_interval: int
+):
     # The data that is currently here is the V2 data (reIm)
-    data_dir = "/u/scratch/t/theerfan/JackData"
     train_dataset = CustomSequence(
         data_dir, range(90), file_batch_size=1, model_batch_size=512
     )
@@ -68,7 +98,7 @@ def main_train():
     train(
         model,
         train_dataset,
-        num_epochs=10,
+        num_epochs=num_epochs,
         val_dataset=val_dataset,
         use_gpu=True,
         data_parallel=True,
@@ -76,7 +106,8 @@ def main_train():
         model_name="model",
         verbose=1,
         save_checkpoints=True,
-        custom_loss=weighted_MSE,
+        custom_loss=custom_loss,
+        epoch_save_interval=epoch_save_interval,
     )
 
     test_dataset = CustomSequence(
@@ -95,31 +126,29 @@ def main_train():
     )
 
 
-def dev_test_losses():
-    data_dir = "processed_dataset"
-    test_dataset = CustomSequence(
-        data_dir, [1], file_batch_size=1, model_batch_size=512
-    )
-
-    # (SHG1, SHG2) + SFG * 2
-    # (1892 * 2 + 348) * 2
-    model = LSTMModel_1(input_size=8264)
-    mse = nn.MSELoss()
-
-    optimizer = torch.optim.Adam(model.parameters())
-
-    normalized_mse_loss, last_mse_loss = single_pass(
-        model, test_dataset, "cpu", optimizer, mse, verbose=False
-    )
-
-    print(normalized_mse_loss, last_mse_loss)
-
-    normalized_equal_mse_loss, last_equal_mse_loss = single_pass(
-        model, test_dataset, "cpu", optimizer, weighted_MSE, verbose=False
-    )
-
-    print(normalized_equal_mse_loss, last_equal_mse_loss)
-
-
 if __name__ == "__main__":
-    main_train()
+    parser = argparse.ArgumentParser(description="Train and test the model.")
+    parser.add_argument(
+        "--data_dir", type=str, required=True, help="Path to the data directory."
+    )
+    parser.add_argument(
+        "--num_epochs", type=int, required=True, help="Number of epochs for training."
+    )
+    parser.add_argument(
+        "--custom_loss", type=str, required=True, help="Custom loss function name."
+    )
+
+    parser.add_argument(
+        "--epoch_save_interval", type=int, default=1, help="Epoch save interval."
+    )
+
+    loss_dict = {
+        "weighted_MSE": weighted_MSE,
+        "pearson_corr": pearson_corr,
+    }
+
+    args = parser.parse_args()
+
+    custom_loss = loss_dict[args.custom_loss]
+
+    main_train(args.data_dir, args.num_epochs, custom_loss, args.epoch_save_interval)

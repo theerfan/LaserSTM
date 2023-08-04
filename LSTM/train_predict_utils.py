@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
+from torchmetrics.regression import PearsonCorrCoef
 import numpy as np
-from scipy.stats import pearsonr
 import os
 from torch.utils import data
 
@@ -133,6 +133,7 @@ def train(
     verbose: bool = True,
     save_checkpoints: bool = True,
     custom_loss=None,
+    epoch_save_interval: int = 1,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
 
@@ -172,7 +173,7 @@ def train(
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
         # approved.
-        if save_checkpoints and epoch % 10 == 0:
+        if save_checkpoints and epoch % epoch_save_interval == 0:
             checkpoint_path = os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}.pth")
             torch.save(
                 {
@@ -353,27 +354,26 @@ def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
 
 def complex_pearsonr(y_pred, y_real):
     # Calculate the Pearson correlation coefficient for complex numbers
-    pred_real, pred_imag = np.real(y_pred), np.imag(y_pred)
-    real_real, real_imag = np.real(y_real), np.imag(y_real)
+    pred_real, pred_imag = torch.real(y_pred), torch.imag(y_pred)
+    real_real, real_imag = torch.real(y_real), torch.imag(y_real)
 
-    pearson_corr = (
-        pearsonr(pred_real, real_real).statistic
-        + 1j * pearsonr(pred_imag, real_imag).statistic
-    )
+    real_pearson = PearsonCorrCoef()(pred_real, real_real)
+    imag_pearson = PearsonCorrCoef()(pred_imag, real_imag)
 
-    # Return the absolute value of the correlation coefficient
-    return np.abs(pearson_corr)
+    # Return the l2 norm of the complex pearson correlation coefficient
+    return torch.norm(torch.complex(real_pearson, imag_pearson))
 
 
 def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
-    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred, detach=True)
-    shg1_real, shg2_real, sfg_real = re_im_sep(y_real, detach=True)
+    y_real = torch.tensor(y_real)
+    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
+    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
 
     # Calculate the Pearson correlation coefficient for each signal
     shape = shg1_pred.shape
-    shg1_coeffs = np.zeros(shape)
-    shg2_coeffs = np.zeros(shape)
-    sfg_coeffs = np.zeros(shape)
+    shg1_coeffs = torch.zeros(shape)
+    shg2_coeffs = torch.zeros(shape)
+    sfg_coeffs = torch.zeros(shape)
 
     for i in range(shape[0]):
         shg1_coeffs[i] = complex_pearsonr(shg1_pred[i], shg1_real[i])
@@ -381,9 +381,9 @@ def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
         sfg_coeffs[i] = complex_pearsonr(sfg_pred[i], sfg_real[i])
 
     # Calculate the mean of the coefficients
-    shg1_corr = np.mean(shg1_coeffs)
-    shg2_corr = np.mean(shg2_coeffs)
-    sfg_corr = np.mean(sfg_coeffs)
+    shg1_corr = torch.mean(shg1_coeffs)
+    shg2_corr = torch.mean(shg2_coeffs)
+    sfg_corr = torch.mean(sfg_coeffs)
 
     return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
 
