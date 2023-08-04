@@ -314,7 +314,7 @@ def predict(
 
 
 # `:,` is there because we want to keep the batch dimension
-def re_im_sep(fields):
+def re_im_sep(fields, detach=False):
     shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
     shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
     sfg = (
@@ -322,10 +322,17 @@ def re_im_sep(fields):
         + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
     )
 
+    if detach:
+        shg1 = shg1.detach().numpy()
+        shg2 = shg2.detach().numpy()
+        sfg = sfg.detach().numpy()
+    else:
+        pass
     return shg1, shg2, sfg
 
+
 # Complex MSE loss function, because MSE loss function
-# doesn't work with complex numbers 
+# doesn't work with complex numbers
 # From: https://github.com/pytorch/pytorch/issues/46642#issuecomment-1358092506
 def complex_mse(output, target):
     return (0.5 * (output - target) ** 2).mean(dtype=torch.complex64)
@@ -344,17 +351,39 @@ def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
     return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
 
 
+def complex_pearsonr(y_pred, y_real):
+    # Calculate the Pearson correlation coefficient for complex numbers
+    pred_real, pred_imag = np.real(y_pred), np.imag(y_pred)
+    real_real, real_imag = np.real(y_real), np.imag(y_real)
+
+    pearson_corr = (
+        pearsonr(pred_real, real_real).statistic
+        + 1j * pearsonr(pred_imag, real_imag).statistic
+    )
+
+    # Return the absolute value of the correlation coefficient
+    return np.abs(pearson_corr)
+
+
 def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
-    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
-    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
+    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred, detach=True)
+    shg1_real, shg2_real, sfg_real = re_im_sep(y_real, detach=True)
 
-    shg1_pearson = pearsonr(shg1_pred, shg1_real)
-    shg2_pearson = pearsonr(shg2_pred, shg2_real)
-    sfg_pearson = pearsonr(sfg_pred, sfg_real)
+    # Calculate the Pearson correlation coefficient for each signal
+    shape = shg1_pred.shape
+    shg1_coeffs = np.zeros(shape)
+    shg2_coeffs = np.zeros(shape)
+    sfg_coeffs = np.zeros(shape)
 
-    shg1_corr = shg1_pearson.statistic
-    shg2_corr = shg2_pearson.statistic
-    sfg_corr = sfg_pearson.statistic
+    for i in range(shape[0]):
+        shg1_coeffs[i] = complex_pearsonr(shg1_pred[i], shg1_real[i])
+        shg2_coeffs[i] = complex_pearsonr(shg2_pred[i], shg2_real[i])
+        sfg_coeffs[i] = complex_pearsonr(sfg_pred[i], sfg_real[i])
+
+    # Calculate the mean of the coefficients
+    shg1_corr = np.mean(shg1_coeffs)
+    shg2_corr = np.mean(shg2_coeffs)
+    sfg_corr = np.mean(sfg_coeffs)
 
     return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
 
