@@ -111,7 +111,7 @@ def main_train(
     )
 
     test_dataset = CustomSequence(
-        data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
+        data_dir, range(0, 2), file_batch_size=1, model_batch_size=512, test_mode=True
     )
 
     predict(

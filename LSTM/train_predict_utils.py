@@ -94,6 +94,11 @@ def single_pass(
     data_len = len(dataset)
     pass_loss = 0
     pass_len = 0
+    # Erfan: How much memory does an entire batch require?
+    # Can it all get into one GPU? (If it's dealing with multiple GPUs)
+    # (Play around with batch size => memory/speed issue)
+    # (Output directory for model parameters saving)
+    # Make it such that it goes through a list of hyperparameters
     for i in range(len(dataset)):
         if verbose:
             print(f"Predicting batch {(i+1) / data_len}")
@@ -277,25 +282,28 @@ def predict(
     final_shape = None
     # i = 0
     with torch.no_grad():
-        for j, X_batch in enumerate(test_dataset):
-            X_batch = X_batch.to(torch.float32)
+        for j, batch in enumerate(test_dataset):
+            X, y = next(batch)
+            X = X.to(torch.float32)
+            y = y.to(torch.float32)
             # if verbose:
             #     print(f"Predicting batch {i+1}/{len(test_dataloader)}")
 
             if use_gpu:
                 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                X_batch = X_batch.to(device)
+                X = X.to(device)
 
             if final_shape is None:
-                final_shape = X_batch.shape[-1]
+                final_shape = X.shape[-1]
 
-            for _ in range(100):  # need to predict 100 times
-                pred = model(X_batch)
-                X_batch = X_batch[:, 1:, :]  # pop first
+            # need to predict 100 times (crystal has 100 slices, every slice is an LSTM)
+            for _ in range(100):  
+                pred = model(X)
+                X = X[:, 1:, :]  # pop first
 
                 # add to last
-                X_batch = torch.cat(
-                    (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                X = torch.cat(
+                    (X, torch.reshape(pred, (-1, 1, final_shape))), 1
                 )
 
             # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
