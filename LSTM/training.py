@@ -81,7 +81,11 @@ def dev_test_losses():
 
 
 def main_train(
-    data_dir: str, num_epochs: int, custom_loss: Callable, epoch_save_interval: int
+    data_dir: str,
+    num_epochs: int,
+    custom_loss: Callable,
+    epoch_save_interval: int,
+    output_dir: str,
 ):
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
@@ -102,7 +106,7 @@ def main_train(
         val_dataset=val_dataset,
         use_gpu=True,
         data_parallel=True,
-        out_dir=".",
+        out_dir=output_dir,
         model_name="model",
         verbose=1,
         save_checkpoints=True,
@@ -120,7 +124,7 @@ def main_train(
         test_dataset=test_dataset,
         use_gpu=True,
         data_parallel=False,
-        output_dir=".",
+        output_dir=output_dir,
         output_name="all_preds.npy",
         verbose=1,
     )
@@ -142,6 +146,10 @@ if __name__ == "__main__":
         "--epoch_save_interval", type=int, default=1, help="Epoch save interval."
     )
 
+    parser.add_argument(
+        "--output_dir", type=str, default=".", help="Output directory."
+    )
+
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
@@ -151,4 +159,10 @@ if __name__ == "__main__":
 
     custom_loss = loss_dict[args.custom_loss]
 
-    main_train(args.data_dir, args.num_epochs, custom_loss, args.epoch_save_interval)
+    main_train(
+        args.data_dir,
+        args.num_epochs,
+        custom_loss,
+        args.epoch_save_interval,
+        args.output_dir,
+    )
