@@ -3,4 +3,3 @@ torchmetrics
 numpy
 matplotlib
 scipy
-```
