@@ -157,6 +157,9 @@ def train(
         pass
     model.to(device)
 
+    # Check if the output directory exists, if not, create it
+    os.makedirs(out_dir, exist_ok=True)
+
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters())
@@ -253,6 +256,9 @@ def predict(
         except RuntimeError:
             model = torch.nn.DataParallel(model)
             model.load_state_dict(params)
+
+    # Check if the output directory exists, if not, create it
+    os.makedirs(output_dir, exist_ok=True)
 
     # Set device to GPU if available and requested, else to CPU
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
