@@ -360,13 +360,14 @@ def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
     return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
 
 
-def complex_pearsonr(y_pred, y_real):
+def complex_pearsonr(y_pred: torch.tensor, y_real: torch.tensor):
+    device = y_pred.get_device()
     # Calculate the Pearson correlation coefficient for complex numbers
     pred_real, pred_imag = torch.real(y_pred), torch.imag(y_pred)
     real_real, real_imag = torch.real(y_real), torch.imag(y_real)
 
-    real_pearson = PearsonCorrCoef()(pred_real, real_real)
-    imag_pearson = PearsonCorrCoef()(pred_imag, real_imag)
+    real_pearson = PearsonCorrCoef().to(device)(pred_real, real_real)
+    imag_pearson = PearsonCorrCoef().to(device)(pred_imag, real_imag)
 
     # Return the l2 norm of the complex pearson correlation coefficient
     return torch.norm(torch.complex(real_pearson, imag_pearson))
