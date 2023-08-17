@@ -297,14 +297,12 @@ def predict(
                 final_shape = X.shape[-1]
 
             # need to predict 100 times (crystal has 100 slices, every slice is an LSTM)
-            for _ in range(100):  
+            for _ in range(100):
                 pred = model(X)
                 X = X[:, 1:, :]  # pop first
 
                 # add to last
-                X = torch.cat(
-                    (X, torch.reshape(pred, (-1, 1, final_shape))), 1
-                )
+                X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
 
             # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
             # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
@@ -340,55 +338,105 @@ def re_im_sep(fields, detach=False):
     return shg1, shg2, sfg
 
 
-# Complex MSE loss function, because MSE loss function
-# doesn't work with complex numbers
-# From: https://github.com/pytorch/pytorch/issues/46642#issuecomment-1358092506
-def complex_mse(output, target):
-    return (0.5 * (output - target) ** 2).mean(dtype=torch.complex64)
+# `:,` is there because we want to keep the batch dimension
+def re_im_sep_vectors(fields, detach=False):
+    shg1_real = fields[:, 0:1892]
+    shg1_complex = fields[:, 1892 * 2 + 348 : 1892 * 3 + 348]
+
+    shg2_real = fields[:, 1892 : 1892 * 2]
+    shg2_complex = fields[:, 1892 * 3 + 348 : 1892 * 4 + 348]
+    sfg_real = fields[:, 1892 * 2 : 1892 * 2 + 348]
+    sfg_complex = fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348]
+
+    if detach:
+        shg1_real = shg1_real.detach().numpy()
+        shg1_complex = shg1_complex.detach().numpy()
+        shg2_real = shg2_real.detach().numpy()
+        shg2_complex = shg2_complex.detach().numpy()
+        sfg_real = sfg_real.detach().numpy()
+        sfg_complex = sfg_complex.detach().numpy()
+    else:
+        pass
+    return shg1_real, shg1_complex, shg2_real, shg2_complex, sfg_real, sfg_complex
 
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal
 def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
-    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
-    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
+    (
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg2_real_pred,
+        shg2_complex_pred,
+        sfg_real_pred,
+        sfg_complex_pred,
+    ) = re_im_sep_vectors(y_pred)
 
-    shg1_loss = complex_mse(shg1_pred, shg1_real)
-    shg2_loss = complex_mse(shg2_pred, shg2_real)
-    sfg_loss = complex_mse(sfg_pred, sfg_real)
+    (
+        shg1_real_real,
+        shg1_complex_real,
+        shg2_real_real,
+        shg2_complex_real,
+        sfg_real_real,
+        sfg_complex_real,
+    ) = re_im_sep_vectors(y_real)
+
+    mse = nn.MSELoss()
+
+    shg1_loss = 0.5 * (
+        mse(shg1_real_pred, shg1_real_real) + mse(shg1_complex_pred, shg1_complex_real)
+    )
+    shg2_loss = 0.5 * (
+        mse(shg2_real_pred, shg2_real_real) + mse(shg2_complex_pred, shg2_complex_real)
+    )
+
+    sfg_loss = 0.5 * (
+        mse(sfg_real_pred, sfg_real_real) + mse(sfg_complex_pred, sfg_complex_real)
+    )
 
     return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
 
 
-def complex_pearsonr(y_pred: torch.tensor, y_real: torch.tensor):
-    device = y_pred.get_device()
-    # Calculate the Pearson correlation coefficient for complex numbers
-    pred_real, pred_imag = torch.real(y_pred), torch.imag(y_pred)
-    real_real, real_imag = torch.real(y_real), torch.imag(y_real)
-
-    real_pearson = PearsonCorrCoef().to(device)(pred_real, real_real)
-    imag_pearson = PearsonCorrCoef().to(device)(pred_imag, real_imag)
-
-    # Return the l2 norm of the complex pearson correlation coefficient
-    return torch.norm(torch.complex(real_pearson, imag_pearson))
-
-
 def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
-    y_real = torch.tensor(y_real)
-    shg1_pred, shg2_pred, sfg_pred = re_im_sep(y_pred)
-    shg1_real, shg2_real, sfg_real = re_im_sep(y_real)
+    (
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg2_real_pred,
+        shg2_complex_pred,
+        sfg_real_pred,
+        sfg_complex_pred,
+    ) = re_im_sep_vectors(y_pred)
+
+    (
+        shg1_real_real,
+        shg1_complex_real,
+        shg2_real_real,
+        shg2_complex_real,
+        sfg_real_real,
+        sfg_complex_real,
+    ) = re_im_sep_vectors(y_real)
 
     # Calculate the Pearson correlation coefficient for each signal
-    shape = shg1_pred.shape
+    shape = shg1_real_pred.shape
     shg1_coeffs = torch.zeros(shape)
     shg2_coeffs = torch.zeros(shape)
     sfg_coeffs = torch.zeros(shape)
 
-    for i in range(shape[0]):
-        shg1_coeffs[i] = complex_pearsonr(shg1_pred[i], shg1_real[i])
-        shg2_coeffs[i] = complex_pearsonr(shg2_pred[i], shg2_real[i])
-        sfg_coeffs[i] = complex_pearsonr(sfg_pred[i], sfg_real[i])
+    pearson_fn = PearsonCorrCoef().to(y_pred.get_device())
 
+    for i in range(shape[0]):
+        shg1_coeffs[i] = 0.5 * (
+            pearson_fn(shg1_real_pred[i], shg1_real_real[i])
+            + pearson_fn(shg1_complex_pred[i], shg1_complex_real[i])
+        )
+        shg2_coeffs[i] = 0.5 * (
+            pearson_fn(shg2_real_pred[i], shg2_real_real[i])
+            + pearson_fn(shg2_complex_pred[i], shg2_complex_real[i])
+        )
+        sfg_coeffs[i] = 0.5 * (
+            pearson_fn(sfg_real_pred[i], sfg_real_real[i])
+            + pearson_fn(sfg_complex_pred[i], sfg_complex_real[i])
+        )
     # Calculate the mean of the coefficients
     shg1_corr = torch.mean(shg1_coeffs)
     shg2_corr = torch.mean(shg2_coeffs)
