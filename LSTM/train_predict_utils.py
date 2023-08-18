@@ -289,36 +289,29 @@ def predict(
     # i = 0
     with torch.no_grad():
         for j, batch in enumerate(test_dataset):
-            X, y = next(batch)
-            X = X.to(torch.float32)
-            y = y.to(torch.float32)
-            # if verbose:
-            #     print(f"Predicting batch {i+1}/{len(test_dataloader)}")
+            for X, y in batch:
+                X, y = X.to(torch.float32), y.to(torch.float32)
+                X, y = X.to(device), y.to(device)
 
-            if use_gpu:
-                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                X = X.to(device)
+                if final_shape is None:
+                    final_shape = X.shape[-1]
+                # need to predict 100 times (crystal has 100 slices, every slice is an LSTM)
+                for _ in range(100):
+                    pred = model(X)
+                    X = X[:, 1:, :]  # pop first
 
-            if final_shape is None:
-                final_shape = X.shape[-1]
+                    # add to last
+                    X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
 
-            # need to predict 100 times (crystal has 100 slices, every slice is an LSTM)
-            for _ in range(100):
-                pred = model(X)
-                X = X[:, 1:, :]  # pop first
-
-                # add to last
-                X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
-
-            # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
-            # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
-            if all_preds is None:
-                all_preds = torch.zeros(
-                    (len(test_dataset), *pred.squeeze().shape), device=device
-                )
-            else:
-                pass
-            all_preds[j] = pred.squeeze()
+                # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
+                # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
+                if all_preds is None:
+                    all_preds = torch.zeros(
+                        (len(test_dataset), *pred.squeeze().shape), device=device
+                    )
+                else:
+                    pass
+                all_preds[j] = pred.squeeze()
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
