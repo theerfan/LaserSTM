@@ -1,0 +1,1 @@
+qrsh -l gpu,P4
