@@ -94,34 +94,26 @@ def single_pass(
     data_len = len(dataset)
     pass_loss = 0
     pass_len = 0
-    # Erfan: How much memory does an entire batch require?
-    # Can it all get into one GPU? (If it's dealing with multiple GPUs)
-    # (Play around with batch size => memory/speed issue)
-    # (Output directory for model parameters saving)
-    # Make it such that it goes through a list of hyperparameters
-    for i in range(len(dataset)):
+    # Erfan: This is ChatGPT-improved, let's see if it manages batches correctly
+    # Also, TODO: Make it such that it goes through a list of hyperparameters
+    for i, (X, y) in enumerate(dataset):
         if verbose:
-            print(f"Predicting batch {(i+1) / data_len}")
-        else:
-            pass
-        sample_generator = dataset[i]
-        for X, y in sample_generator:
-            X, y = X.to(torch.float32), y.to(torch.float32)
-            X, y = X.to(device), y.to(device)
-            if optimizer is not None:
-                optimizer.zero_grad()
-            else:
-                pass
-            pred = model(X)
-            loss = loss_fn(pred, y)
-            if optimizer is not None:
-                loss.backward()
-                optimizer.step()
-            else:
-                pass
-            # This part is to normalize it based on the number of samples in different batches
-            pass_len += X.size(0)
-            pass_loss += loss.item() * X.size(0)
+            print(f"Processing batch {(i+1) / data_len}")
+
+        X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
+
+        if optimizer is not None:
+            optimizer.zero_grad()
+
+        pred = model(X)
+        loss = loss_fn(pred, y)
+
+        if optimizer is not None:
+            loss.backward()
+            optimizer.step()
+
+        pass_len += X.size(0)
+        pass_loss += loss.item() * X.size(0)
 
     return pass_loss / pass_len, loss
 
@@ -239,83 +231,55 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
 ):
-    # Erfan: This part was cleaned up with the help of GPT-4.
-    # (We'll see if it works lol)
 
     # Load model parameters if path is provided
     if model_param_path is not None:
         params = torch.load(model_param_path)
-        params = (
-            params["model_state_dict"]
-            if isinstance(params, dict) and "model_state_dict" in params
-            else params
-        )
-
-        try:
-            model.load_state_dict(params)
-        except RuntimeError:
-            model = torch.nn.DataParallel(model)
-            model.load_state_dict(params)
+        model.load_state_dict(params["model_state_dict"])
+    else:
+        pass
 
     # Check if the output directory exists, if not, create it
     os.makedirs(output_dir, exist_ok=True)
+    device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
 
-    # Set device to GPU if available and requested, else to CPU
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    if not use_gpu:
+        print("Warning: GPU not available, using CPU instead.")
 
-    # Handle GPU related warnings and operations
-    if use_gpu:
-        if device.type == "cpu":
-            print("Warning: GPU not available, using CPU instead.")
-
-        if data_parallel:
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-            else:
-                print(
-                    "Warning: Data parallelism not available, using single GPU instead."
-                )
+    if data_parallel:
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
         else:
-            try:
-                model = model.module
-            except AttributeError:
-                pass
+            print("Warning: Data parallelism not available, using single GPU instead.")
+    else:
+        try:
+            model = model.module
+        except AttributeError:
+            pass
 
-    # Literally the same code as in time_model_utils.py
     model = model.to(device)
     model.eval()
-    all_preds = None
+
+    all_preds = []
     final_shape = None
-    # i = 0
+
     with torch.no_grad():
-        for j, batch in enumerate(test_dataset):
-            for X, y in batch:
-                X, y = X.to(torch.float32), y.to(torch.float32)
-                X, y = X.to(device), y.to(device)
+        for j, (X, y) in enumerate(test_dataset):
+            X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
-                if final_shape is None:
-                    final_shape = X.shape[-1]
-                # need to predict 100 times (crystal has 100 slices, every slice is an LSTM)
-                for _ in range(100):
-                    pred = model(X)
-                    X = X[:, 1:, :]  # pop first
+            if final_shape is None:
+                final_shape = X.shape[-1]
 
-                    # add to last
-                    X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
+            for _ in range(100):
+                pred = model(X)
+                X = X[:, 1:, :]  # pop first
 
-                # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
-                # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
-                if all_preds is None:
-                    all_preds = torch.zeros(
-                        (len(test_dataset), *pred.squeeze().shape), device=device
-                    )
-                else:
-                    pass
-                all_preds[j] = pred.squeeze()
+                # add to last
+                X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
 
-    # And then we do the concatenation here and send it back to CPU
-    all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
+            all_preds.append(pred.squeeze())
 
+    all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
 
