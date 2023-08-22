@@ -123,10 +123,10 @@ if __name__ == "__main__":
         model = TransformerModel(
             n_features=8264,
             n_predict=8264,
-            n_head=8,
-            n_hidden=2048,
-            n_enc_layers=6,
-            n_dec_layers=6,
+            n_head=2,
+            n_hidden=128,
+            n_enc_layers=2,
+            n_dec_layers=2,
             dropout=0.1,
         )
     else:
