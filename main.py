@@ -41,8 +41,27 @@ def dev_test_losses():
 
     print(normalized_equal_mse_loss, last_equal_mse_loss)
 
+
 # (SHG1, SHG2) + SFG * 2
 # (1892 * 2 + 348) * 2 = 8264
+
+
+def do_the_prediction(model, model_param_path, data_dir, output_dir):
+    test_dataset = CustomSequence(
+        data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
+    )
+
+    predict(
+        model,
+        model_param_path=model_param_path,
+        test_dataset=test_dataset,
+        use_gpu=True,
+        data_parallel=False,
+        output_dir=output_dir,
+        output_name="all_preds.npy",
+        verbose=1,
+    )
+
 
 def main_train(
     model: torch.nn.Module,
@@ -110,6 +129,20 @@ if __name__ == "__main__":
 
     parser.add_argument("--output_dir", type=str, default=".", help="Output directory.")
 
+    parser.add_argument(
+        "--do_prediction",
+        type=str,
+        default="False",
+        help="Whether to do prediction or not.",
+    )
+
+    parser.add_argument(
+        "--model_param_path",
+        type=str,
+        default="model.pth",
+        help="Path to the model parameters.",
+    )
+
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
@@ -134,11 +167,19 @@ if __name__ == "__main__":
 
     custom_loss = loss_dict[args.custom_loss]
 
-    main_train(
-        model,
-        args.data_dir,
-        args.num_epochs,
-        custom_loss,
-        args.epoch_save_interval,
-        args.output_dir,
-    )
+    if args.do_prediction == "True":
+        do_the_prediction(
+            model,
+            args.model_param_path,
+            args.data_dir,
+            args.output_dir,
+        )
+    else:
+        main_train(
+            model,
+            args.data_dir,
+            args.num_epochs,
+            custom_loss,
+            args.epoch_save_interval,
+            args.output_dir,
+        )
