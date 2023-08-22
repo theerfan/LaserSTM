@@ -43,6 +43,7 @@ def dev_test_losses():
 
 
 def main_train(
+    model: torch.nn.Module,
     data_dir: str,
     num_epochs: int,
     custom_loss: Callable,
@@ -124,12 +125,22 @@ if __name__ == "__main__":
         "pearson_corr": pearson_corr,
     }
 
-    model_dict = {
-        "LSTM": LSTMModel_1,
-        "Transformer": TransformerModel,
-    }
-
     args = parser.parse_args()
+
+    if args.model == "LSTM":
+        model = LSTMModel_1(input_size=8264)
+    elif args.model == "Transformer":
+        model = TransformerModel(
+            n_features=8264,
+            n_predict=8264,
+            n_head=8,
+            n_hidden=2048,
+            n_enc_layers=6,
+            n_dec_layers=6,
+            dropout=0.1,
+        )
+    else:
+        raise ValueError("Model not supported.")
 
     custom_loss = loss_dict[args.custom_loss]
 
