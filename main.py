@@ -52,9 +52,9 @@ def main_train(
 ):
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
-        data_dir, [1], file_batch_size=1, model_batch_size=512
+        data_dir, [0], file_batch_size=1, model_batch_size=512
     )
-    val_dataset = CustomSequence(data_dir, [1], file_batch_size=1, model_batch_size=512)
+    val_dataset = CustomSequence(data_dir, [0], file_batch_size=1, model_batch_size=512)
 
     # (SHG1, SHG2) + SFG * 2
     # (1892 * 2 + 348) * 2 = 8264
@@ -145,6 +145,7 @@ if __name__ == "__main__":
     custom_loss = loss_dict[args.custom_loss]
 
     main_train(
+        model,
         args.data_dir,
         args.num_epochs,
         custom_loss,
