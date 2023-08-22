@@ -2,6 +2,7 @@ import argparse
 from typing import Callable
 
 import torch
+import torch.nn as nn
 
 from LSTM.model import LSTMModel_1
 from train_utils.train_predict_utils import (
@@ -117,10 +118,10 @@ if __name__ == "__main__":
         "--data_dir", type=str, required=True, help="Path to the data directory."
     )
     parser.add_argument(
-        "--num_epochs", type=int, required=True, help="Number of epochs for training."
+        "--num_epochs", type=int, default=1, help="Number of epochs for training."
     )
     parser.add_argument(
-        "--custom_loss", type=str, required=True, help="Custom loss function name."
+        "--custom_loss", type=str, default=nn.MSELoss, help="Custom loss function name."
     )
 
     parser.add_argument(
