@@ -41,6 +41,8 @@ def dev_test_losses():
 
     print(normalized_equal_mse_loss, last_equal_mse_loss)
 
+# (SHG1, SHG2) + SFG * 2
+# (1892 * 2 + 348) * 2 = 8264
 
 def main_train(
     model: torch.nn.Module,
@@ -55,18 +57,6 @@ def main_train(
         data_dir, [0], file_batch_size=1, model_batch_size=512
     )
     val_dataset = CustomSequence(data_dir, [0], file_batch_size=1, model_batch_size=512)
-
-    # (SHG1, SHG2) + SFG * 2
-    # (1892 * 2 + 348) * 2 = 8264
-    model = TransformerModel(
-        n_features=8264,
-        n_predict=8264,
-        n_head=8,
-        n_hidden=2048,
-        n_enc_layers=6,
-        n_dec_layers=6,
-        dropout=0.1,
-    )
 
     train(
         model,
