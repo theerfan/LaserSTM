@@ -1,43 +1,111 @@
+import math
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
+# Temporarily leave PositionalEncoding module here. Will be moved somewhere else.
+class PositionalEncoding(nn.Module):
+    r"""Inject some information about the relative or absolute position of the tokens in the sequence.
+        The positional encodings have the same dimension as the embeddings, so that the two can be summed.
+        Here, we use sine and cosine functions of different frequencies.
+    .. math:
+        \text{PosEncoder}(pos, 2i) = sin(pos/10000^(2i/d_model))
+        \text{PosEncoder}(pos, 2i+1) = cos(pos/10000^(2i/d_model))
+        \text{where pos is the word position and i is the embed idx)
+    Args:
+        d_model: the embed dim (required).
+        dropout: the dropout value (default=0.1).
+        max_len: the max. length of the incoming sequence (default=5000).
+    Examples:
+        >>> pos_encoder = PositionalEncoding(d_model)
+    """
 
-class TimeSeriesTransformer(nn.Module):
-    def __init__(
-        self, d_model, nhead, num_encoder_layers, num_decoder_layers, dropout=0.5
-    ):
-        super(TimeSeriesTransformer, self).__init__()
-        self.transformer = nn.Transformer(
-            d_model=d_model,
-            nhead=nhead,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-            dropout=dropout,
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
         )
-        self.linear = nn.Linear(
-            d_model, 1
-        )  # 1 for single step prediction. Adjust for multistep prediction.
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer("pe", pe)
 
-    def forward(self, src, tgt):
-        # src: Source sequence (input time series).
-        # Shape: (S, N, E) where S is the source sequence length, N is the batch size, E is the feature number.
+    def forward(self, x):
+        r"""Inputs of forward function
+        Args:
+            x: the sequence fed to the positional encoder model (required).
+        Shape:
+            x: [sequence length, batch size, embed dim]
+            output: [sequence length, batch size, embed dim]
+        Examples:
+            >>> output = pos_encoder(x)
+        """
 
-        # tgt: Target sequence (shifted input time series).
-        # Shape: (T, N, E) where T is the target sequence length.
-
-        transformer_output = self.transformer(src, tgt)
-        output = self.linear(transformer_output)
-        return output
+        x = x + self.pe[: x.size(0), :]
+        return self.dropout(x)
 
 
-# Hyperparameters
-D_MODEL = 512  # Embedding dimension
-NHEAD = 8  # Number of attention heads
-NUM_ENCODER_LAYERS = 6  # Number of encoder layers
-NUM_DECODER_LAYERS = 6  # Number of decoder layers
-DROPOUT = 0.1  # Dropout rate
+class TransformerModel(nn.Transformer):
+    """Container module with an encoder, a recurrent or transformer module, and a decoder."""
 
-model = TimeSeriesTransformer(
-    D_MODEL, NHEAD, NUM_ENCODER_LAYERS, NUM_DECODER_LAYERS, DROPOUT
-)
-print(model)
+    def __init__(
+        self,
+        n_features,
+        n_predict,
+        n_head,
+        n_hidden,
+        n_enc_layers,
+        n_dec_layers,
+        dropout=0.5,
+    ):
+        super(TransformerModel, self).__init__(
+            d_model=n_features,
+            nhead=n_head,
+            dim_feedforward=n_hidden,
+            num_encoder_layers=n_enc_layers,
+            num_decoder_layers=n_dec_layers,
+        )
+        self.model_type = "Transformer"
+        self.src_mask = None
+        self.pos_encoder = PositionalEncoding(n_features, dropout)
+
+        self.input_emb = nn.Embedding(n_predict, n_features)
+        self.n_features = n_features
+        self.linear = nn.Linear(n_features, n_predict)
+
+        self.init_weights()
+
+    def _generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = (
+            mask.float()
+            .masked_fill(mask == 0, float("-inf"))
+            .masked_fill(mask == 1, float(0.0))
+        )
+        return mask
+
+    def init_weights(self):
+        initrange = 0.1
+        nn.init.uniform_(self.input_emb.weight, -initrange, initrange)
+        nn.init.zeros_(self.decoder.bias)
+        nn.init.uniform_(self.decoder.weight, -initrange, initrange)
+
+    def forward(self, src, has_mask=True):
+        if has_mask:
+            device = src.device
+            if self.src_mask is None or self.src_mask.size(0) != len(src):
+                mask = self._generate_square_subsequent_mask(len(src)).to(device)
+                self.src_mask = mask
+        else:
+            self.src_mask = None
+
+        src = self.input_emb(src)  # * math.sqrt(self.n_features)
+        src = self.pos_encoder(src)
+        output = self.encoder(src, mask=self.src_mask)
+        output = self.decoder(output)
+        output = self.linear(output)
+        return F.log_softmax(output, dim=-1)

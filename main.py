@@ -2,8 +2,9 @@ import argparse
 from typing import Callable
 
 import torch
-import torch.nn as nn
-from train_predict_utils import (
+
+from LSTM.model import LSTMModel_1
+from train_utils.train_predict_utils import (
     CustomSequence,
     pearson_corr,
     predict,
@@ -11,8 +12,7 @@ from train_predict_utils import (
     train,
     weighted_MSE,
 )
-
-from LSTM.model import LSTMModel_1
+from Transformer.model import TransformerModel
 
 
 def dev_test_losses():
@@ -51,15 +51,21 @@ def main_train(
 ):
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
-        data_dir, range(90), file_batch_size=1, model_batch_size=512
+        data_dir, [1], file_batch_size=1, model_batch_size=512
     )
-    val_dataset = CustomSequence(
-        data_dir, [90], file_batch_size=1, model_batch_size=512
-    )
+    val_dataset = CustomSequence(data_dir, [1], file_batch_size=1, model_batch_size=512)
 
     # (SHG1, SHG2) + SFG * 2
-    # (1892 * 2 + 348) * 2
-    model = LSTMModel_1(input_size=8264)
+    # (1892 * 2 + 348) * 2 = 8264
+    model = TransformerModel(
+        n_features=8264,
+        n_predict=8264,
+        n_head=8,
+        n_hidden=2048,
+        n_enc_layers=6,
+        n_dec_layers=6,
+        dropout=0.1,
+    )
 
     train(
         model,
@@ -95,6 +101,9 @@ def main_train(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and test the model.")
     parser.add_argument(
+        "--model", type=str, required=True, help="Model to use for training."
+    )
+    parser.add_argument(
         "--data_dir", type=str, required=True, help="Path to the data directory."
     )
     parser.add_argument(
@@ -113,6 +122,11 @@ if __name__ == "__main__":
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
+    }
+
+    model_dict = {
+        "LSTM": LSTMModel_1,
+        "Transformer": TransformerModel,
     }
 
     args = parser.parse_args()
