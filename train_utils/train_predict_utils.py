@@ -96,24 +96,25 @@ def single_pass(
     pass_len = 0
     # Erfan: This is ChatGPT-improved, let's see if it manages batches correctly
     # Also, TODO: Make it such that it goes through a list of hyperparameters
-    for i, (X, y) in enumerate(dataset):
+    for i, sample_generator in enumerate(dataset):
         if verbose:
             print(f"Processing batch {(i+1) / data_len}")
 
-        X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
+        for X, y in sample_generator:
+            X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
-        if optimizer is not None:
-            optimizer.zero_grad()
+            if optimizer is not None:
+                optimizer.zero_grad()
 
-        pred = model(X)
-        loss = loss_fn(pred, y)
+            pred = model(X)
+            loss = loss_fn(pred, y)
 
-        if optimizer is not None:
-            loss.backward()
-            optimizer.step()
+            if optimizer is not None:
+                loss.backward()
+                optimizer.step()
 
-        pass_len += X.size(0)
-        pass_loss += loss.item() * X.size(0)
+            pass_len += X.size(0)
+            pass_loss += loss.item() * X.size(0)
 
     return pass_loss / pass_len, loss
 
@@ -268,20 +269,22 @@ def predict(
     final_shape = None
 
     with torch.no_grad():
-        for j, (X, y) in enumerate(test_dataset):
-            X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
+        for j, sample_generator in enumerate(test_dataset):
 
-            if final_shape is None:
-                final_shape = X.shape[-1]
+            for X, y in sample_generator:
+                X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
-            for _ in range(100):
-                pred = model(X)
-                X = X[:, 1:, :]  # pop first
+                if final_shape is None:
+                    final_shape = X.shape[-1]
 
-                # add to last
-                X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
+                for _ in range(100):
+                    pred = model(X)
+                    X = X[:, 1:, :]  # pop first
 
-            all_preds.append(pred.squeeze())
+                    # add to last
+                    X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
+
+                all_preds.append(pred.squeeze())
 
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
