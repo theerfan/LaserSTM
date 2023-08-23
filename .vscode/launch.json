@@ -11,7 +11,16 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["--data_dir", "processed_dataset", "--num_epochs", "10", "--custom_loss", "weighted_MSE", "--epoch_save_interval", "2", "--output_dir", "output"]
+            "args": [
+                "--model",
+                "LSTM",
+                "--data_dir",
+                ".",
+                "--do_prediction",
+                "True",
+                "--model_param_path", 
+                "Run1\\MSE\\model.pth"
+            ]
         }
     ]
 }

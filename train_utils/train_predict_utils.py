@@ -231,20 +231,24 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
 ):
+    
+    device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
+    if not use_gpu:
+        print("Warning: GPU not available, using CPU instead.")
 
     # Load model parameters if path is provided
     if model_param_path is not None:
-        params = torch.load(model_param_path)
-        model.load_state_dict(params["model_state_dict"])
+        params = torch.load(model_param_path, map_location=device)
+        # remove the 'module.' prefix from the keys
+        params = {
+            k.replace("module.", ""): v for k, v in params.items()
+        }
+        model.load_state_dict(params, strict=False)
     else:
         pass
 
     # Check if the output directory exists, if not, create it
     os.makedirs(output_dir, exist_ok=True)
-    device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
-
-    if not use_gpu:
-        print("Warning: GPU not available, using CPU instead.")
 
     if data_parallel:
         if torch.cuda.device_count() > 1:
