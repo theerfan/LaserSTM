@@ -121,7 +121,7 @@ if __name__ == "__main__":
         "--num_epochs", type=int, default=1, help="Number of epochs for training."
     )
     parser.add_argument(
-        "--custom_loss", type=str, default=nn.MSELoss, help="Custom loss function name."
+        "--custom_loss", type=str, default="MSE", help="Custom loss function name."
     )
 
     parser.add_argument(
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
+        "MSE": nn.MSELoss,
     }
 
     args = parser.parse_args()
