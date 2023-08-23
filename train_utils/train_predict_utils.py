@@ -268,10 +268,20 @@ def predict(
     all_preds = []
     final_shape = None
 
+    if verbose:
+        print("Finished loading the model, starting prediction.")
+
     with torch.no_grad():
         for j, sample_generator in enumerate(test_dataset):
 
+            if verbose:
+                print(f"Processing batch {(j+1) / len(test_dataset)}")
+
+            counter = 0
             for X, y in sample_generator:
+                if verbose:
+                    print(f"Processing sample {(counter+1) / len(sample_generator)}")
+                    counter += 1
                 X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
                 if final_shape is None:

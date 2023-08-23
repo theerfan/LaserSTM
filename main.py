@@ -47,10 +47,13 @@ def dev_test_losses():
 # (1892 * 2 + 348) * 2 = 8264
 
 
-def do_the_prediction(model, model_param_path, data_dir, output_dir):
+def do_the_prediction(model, model_param_path, data_dir, output_dir, verbose=1):
     test_dataset = CustomSequence(
         data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
     )
+
+    if verbose:
+        print("Initialized the dataset")
 
     predict(
         model,
@@ -170,6 +173,7 @@ if __name__ == "__main__":
     custom_loss = loss_dict[args.custom_loss]
 
     if args.do_prediction == "True":
+        print(f"Prediction only mode for model {args.model}")
         do_the_prediction(
             model,
             args.model_param_path,
@@ -177,6 +181,7 @@ if __name__ == "__main__":
             args.output_dir,
         )
     else:
+        print(f"Training mode for model {args.model}")
         main_train(
             model,
             args.data_dir,
