@@ -271,8 +271,11 @@ def predict(
         print("Finished loading the model, starting prediction.")
         whole_start = time.time()
 
+    dataset_len = len(test_dataset)
+
     with torch.no_grad():
-        for j, sample_generator in enumerate(test_dataset):
+        for j in range(dataset_len):
+            sample_generator = test_dataset[j]
 
             if verbose:
                 this_batch_start = time.time()
@@ -287,9 +290,7 @@ def predict(
                     now_time = time.time()
                     elapsed = now_time - this_batch_start
                     this_batch_start = now_time
-                    print(
-                        f"Processing sample {(counter+1)} / n at time {elapsed}"
-                    )
+                    print(f"Processing sample {(counter+1)} / n at time {elapsed}")
                     counter += 1
                 X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
@@ -304,6 +305,12 @@ def predict(
                     X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
 
                 all_preds.append(pred.squeeze())
+
+            if verbose:
+                print(f"Finished processing samples in {j} batch.")
+        
+        if verbose:
+            print("Finished processing all batches.")
 
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
