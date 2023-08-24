@@ -35,7 +35,7 @@ def intensity_phase_plot(
     offsets=None,
     save_format="pdf",
     save_name=None,
-    save=False,
+    save=True,
     plot_show=True,
     plot_hold=False,
 ):
@@ -121,14 +121,21 @@ def intensity_phase_plot(
             plt.close()
 
 # %%
-saved_model_output_dir = "MSE"  # directory from model training
+saved_model_output_dir = "Pearson"  # directory from model training
 data_directory = "/u/scratch/t/theerfan/JackData"  # directory from preprocessing
 
 train_losses = np.load(os.path.join(saved_model_output_dir, "train_losses.npy"))
 val_losses = np.load(os.path.join(saved_model_output_dir, "val_losses.npy"))
 
+with open(
+    os.path.join(data_directory, "scaler.pkl"), "rb"
+) as file:  # can use scaler.pkl or scaler_bckkup.pkl
+    scaler = pickle.load(file)
+
 all_preds = np.load(os.path.join(saved_model_output_dir, "all_preds.npy"))
-all_preds_trans = np.fft.fft(all_preds)
+all_preds_trans = np.zeros(all_preds.shape)
+for ii in range(all_preds.shape[0]):
+    all_preds_trans[ii] = scaler.inverse_transform(all_preds[ii])
 # all_preds_trans = np.load(
 #     os.path.join(saved_model_output_dir, "all_preds_transformed.npy")
 # )
@@ -157,15 +164,10 @@ y_90 = np.load(
 )  # these are used to compare to the predictions
 
 
-with open(
-    os.path.join(data_directory, "scaler.pkl"), "rb"
-) as file:  # can use scaler.pkl or scaler_bckkup.pkl
-    scaler = pickle.load(file)
-
 y_90_trans = scaler.inverse_transform(y_90)
 
-sfg_original_freq = np.load("../Data/sfg_original_freq_vector.npy")
-sfg_original_time = np.load("../Data/sfg_original_time_vector.npy")
+sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
+sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
 sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
 
 
@@ -173,6 +175,8 @@ sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
 ii = (
     8  # use this to select one of the examples (should be 100 in total to choose among)
 )
+
+all_preds_trans = all_preds_trans[0]
 
 y_pred_trans = all_preds_trans[ii]
 y_true_trans = y_90_trans[99:][::100][ii]
@@ -270,7 +274,7 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="pfg1.pdf",
-    save=False,
+    
     plot_show=True,
     plot_hold=False,
 )
@@ -287,7 +291,7 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="pfg2.pdf",
-    save=False,
+    
     plot_show=True,
     plot_hold=False,
 )
@@ -304,7 +308,6 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="pfg3.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -322,7 +325,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="pfg4.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -338,7 +340,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="pfg5.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -354,7 +355,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="pfg6.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -375,7 +375,6 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="ptd1.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -391,7 +390,6 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="ptd2.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -407,7 +405,6 @@ intensity_phase_plot(
     offsets=[0, 0.2],
     save_format="pdf",
     save_name="ptd3.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -426,7 +423,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="ptd4.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -442,7 +438,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="ptd5.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
@@ -458,7 +453,6 @@ intensity_phase_plot(
     offsets=[0, 0],
     save_format="pdf",
     save_name="ptd6.pdf",
-    save=False,
     plot_show=True,
     plot_hold=False,
 )
