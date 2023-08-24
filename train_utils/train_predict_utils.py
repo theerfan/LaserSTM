@@ -1,11 +1,12 @@
+import os
+import time
+from typing import Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
-from torchmetrics.regression import PearsonCorrCoef
-import numpy as np
-import os
 from torch.utils import data
-
-from typing import Tuple
+from torchmetrics.regression import PearsonCorrCoef
 
 
 def add_prefix(lst: list, prefix="X"):
@@ -232,7 +233,7 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
 ):
-    
+
     device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
     if not use_gpu:
         print("Warning: GPU not available, using CPU instead.")
@@ -241,9 +242,7 @@ def predict(
     if model_param_path is not None:
         params = torch.load(model_param_path, map_location=device)
         # remove the 'module.' prefix from the keys
-        params = {
-            k.replace("module.", ""): v for k, v in params.items()
-        }
+        params = {k.replace("module.", ""): v for k, v in params.items()}
         model.load_state_dict(params, strict=False)
     else:
         pass
@@ -270,17 +269,27 @@ def predict(
 
     if verbose:
         print("Finished loading the model, starting prediction.")
+        whole_start = time.time()
 
     with torch.no_grad():
         for j, sample_generator in enumerate(test_dataset):
 
             if verbose:
-                print(f"Processing batch {(j+1) / len(test_dataset)}")
+                this_batch_start = time.time()
+                this_batch_elapsed = this_batch_start - whole_start
+                print(
+                    f"Processing batch {(j+1)} / {len(test_dataset)} at time {this_batch_elapsed}"
+                )
 
             counter = 0
             for X, y in sample_generator:
                 if verbose:
-                    print(f"Processing sample {(counter+1) / len(sample_generator)}")
+                    now_time = time.time()
+                    elapsed = now_time - this_batch_start
+                    this_batch_start = now_time
+                    print(
+                        f"Processing sample {(counter+1) / len(sample_generator)} at time {elapsed}"
+                    )
                     counter += 1
                 X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
