@@ -288,7 +288,7 @@ def predict(
                     elapsed = now_time - this_batch_start
                     this_batch_start = now_time
                     print(
-                        f"Processing sample {(counter+1) / len(sample_generator)} at time {elapsed}"
+                        f"Processing sample {(counter+1)} / n at time {elapsed}"
                     )
                     counter += 1
                 X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
