@@ -315,6 +315,10 @@ def predict(
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
 
+# Erfan: Total sum of areas under the curve for both real and predicted fields
+# Could also add it to the loss function
+# Could split it into the 6 different sections, get the total area under the curve of each
+# and give different "importance" to each section
 
 # `:,` is there because we want to keep the batch dimension
 def re_im_sep(fields, detach=False):
