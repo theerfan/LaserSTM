@@ -52,6 +52,7 @@ def train_model(config):
     # Report the test loss back to Ray Tune
     tune.report(loss=test_loss)
 
+
 def tune_train():
     # Initialize Ray
     ray.init()
@@ -111,11 +112,7 @@ def dev_test_losses():
 # (1892 * 2 + 348) * 2 = 8264
 
 
-def do_the_prediction(model, model_param_path, data_dir, output_dir, verbose=1):
-    test_dataset = CustomSequence(
-        data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
-    )
-
+def do_the_prediction(model, model_param_path, output_dir, test_dataset, verbose=1):
     if verbose:
         print("Initialized the dataset")
 
@@ -133,17 +130,24 @@ def do_the_prediction(model, model_param_path, data_dir, output_dir, verbose=1):
 
 def main_train(
     model: torch.nn.Module,
-    data_dir: str,
     num_epochs: int,
     custom_loss: Callable,
     epoch_save_interval: int,
     output_dir: str,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    config: dict = None,
 ):
-    # The data that is currently here is the V2 data (reIm)
-    train_dataset = CustomSequence(
-        data_dir, [0], file_batch_size=1, model_batch_size=512
-    )
-    val_dataset = CustomSequence(data_dir, [0], file_batch_size=1, model_batch_size=512)
+
+    if config is not None:
+        shg1_weight = config["shg1_weight"]
+        shg2_weight = config["shg2_weight"]
+        sfg_weight = config["sfg_weight"]
+        def tuned_custom_loss(y_pred, y_real):
+            return custom_loss(y_pred, y_real, shg1_weight, shg2_weight, sfg_weight)
+    else:
+        tuned_custom_loss = None
 
     train(
         model,
@@ -156,12 +160,8 @@ def main_train(
         model_name="model",
         verbose=1,
         save_checkpoints=True,
-        custom_loss=custom_loss,
+        custom_loss=tuned_custom_loss or custom_loss,
         epoch_save_interval=epoch_save_interval,
-    )
-
-    test_dataset = CustomSequence(
-        data_dir, range(91, 99), file_batch_size=1, model_batch_size=512, test_mode=True
     )
 
     predict(
@@ -195,12 +195,19 @@ if __name__ == "__main__":
         "--epoch_save_interval", type=int, default=1, help="Epoch save interval."
     )
 
+    parser.add_argument(
+        "--tune_train",
+        type=int,
+        default=0,
+        help="Whether to do hyperparameter tuning or not.",
+    )
+
     parser.add_argument("--output_dir", type=str, default=".", help="Output directory.")
 
     parser.add_argument(
         "--do_prediction",
-        type=str,
-        default="False",
+        type=int,
+        default=0,
         help="Whether to do prediction or not.",
     )
 
@@ -236,7 +243,23 @@ if __name__ == "__main__":
 
     custom_loss = loss_dict[args.custom_loss]
 
-    if args.do_prediction == "True":
+    # The data that is currently here is the V2 data (reIm)
+    train_dataset = CustomSequence(
+        args.data_dir, range(0, 90), file_batch_size=1, model_batch_size=512
+    )
+    val_dataset = CustomSequence(
+        args.data_dir, [90], file_batch_size=1, model_batch_size=512
+    )
+
+    test_dataset = CustomSequence(
+        args.data_dir,
+        range(91, 99),
+        file_batch_size=1,
+        model_batch_size=512,
+        test_mode=True,
+    )
+
+    if args.do_prediction == 1:
         print(f"Prediction only mode for model {args.model}")
         do_the_prediction(
             model,
@@ -245,12 +268,16 @@ if __name__ == "__main__":
             args.output_dir,
         )
     else:
-        print(f"Training mode for model {args.model}")
-        main_train(
-            model,
-            args.data_dir,
-            args.num_epochs,
-            custom_loss,
-            args.epoch_save_interval,
-            args.output_dir,
-        )
+        if args.tune_train == 1:
+            print(f"Tune train mode for model {args.model}")
+            tune_train()
+        else:
+            print(f"Training mode for model {args.model}")
+            main_train(
+                model,
+                args.data_dir,
+                args.num_epochs,
+                custom_loss,
+                args.epoch_save_interval,
+                args.output_dir,
+            )
