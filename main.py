@@ -15,6 +15,70 @@ from train_utils.train_predict_utils import (
 )
 from Transformer.model import TransformerModel
 
+import ray
+from ray import tune
+
+# Define the training function for Ray Tune
+def train_model(config):
+    shg1_weight = config["shg1_weight"]
+    shg2_weight = config["shg2_weight"]
+    sfg_weight = config["sfg_weight"]
+
+    model = LSTMModel_1(input_size=8264)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    # Assuming you have a train function like in the provided code
+    train_loss = train(
+        model,
+        "/u/scratch/t/theerfan/JackData/train",
+        10,
+        optimizer,
+        lambda y_pred, y_real: weighted_MSE(
+            y_pred, y_real, shg1_weight, shg2_weight, sfg_weight
+        ),
+    )
+
+    # Evaluate the model on the test dataset
+    test_loss = single_pass(
+        model,
+        "/u/scratch/t/theerfan/JackData/test",
+        "cpu",
+        optimizer,
+        lambda y_pred, y_real: weighted_MSE(
+            y_pred, y_real, shg1_weight, shg2_weight, sfg_weight
+        ),
+    )
+
+    # Report the test loss back to Ray Tune
+    tune.report(loss=test_loss)
+
+def tune_train():
+    # Initialize Ray
+    ray.init()
+
+    # Specify the hyperparameter search space
+    config = {
+        "shg1_weight": tune.uniform(0, 1),
+        "shg2_weight": tune.uniform(0, 1),
+        "sfg_weight": tune.uniform(0, 1),
+    }
+
+    # Ensure the sum of hyperparameters equals 1 using a constraint
+    constraint = "shg1_weight + shg2_weight + sfg_weight <= 1"
+
+    # Run the experiments
+    analysis = tune.run(
+        train_model,
+        config=config,
+        resources_per_trial={"cpu": 2},
+        num_samples=100,  # Number of hyperparameter combinations to try
+        stop={"loss": 0.01},  # Stop trials if the loss goes below this threshold
+        constraint=constraint,
+    )
+
+    # Print the best hyperparameters
+    print("Best hyperparameters found were: ", analysis.best_config)
+
 
 def dev_test_losses():
     data_dir = "processed_dataset"
