@@ -21,6 +21,19 @@
                 "--model_param_path", 
                 "Run1\\MSE\\model.pth"
             ]
-        }
+        }, 
+        {
+            "name": "Python: Remote Attach",
+            "type": "python",
+            "request": "attach",
+            "port": 5678,
+            "host": "127.0.0.1",
+            "pathMappings": [
+              {
+                "localRoot": "${workspaceFolder}",
+                "remoteRoot": "/u/home/t/theerfan/LaserSTM"
+              }
+            ]
+          }
     ]
 }

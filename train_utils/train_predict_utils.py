@@ -320,6 +320,59 @@ def predict(
 # Could split it into the 6 different sections, get the total area under the curve of each
 # and give different "importance" to each section
 
+# Here the SFG is should be more much important than the SHG (actual values of them really differ)
+# Min-Max scaling (hopefully no bad spikes)
+
+# TODO: Also do energy using L2 norm of the complex values (different version)
+
+def total_area_under_curve(y_pred, y_real):
+    (
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg2_real_pred,
+        shg2_complex_pred,
+        sfg_real_pred,
+        sfg_complex_pred,
+    ) = re_im_sep_vectors(y_pred)
+
+    (
+        shg1_real_real,
+        shg1_complex_real,
+        shg2_real_real,
+        shg2_complex_real,
+        sfg_real_real,
+        sfg_complex_real,
+    ) = re_im_sep_vectors(y_real)
+
+    # Calculate the area under the curve for each signal
+    shape = shg1_real_pred.shape
+    shg1_auc = torch.zeros(shape)
+    shg2_auc = torch.zeros(shape)
+    sfg_auc = torch.zeros(shape)
+
+    for i in range(shape[0]):
+        shg1_auc[i] = 0.5 * (
+            torch.trapz(shg1_real_pred[i]) - torch.trapz(shg1_real_real[i])
+            + torch.trapz(shg1_complex_pred[i]) - torch.trapz(shg1_complex_real[i])
+        )
+
+        shg2_auc[i] = 0.5 * (
+            torch.trapz(shg2_real_pred[i]) - torch.trapz(shg2_real_real[i])
+            + torch.trapz(shg2_complex_pred[i]) - torch.trapz(shg2_complex_real[i])
+        )
+
+        sfg_auc[i] = 0.5 * (
+            torch.trapz(sfg_real_pred[i]) - torch.trapz(sfg_real_real[i])
+            + torch.trapz(sfg_complex_pred[i]) - torch.trapz(sfg_complex_real[i])
+        )
+
+    # Calculate the mean of the coefficients
+    shg1_auc = torch.mean(shg1_auc)
+    shg2_auc = torch.mean(shg2_auc)
+    sfg_auc = torch.mean(sfg_auc)
+
+    return shg1_auc + shg2_auc + sfg_auc
+
 # `:,` is there because we want to keep the batch dimension
 def re_im_sep(fields, detach=False):
     shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
