@@ -1,8 +1,10 @@
 import argparse
 from typing import Callable
 
+import ray
 import torch
 import torch.nn as nn
+from ray import tune
 
 from LSTM.model import LSTMModel_1
 from train_utils.train_predict_utils import (
@@ -15,45 +17,55 @@ from train_utils.train_predict_utils import (
 )
 from Transformer.model import TransformerModel
 
-import ray
-from ray import tune
 
-# Define the training function for Ray Tune
-def train_model(config):
+# Tune wrapper for hyperparameter tuning (main_train wrapped in this)
+def ray_train_model(config):
+    model = config["model"]
+    num_epochs = config["num_epochs"]
     shg1_weight = config["shg1_weight"]
     shg2_weight = config["shg2_weight"]
     sfg_weight = config["sfg_weight"]
+    custom_loss = config["custom_loss"]
 
-    model = LSTMModel_1(input_size=8264)
-    optimizer = torch.optim.Adam(model.parameters())
+    def tuned_custom_loss(y_pred, y_real):
+        return custom_loss(y_pred, y_real, shg1_weight, shg2_weight, sfg_weight)
 
-    # Assuming you have a train function like in the provided code
-    train_loss = train(
+    epoch_save_interval = config["epoch_save_interval"]
+    output_dir = config["output_dir"]
+    train_dataset = config["train_dataset"]
+    val_dataset = config["val_dataset"]
+    test_dataset = config["test_dataset"]
+    verbose = config["verbose"]
+
+    trained_model, train_losses, val_losses, all_test_preds = train_model(
         model,
-        "/u/scratch/t/theerfan/JackData/train",
-        10,
-        optimizer,
-        lambda y_pred, y_real: weighted_MSE(
-            y_pred, y_real, shg1_weight, shg2_weight, sfg_weight
-        ),
+        num_epochs,
+        tuned_custom_loss,
+        epoch_save_interval,
+        output_dir,
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        verbose,
     )
 
-    # Evaluate the model on the test dataset
-    test_loss = single_pass(
-        model,
-        "/u/scratch/t/theerfan/JackData/test",
-        "cpu",
-        optimizer,
-        lambda y_pred, y_real: weighted_MSE(
-            y_pred, y_real, shg1_weight, shg2_weight, sfg_weight
-        ),
-    )
+    val_loss = torch.mean(torch.tensor(val_losses).flatten())
 
     # Report the test loss back to Ray Tune
-    tune.report(loss=test_loss)
+    tune.report(loss=val_loss.item())
 
 
-def tune_train():
+def tune_train(
+    model,
+    num_epochs,
+    custom_loss,
+    epoch_save_interval,
+    output_dir,
+    train_dataset,
+    val_dataset,
+    test_dataset,
+    verbose,
+):
     # Initialize Ray
     ray.init()
 
@@ -62,16 +74,28 @@ def tune_train():
         "shg1_weight": tune.uniform(0, 1),
         "shg2_weight": tune.uniform(0, 1),
         "sfg_weight": tune.uniform(0, 1),
+        "model": model,
+        "num_epochs": num_epochs,
+        "custom_loss": custom_loss,
+        "epoch_save_interval": epoch_save_interval,
+        "output_dir": output_dir,
+        "train_dataset": train_dataset,
+        "val_dataset": val_dataset,
+        "test_dataset": test_dataset,
+        "verbose": verbose,
     }
 
     # Ensure the sum of hyperparameters equals 1 using a constraint
     constraint = "shg1_weight + shg2_weight + sfg_weight <= 1"
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device_count = torch.cuda.device_count() if torch.cuda.is_available() else 1
+
     # Run the experiments
     analysis = tune.run(
-        train_model,
+        ray_train_model,
         config=config,
-        resources_per_trial={"cpu": 2},
+        resources_per_trial={device: device_count},
         num_samples=100,  # Number of hyperparameter combinations to try
         stop={"loss": 0.01},  # Stop trials if the loss goes below this threshold
         constraint=constraint,
@@ -81,54 +105,11 @@ def tune_train():
     print("Best hyperparameters found were: ", analysis.best_config)
 
 
-def dev_test_losses():
-    data_dir = "processed_dataset"
-    test_dataset = CustomSequence(
-        data_dir, [1], file_batch_size=1, model_batch_size=512
-    )
-
-    # (SHG1, SHG2) + SFG * 2
-    # (1892 * 2 + 348) * 2
-    model = LSTMModel_1(input_size=8264)
-    # mse = nn.MSELoss()
-    mse = pearson_corr
-
-    optimizer = torch.optim.Adam(model.parameters())
-
-    normalized_mse_loss, last_mse_loss = single_pass(
-        model, test_dataset, "cpu", optimizer, mse, verbose=False
-    )
-
-    print(normalized_mse_loss, last_mse_loss)
-
-    normalized_equal_mse_loss, last_equal_mse_loss = single_pass(
-        model, test_dataset, "cpu", optimizer, weighted_MSE, verbose=False
-    )
-
-    print(normalized_equal_mse_loss, last_equal_mse_loss)
-
-
 # (SHG1, SHG2) + SFG * 2
 # (1892 * 2 + 348) * 2 = 8264
 
 
-def do_the_prediction(model, model_param_path, output_dir, test_dataset, verbose=1):
-    if verbose:
-        print("Initialized the dataset")
-
-    predict(
-        model,
-        model_param_path=model_param_path,
-        test_dataset=test_dataset,
-        use_gpu=True,
-        data_parallel=False,
-        output_dir=output_dir,
-        output_name="all_preds.npy",
-        verbose=1,
-    )
-
-
-def main_train(
+def train_model(
     model: torch.nn.Module,
     num_epochs: int,
     custom_loss: Callable,
@@ -137,19 +118,9 @@ def main_train(
     train_dataset: CustomSequence,
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
-    config: dict = None,
+    verbose: int = 1,
 ):
-
-    if config is not None:
-        shg1_weight = config["shg1_weight"]
-        shg2_weight = config["shg2_weight"]
-        sfg_weight = config["sfg_weight"]
-        def tuned_custom_loss(y_pred, y_real):
-            return custom_loss(y_pred, y_real, shg1_weight, shg2_weight, sfg_weight)
-    else:
-        tuned_custom_loss = None
-
-    train(
+    trained_model, train_losses, val_losses = train(
         model,
         train_dataset,
         num_epochs=num_epochs,
@@ -158,13 +129,13 @@ def main_train(
         data_parallel=True,
         out_dir=output_dir,
         model_name="model",
-        verbose=1,
+        verbose=verbose,
         save_checkpoints=True,
-        custom_loss=tuned_custom_loss or custom_loss,
+        custom_loss=custom_loss,
         epoch_save_interval=epoch_save_interval,
     )
 
-    predict(
+    all_test_preds = predict(
         model,
         # model_param_path="model_epoch_2.pth",
         test_dataset=test_dataset,
@@ -172,8 +143,10 @@ def main_train(
         data_parallel=False,
         output_dir=output_dir,
         output_name="all_preds.npy",
-        verbose=1,
+        verbose=verbose,
     )
+
+    return trained_model, train_losses, val_losses, all_test_preds
 
 
 if __name__ == "__main__":
@@ -216,6 +189,13 @@ if __name__ == "__main__":
         type=str,
         default="model.pth",
         help="Path to the model parameters.",
+    )
+
+    parser.add_argument(
+        "verbose",
+        type=int,
+        default=1,
+        help="Whether to print the progress or not.",
     )
 
     loss_dict = {
@@ -261,11 +241,15 @@ if __name__ == "__main__":
 
     if args.do_prediction == 1:
         print(f"Prediction only mode for model {args.model}")
-        do_the_prediction(
+        predict(
             model,
-            args.model_param_path,
-            args.data_dir,
-            args.output_dir,
+            model_param_path=args.model_param_path,
+            test_dataset=test_dataset,
+            use_gpu=True,
+            data_parallel=False,
+            output_dir=args.output_dir,
+            output_name="all_preds.npy",
+            verbose=1,
         )
     else:
         if args.tune_train == 1:
@@ -273,11 +257,15 @@ if __name__ == "__main__":
             tune_train()
         else:
             print(f"Training mode for model {args.model}")
-            main_train(
+            train_model(
                 model,
                 args.data_dir,
                 args.num_epochs,
                 custom_loss,
                 args.epoch_save_interval,
                 args.output_dir,
+                train_dataset,
+                val_dataset,
+                test_dataset,
+                args.verbose,
             )
