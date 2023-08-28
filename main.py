@@ -56,15 +56,15 @@ def ray_train_model(config):
 
 
 def tune_train(
-    model,
-    num_epochs,
-    custom_loss,
-    epoch_save_interval,
-    output_dir,
-    train_dataset,
-    val_dataset,
-    test_dataset,
-    verbose,
+    model: torch.nn.Module,
+    num_epochs: int,
+    custom_loss: Callable,
+    epoch_save_interval: int,
+    output_dir: str,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    verbose: int = 1,
 ):
     # Initialize Ray
     ray.init()
@@ -252,20 +252,24 @@ if __name__ == "__main__":
             verbose=1,
         )
     else:
+        # This assumes that `tune_train` and `train_model` have the same signature
         if args.tune_train == 1:
-            print(f"Tune train mode for model {args.model}")
-            tune_train()
+            function = tune_train
+            print_str = f"Tune train mode for model {args.model}"
         else:
-            print(f"Training mode for model {args.model}")
-            train_model(
-                model,
-                args.data_dir,
-                args.num_epochs,
-                custom_loss,
-                args.epoch_save_interval,
-                args.output_dir,
-                train_dataset,
-                val_dataset,
-                test_dataset,
-                args.verbose,
-            )
+            function = train_model
+            print_str = f"Training mode for model {args.model}"
+
+        print(print_str)
+
+        function(
+            model,
+            args.num_epochs,
+            custom_loss,
+            args.epoch_save_interval,
+            args.output_dir,
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            args.verbose,
+        )
