@@ -98,11 +98,16 @@ def tune_train(
         resources_per_trial={device: device_count},
         num_samples=100,  # Number of hyperparameter combinations to try
         stop={"loss": 0.01},  # Stop trials if the loss goes below this threshold
-        constraint=constraint,
     )
 
     # Print the best hyperparameters
-    print("Best hyperparameters found were: ", analysis.best_config)
+    best_config = analysis.get_best_config(metric="loss", mode="min")  
+    best_config = {
+        "shg1_weight": best_config["shg1_weight"],
+        "shg2_weight": best_config["shg2_weight"],
+        "sfg_weight": best_config["sfg_weight"],
+    } 
+    print("Best hyperparameters found were: ", best_config)
 
 
 # (SHG1, SHG2) + SFG * 2
