@@ -253,6 +253,7 @@ if __name__ == "__main__":
         )
     else:
         # This assumes that `tune_train` and `train_model` have the same signature
+        # (as in required arguments)
         if args.tune_train == 1:
             function = tune_train
             print_str = f"Tune train mode for model {args.model}"
