@@ -197,7 +197,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "verbose",
+        "--verbose",
         type=int,
         default=1,
         help="Whether to print the progress or not.",
