@@ -16,7 +16,7 @@ from LSTM.training import (
 )
 from Transformer.model import TransformerModel
 
-from GAN.training import train_GAN
+from GAN.training import train
 
 def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
     model = LSTMModel(input_size=8264)
@@ -58,7 +58,7 @@ def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
 
 
 def main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss):
-    train_GAN(
+    train(
         input_dim=8264,
         hidden_dim=128,
         output_dim=8264,

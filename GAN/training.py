@@ -1,17 +1,21 @@
 import torch.optim as optim
 import torch
 import torch.nn as nn
+import numpy as np
 
 from GAN.model import Generator, Discriminator
 
 from LSTM.training import CustomSequence
 
+import os
+
 REAL_LABEL = 1
 GEN_LABEL = 0
 
+
 # Wild assumption: Latent dim is the same as the input dim
 # Because we want to give the GAN our input data and have it generate the desired output!
-def train_GAN(
+def train(
     input_dim: int,
     hidden_dim: int,
     output_dim: int,
@@ -19,10 +23,13 @@ def train_GAN(
     train_set: CustomSequence,
     val_set: CustomSequence = None,
     lr: float = 0.001,
+    out_dir: str = ".",
+    save_interval: int = None,
 ):
     # Assuming you're using a GPU
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    # TODO: Turn these into input arguments
     # Create the Generator and Discriminator
     generator = Generator(input_dim, hidden_dim, output_dim)
     discriminator = Discriminator(input_dim, hidden_dim)
@@ -30,6 +37,13 @@ def train_GAN(
     # Move models to device
     generator = generator.to(device)
     discriminator = discriminator.to(device)
+
+    if torch.cuda.device_count() > 1:
+        print("Using", torch.cuda.device_count(), "GPUs!")
+        generator = nn.DataParallel(generator)
+        discriminator = nn.DataParallel(discriminator)
+    else:
+        pass
 
     # Create the loss function
     criterion = nn.BCELoss()
@@ -42,9 +56,6 @@ def train_GAN(
     discriminator_losses = []
     if val_set is not None:
         val_losses = []
-
-    # TODO: Assuming you have a DataLoader `dataloader` that loads real sequences
-    # dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     for epoch in range(num_epochs):
         for i, sample_generator in enumerate(train_set):
@@ -67,7 +78,7 @@ def train_GAN(
                 # Calculate gradients for D in backward pass
                 errD_real.backward()
 
-                ## Train with Generator-made data 
+                ## Train with Generator-made data
                 # (would be `noise` in the original GAN idea)
                 # Generate made-up data batch with G
                 generator_data = generator(X)
@@ -102,7 +113,7 @@ def train_GAN(
                 # D_G_z2 = output.mean().item()
                 # Update G
                 optimizerG.step()
-            
+
             # Validation
             if val_set is not None:
                 generator.eval()
@@ -118,6 +129,13 @@ def train_GAN(
             else:
                 pass
 
+        if save_interval and epoch % save_interval == 0:
+            # Save the models
+            torch.save(generator.state_dict(), f"{out_dir}/generator.pt")
+            torch.save(discriminator.state_dict(), f"{out_dir}/discriminator.pt")
+        else:
+            pass
+
         # Log the progress
         print(f"[{epoch}/{num_epochs}] Loss_D: {errD.item()} Loss_G: {errG.item()}")
 
@@ -125,7 +143,85 @@ def train_GAN(
     torch.save(generator.state_dict(), "generator.pt")
     torch.save(discriminator.state_dict(), "discriminator.pt")
 
-    if val_set is not None:
-        return val_losses
+    return generator_losses, discriminator_losses, val_losses
+
+
+# Here we switch it up and only care about
+# the MSE loss between the generated and the real data
+def predict(
+    generator: nn.Module,
+    model_param_path: str = None,
+    test_dataset: CustomSequence = None,
+    output_dir: str = ".",
+    output_name: str = "all_preds.npy",
+    verbose: bool = True,
+):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load model parameters if path is provided
+    if model_param_path is not None:
+        torch.cuda.empty_cache
+        params = torch.load(model_param_path, map_location=device)
+        # remove the 'module.' prefix from the keys
+        params = {k.replace("module.", ""): v for k, v in params.items()}
+        generator.load_state_dict(params, strict=False)
     else:
-        return None
+        pass
+
+    # Check if the output directory exists, if not, create it
+    os.makedirs(output_dir, exist_ok=True)
+
+    if torch.cuda.device_count() > 1:
+        generator = nn.DataParallel(generator)
+    else:
+        print("Warning: Data parallelism not available, using single GPU instead.")
+
+    generator = generator.to(device)
+    generator.eval()
+
+    all_preds = []
+    final_shape = None
+
+    if verbose:
+        print("Finished loading the model, starting prediction.")
+
+    dataset_len = len(test_dataset)
+
+    with torch.no_grad():
+        for j in range(dataset_len):
+            sample_generator = test_dataset[j]
+
+            if verbose:
+                print(
+                    f"Processing batch {(j+1)} / {len(test_dataset)}"
+                )
+
+            counter = 0
+            for X, y in sample_generator:
+                if verbose:
+                    print(f"Processing sample {(counter+1)} / n")
+                    counter += 1
+
+                X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
+
+                if final_shape is None:
+                    final_shape = X.shape[-1]
+
+                for _ in range(100):
+                    pred = generator(X)
+                    X = X[:, 1:, :]  # pop first
+
+                    # add to last
+                    X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
+
+                all_preds.append(pred.squeeze())
+
+            if verbose:
+                print(f"Finished processing samples in {j} batch.")
+
+        if verbose:
+            print("Finished processing all batches.")
+
+    all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
+    np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
+    return all_preds
