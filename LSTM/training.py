@@ -571,6 +571,10 @@ def tune_train_lstm(
     # Find the best hyperparameters based on test loss
     best_hyperparameters = min(results, key=results.get)
 
+    print("Best hyperparameters:", best_hyperparameters)
+    print("Val loss:", results[best_hyperparameters])
+    print("Results:", results")
+
     return best_hyperparameters, results
 
 
