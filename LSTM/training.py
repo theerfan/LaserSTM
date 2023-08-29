@@ -1,17 +1,12 @@
 import os
 import time
-from typing import Tuple
+from typing import Callable, List, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils import data
 from torchmetrics.regression import PearsonCorrCoef
-
-from typing import Callable
-
-import ray
-from ray import tune
 
 
 def add_prefix(lst: list, prefix="X"):
@@ -138,7 +133,7 @@ def train(
     save_checkpoints: bool = True,
     custom_loss=None,
     epoch_save_interval: int = 1,
-):
+) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
 
     if use_gpu:
@@ -225,6 +220,8 @@ def train(
     else:
         pass
     torch.save(model.state_dict(), os.path.join(out_dir, f"{model_name}.pth"))
+    train_losses = np.array(train_losses)
+    val_losses = np.array(val_losses)
     return model, train_losses, val_losses
 
 
@@ -237,7 +234,7 @@ def predict(
     output_dir: str = ".",
     output_name: str = "all_preds.npy",
     verbose: bool = True,
-):
+) -> np.ndarray:
 
     device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
     if not use_gpu:
@@ -430,7 +427,7 @@ def re_im_sep_vectors(fields, detach=False):
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal
-def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
+def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1) -> float:
     (
         shg1_real_pred,
         shg1_complex_pred,
@@ -513,43 +510,6 @@ def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
     return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
 
 
-# Tune wrapper for hyperparameter tuning (main_train wrapped in this)
-def ray_train_lstm(config):
-    model = config["model"]
-    num_epochs = config["num_epochs"]
-    shg1_weight = config["shg1_weight"]
-    shg2_weight = config["shg2_weight"]
-    sfg_weight = config["sfg_weight"]
-    custom_loss = config["custom_loss"]
-
-    def tuned_custom_loss(y_pred, y_real):
-        return custom_loss(y_pred, y_real, shg1_weight, shg2_weight, sfg_weight)
-
-    epoch_save_interval = config["epoch_save_interval"]
-    output_dir = config["output_dir"]
-    train_dataset = config["train_dataset"]
-    val_dataset = config["val_dataset"]
-    test_dataset = config["test_dataset"]
-    verbose = config["verbose"]
-
-    trained_model, train_losses, val_losses, all_test_preds = test_train_lstm(
-        model,
-        num_epochs,
-        tuned_custom_loss,
-        epoch_save_interval,
-        output_dir,
-        train_dataset,
-        val_dataset,
-        test_dataset,
-        verbose,
-    )
-
-    val_loss = torch.mean(torch.tensor(val_losses).flatten())
-
-    # Report the test loss back to Ray Tune
-    tune.report(loss=val_loss.item())
-
-
 def tune_train_lstm(
     model: torch.nn.Module,
     num_epochs: int,
@@ -561,45 +521,57 @@ def tune_train_lstm(
     test_dataset: CustomSequence,
     verbose: int = 1,
 ):
-    # Initialize Ray
-    ray.init()
 
-    # Specify the hyperparameter search space
-    config = {
-        "shg1_weight": tune.uniform(0, 1),
-        "shg2_weight": tune.uniform(0, 1),
-        "sfg_weight": tune.uniform(0, 1),
-        "model": model,
-        "num_epochs": num_epochs,
-        "custom_loss": custom_loss,
-        "epoch_save_interval": epoch_save_interval,
-        "output_dir": output_dir,
-        "train_dataset": train_dataset,
-        "val_dataset": val_dataset,
-        "test_dataset": test_dataset,
-        "verbose": verbose,
-    }
+    # Generate possible values for each hyperparameter with a step size of 0.2
+    possible_values = np.arange(0, 1.1, 0.2)  # Include 1.0 as a possible value
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device_count = torch.cuda.device_count() if torch.cuda.is_available() else 1
+    # Generate all combinations where the sum of the hyperparameters equals 1
+    combinations = [
+        (shg1, shg2, sfg)
+        for shg1 in possible_values
+        for shg2 in possible_values
+        for sfg in possible_values
+        if np.isclose(shg1 + shg2 + sfg, 1.0)
+    ]
 
-    # Run the experiments
-    analysis = tune.run(
-        ray_train_lstm,
-        config=config,
-        resources_per_trial={device: device_count},
-        num_samples=100,  # Number of hyperparameter combinations to try
-        stop={"loss": 0.01},  # Stop trials if the loss goes below this threshold
-    )
+    results = {}
 
-    # Print the best hyperparameters
-    best_config = analysis.get_best_config(metric="loss", mode="min")
-    best_config = {
-        "shg1_weight": best_config["shg1_weight"],
-        "shg2_weight": best_config["shg2_weight"],
-        "sfg_weight": best_config["sfg_weight"],
-    }
-    print("Best hyperparameters found were: ", best_config)
+    for combo in combinations:
+        shg1_weight, shg2_weight, sfg_weight = combo
+
+        def current_loss(y_pred, y_real):
+            return custom_loss(
+                y_pred,
+                y_real,
+                shg1_weight=shg1_weight,
+                shg2_weight=shg2_weight,
+                sfg_weight=sfg_weight,
+            )
+
+        # Train the model with the training dataset
+        # This assumes a train function is available and works similarly to the one in main.py
+        # We'll also need to modify the train function to accept the loss function with hyperparameters
+        trained_model, train_losses, val_losses = train(
+            model,
+            train_dataset,
+            num_epochs=num_epochs,
+            val_dataset=val_dataset,
+            use_gpu=True,
+            data_parallel=True,
+            out_dir=output_dir,
+            model_name="model",
+            verbose=verbose,
+            save_checkpoints=True,
+            custom_loss=current_loss,
+            epoch_save_interval=epoch_save_interval,
+        )
+
+        results[combo] = val_losses.flatten().mean()
+
+    # Find the best hyperparameters based on test loss
+    best_hyperparameters = min(results, key=results.get)
+
+    return best_hyperparameters, results
 
 
 # (SHG1, SHG2) + SFG * 2
@@ -616,7 +588,7 @@ def test_train_lstm(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     verbose: int = 1,
-):
+) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
         train_dataset,
