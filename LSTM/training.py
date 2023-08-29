@@ -8,6 +8,11 @@ import torch.nn as nn
 from torch.utils import data
 from torchmetrics.regression import PearsonCorrCoef
 
+from typing import Callable
+
+import ray
+from ray import tune
+
 
 def add_prefix(lst: list, prefix="X"):
     """
@@ -171,6 +176,17 @@ def train(
         train_loss, last_train_loss = single_pass(
             model, train_dataset, device, optimizer, criterion
         )
+        train_losses.append(train_loss)
+
+        # Validation
+        if val_dataset is not None:
+            model.eval()
+            with torch.no_grad():
+                val_loss, _ = single_pass(model, val_dataset, device, None, criterion)
+                val_losses.append(val_loss)
+        else:
+            # For formatting purposes, but it basically means that it's nan
+            val_loss = -1
 
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
@@ -186,39 +202,28 @@ def train(
                 },
                 checkpoint_path,
             )
-        else:
-            pass
-
-        # Erfan: As far as I understand, validation loss is used for hyperparameter tuning
-        # are we doing that here? Or are we planning to do that later?
-        # Answer: Inshallah we'll do hyperparameter turning later.
-        # Validation
-        if val_dataset is not None:
-            model.eval()
-            with torch.no_grad():
-                val_loss, _ = single_pass(model, val_dataset, device, None, criterion)
-        else:
-            pass
-
-        train_losses.append(train_loss)
-        np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
-
-        if val_dataset is not None:
-            val_losses.append(val_loss)
-            np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+            # Save these things at checkpoints
+            np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
+            if val_dataset is not None:
+                np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+            else:
+                pass
         else:
             pass
 
         if verbose:
-            if val_dataset is not None:
-                print(
-                    f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
-                )
-            else:
-                print(f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}")
+            print(
+                f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
+            )
         else:
             pass
 
+    # Save everything at the end
+    np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
+    if val_dataset is not None:
+        np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+    else:
+        pass
     torch.save(model.state_dict(), os.path.join(out_dir, f"{model_name}.pth"))
     return model, train_losses, val_losses
 
@@ -308,13 +313,14 @@ def predict(
 
             if verbose:
                 print(f"Finished processing samples in {j} batch.")
-        
+
         if verbose:
             print("Finished processing all batches.")
 
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
     return all_preds
+
 
 # Erfan: Total sum of areas under the curve for both real and predicted fields
 # Could also add it to the loss function
@@ -325,6 +331,7 @@ def predict(
 # Min-Max scaling (hopefully no bad spikes)
 
 # TODO: Also do energy using L2 norm of the complex values (different version)
+
 
 def total_area_under_curve(y_pred, y_real):
     (
@@ -353,18 +360,24 @@ def total_area_under_curve(y_pred, y_real):
 
     for i in range(shape[0]):
         shg1_auc[i] = 0.5 * (
-            torch.trapz(shg1_real_pred[i]) - torch.trapz(shg1_real_real[i])
-            + torch.trapz(shg1_complex_pred[i]) - torch.trapz(shg1_complex_real[i])
+            torch.trapz(shg1_real_pred[i])
+            - torch.trapz(shg1_real_real[i])
+            + torch.trapz(shg1_complex_pred[i])
+            - torch.trapz(shg1_complex_real[i])
         )
 
         shg2_auc[i] = 0.5 * (
-            torch.trapz(shg2_real_pred[i]) - torch.trapz(shg2_real_real[i])
-            + torch.trapz(shg2_complex_pred[i]) - torch.trapz(shg2_complex_real[i])
+            torch.trapz(shg2_real_pred[i])
+            - torch.trapz(shg2_real_real[i])
+            + torch.trapz(shg2_complex_pred[i])
+            - torch.trapz(shg2_complex_real[i])
         )
 
         sfg_auc[i] = 0.5 * (
-            torch.trapz(sfg_real_pred[i]) - torch.trapz(sfg_real_real[i])
-            + torch.trapz(sfg_complex_pred[i]) - torch.trapz(sfg_complex_real[i])
+            torch.trapz(sfg_real_pred[i])
+            - torch.trapz(sfg_real_real[i])
+            + torch.trapz(sfg_complex_pred[i])
+            - torch.trapz(sfg_complex_real[i])
         )
 
     # Calculate the mean of the coefficients
@@ -373,6 +386,7 @@ def total_area_under_curve(y_pred, y_real):
     sfg_auc = torch.mean(sfg_auc)
 
     return shg1_auc + shg2_auc + sfg_auc
+
 
 # `:,` is there because we want to keep the batch dimension
 def re_im_sep(fields, detach=False):
@@ -497,6 +511,139 @@ def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
     sfg_corr = torch.mean(sfg_coeffs)
 
     return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
+
+
+# Tune wrapper for hyperparameter tuning (main_train wrapped in this)
+def ray_train_lstm(config):
+    model = config["model"]
+    num_epochs = config["num_epochs"]
+    shg1_weight = config["shg1_weight"]
+    shg2_weight = config["shg2_weight"]
+    sfg_weight = config["sfg_weight"]
+    custom_loss = config["custom_loss"]
+
+    def tuned_custom_loss(y_pred, y_real):
+        return custom_loss(y_pred, y_real, shg1_weight, shg2_weight, sfg_weight)
+
+    epoch_save_interval = config["epoch_save_interval"]
+    output_dir = config["output_dir"]
+    train_dataset = config["train_dataset"]
+    val_dataset = config["val_dataset"]
+    test_dataset = config["test_dataset"]
+    verbose = config["verbose"]
+
+    trained_model, train_losses, val_losses, all_test_preds = test_train_lstm(
+        model,
+        num_epochs,
+        tuned_custom_loss,
+        epoch_save_interval,
+        output_dir,
+        train_dataset,
+        val_dataset,
+        test_dataset,
+        verbose,
+    )
+
+    val_loss = torch.mean(torch.tensor(val_losses).flatten())
+
+    # Report the test loss back to Ray Tune
+    tune.report(loss=val_loss.item())
+
+
+def tune_train_lstm(
+    model: torch.nn.Module,
+    num_epochs: int,
+    custom_loss: Callable,
+    epoch_save_interval: int,
+    output_dir: str,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    verbose: int = 1,
+):
+    # Initialize Ray
+    ray.init()
+
+    # Specify the hyperparameter search space
+    config = {
+        "shg1_weight": tune.uniform(0, 1),
+        "shg2_weight": tune.uniform(0, 1),
+        "sfg_weight": tune.uniform(0, 1),
+        "model": model,
+        "num_epochs": num_epochs,
+        "custom_loss": custom_loss,
+        "epoch_save_interval": epoch_save_interval,
+        "output_dir": output_dir,
+        "train_dataset": train_dataset,
+        "val_dataset": val_dataset,
+        "test_dataset": test_dataset,
+        "verbose": verbose,
+    }
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device_count = torch.cuda.device_count() if torch.cuda.is_available() else 1
+
+    # Run the experiments
+    analysis = tune.run(
+        ray_train_lstm,
+        config=config,
+        resources_per_trial={device: device_count},
+        num_samples=100,  # Number of hyperparameter combinations to try
+        stop={"loss": 0.01},  # Stop trials if the loss goes below this threshold
+    )
+
+    # Print the best hyperparameters
+    best_config = analysis.get_best_config(metric="loss", mode="min")
+    best_config = {
+        "shg1_weight": best_config["shg1_weight"],
+        "shg2_weight": best_config["shg2_weight"],
+        "sfg_weight": best_config["sfg_weight"],
+    }
+    print("Best hyperparameters found were: ", best_config)
+
+
+# (SHG1, SHG2) + SFG * 2
+# (1892 * 2 + 348) * 2 = 8264
+
+
+def test_train_lstm(
+    model: torch.nn.Module,
+    num_epochs: int,
+    custom_loss: Callable,
+    epoch_save_interval: int,
+    output_dir: str,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    verbose: int = 1,
+):
+    trained_model, train_losses, val_losses = train(
+        model,
+        train_dataset,
+        num_epochs=num_epochs,
+        val_dataset=val_dataset,
+        use_gpu=True,
+        data_parallel=True,
+        out_dir=output_dir,
+        model_name="model",
+        verbose=verbose,
+        save_checkpoints=True,
+        custom_loss=custom_loss,
+        epoch_save_interval=epoch_save_interval,
+    )
+
+    all_test_preds = predict(
+        model,
+        # model_param_path="model_epoch_2.pth",
+        test_dataset=test_dataset,
+        use_gpu=True,
+        data_parallel=False,
+        output_dir=output_dir,
+        output_name="all_preds.npy",
+        verbose=verbose,
+    )
+
+    return trained_model, train_losses, val_losses, all_test_preds
 
 
 # Erfan-Jack Meeting:

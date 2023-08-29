@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class LSTMModel_1(nn.Module):
+class LSTMModel(nn.Module):
     # basic one with two linear layers and final output with sigmoid
     def __init__(
         self, input_size, lstm_hidden_size=1024, linear_layer_size=4096, num_layers=1

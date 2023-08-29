@@ -4,14 +4,10 @@ import torch.nn as nn
 
 from GAN.model import Generator, Discriminator
 
-from train_utils.train_predict_utils import CustomSequence
+from LSTM.training import CustomSequence
 
 REAL_LABEL = 1
 GEN_LABEL = 0
-
-# Assuming you're using a GPU
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 # Wild assumption: Latent dim is the same as the input dim
 # Because we want to give the GAN our input data and have it generate the desired output!
@@ -21,9 +17,12 @@ def train_GAN(
     output_dim: int,
     num_epochs: int,
     train_set: CustomSequence,
-    batch_size: int,
+    val_set: CustomSequence = None,
     lr: float = 0.001,
 ):
+    # Assuming you're using a GPU
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     # Create the Generator and Discriminator
     generator = Generator(input_dim, hidden_dim, output_dim)
     discriminator = Discriminator(input_dim, hidden_dim)
@@ -39,6 +38,11 @@ def train_GAN(
     optimizerD = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
     optimizerG = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 
+    generator_losses = []
+    discriminator_losses = []
+    if val_set is not None:
+        val_losses = []
+
     # TODO: Assuming you have a DataLoader `dataloader` that loads real sequences
     # dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
@@ -48,6 +52,7 @@ def train_GAN(
             # The logs are in the loss function!
 
             for X, y in sample_generator:
+                batch_size = X.size(0)
                 ## Train with real data
                 discriminator.zero_grad()
                 real_data = y.to(device)
@@ -78,6 +83,7 @@ def train_GAN(
                 # D_G_z1 = output.mean().item()
                 # Compute error of D as sum over the fake and the real batches
                 errD = errD_real + errD_generator
+                discriminator_losses.append(errD.item())
                 # Update D
                 optimizerD.step()
 
@@ -89,12 +95,37 @@ def train_GAN(
                 output = discriminator(generator_data).view(-1)
                 # Calculate G's loss based on this output
                 errG = criterion(output, label)
+                generator_losses.append(errG.item())
                 # Calculate gradients for G
                 errG.backward()
                 ## For printing: extract the scalar value of the loss function
                 # D_G_z2 = output.mean().item()
                 # Update G
                 optimizerG.step()
+            
+            # Validation
+            if val_set is not None:
+                generator.eval()
+                with torch.no_grad():
+                    generator_data = generator(X)
+                    label.fill_(REAL_LABEL)  # fake labels are real for generator cost
+                    # Since we just updated D,
+                    # perform another forward pass of all-fake batch through D
+                    output = discriminator(generator_data).view(-1)
+                    # Calculate G's loss based on this output
+                    errG = criterion(output, label)
+                    val_losses.append(errG.item())
+            else:
+                pass
 
         # Log the progress
         print(f"[{epoch}/{num_epochs}] Loss_D: {errD.item()} Loss_G: {errG.item()}")
+
+    # Save the models
+    torch.save(generator.state_dict(), "generator.pt")
+    torch.save(discriminator.state_dict(), "discriminator.pt")
+
+    if val_set is not None:
+        return val_losses
+    else:
+        return None
