@@ -40,17 +40,3 @@ class Discriminator(nn.Module):
         
     def forward(self, x):
         return self.model(x)
-
-# Hyperparameters
-G_INPUT_DIM = 100  # Random noise dimension coming into the Generator
-G_HIDDEN_DIM = 128
-G_OUTPUT_DIM = 1  # The dimension of the generated sequences by the Generator
-D_INPUT_DIM = G_OUTPUT_DIM  # Discriminator input size
-D_HIDDEN_DIM = 128
-
-# Create the Generator and Discriminator
-generator = Generator(G_INPUT_DIM, G_HIDDEN_DIM, G_OUTPUT_DIM)
-discriminator = Discriminator(D_INPUT_DIM, D_HIDDEN_DIM)
-
-print(generator)
-print(discriminator)

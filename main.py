@@ -37,7 +37,7 @@ def ray_train_model(config):
     test_dataset = config["test_dataset"]
     verbose = config["verbose"]
 
-    trained_model, train_losses, val_losses, all_test_preds = train_model(
+    trained_model, train_losses, val_losses, all_test_preds = test_train_model(
         model,
         num_epochs,
         tuned_custom_loss,
@@ -114,7 +114,7 @@ def tune_train(
 # (1892 * 2 + 348) * 2 = 8264
 
 
-def train_model(
+def test_train_model(
     model: torch.nn.Module,
     num_epochs: int,
     custom_loss: Callable,
@@ -263,7 +263,7 @@ if __name__ == "__main__":
             function = tune_train
             print_str = f"Tune train mode for model {args.model}"
         else:
-            function = train_model
+            function = test_train_model
             print_str = f"Training mode for model {args.model}"
 
         print(print_str)
