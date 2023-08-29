@@ -1,6 +1,5 @@
 import argparse
 
-import ray
 import torch
 import torch.nn as nn
 
@@ -16,7 +15,7 @@ from LSTM.training import (
 )
 from Transformer.model import TransformerModel
 
-from GAN.training import train
+from GAN.training import gan_train
 
 def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
     model = LSTMModel(input_size=8264)
@@ -58,7 +57,7 @@ def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
 
 
 def main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss):
-    train(
+    gan_train(
         input_dim=8264,
         hidden_dim=128,
         output_dim=8264,

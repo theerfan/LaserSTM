@@ -15,7 +15,7 @@ GEN_LABEL = 0
 
 # Wild assumption: Latent dim is the same as the input dim
 # Because we want to give the GAN our input data and have it generate the desired output!
-def train(
+def gan_train(
     input_dim: int,
     hidden_dim: int,
     output_dim: int,
@@ -148,7 +148,7 @@ def train(
 
 # Here we switch it up and only care about
 # the MSE loss between the generated and the real data
-def predict(
+def gan_predict(
     generator: nn.Module,
     model_param_path: str = None,
     test_dataset: CustomSequence = None,
