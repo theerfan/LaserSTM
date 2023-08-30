@@ -573,7 +573,7 @@ def tune_train_lstm(
 
     print("Best hyperparameters:", best_hyperparameters)
     print("Val loss:", results[best_hyperparameters])
-    print("Results:", results")
+    print("Results:", results)
 
     return best_hyperparameters, results
 
