@@ -1,8 +1,9 @@
+import logging
+
 import argparse
 
 import torch
 import torch.nn as nn
-
 
 from LSTM.model import LSTMModel
 from LSTM.training import (
@@ -17,10 +18,16 @@ from Transformer.model import TransformerModel
 
 from GAN.training import gan_train
 
+logging.basicConfig(
+    filename="application_log.log", level=logging.INFO, format="%(message)s"
+)
+
+
 def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
     model = LSTMModel(input_size=8264)
     if args.do_prediction == 1:
         print(f"Prediction only mode for model {args.model}")
+        logging.info(f"Prediction only mode for model {args.model}")
         predict(
             model,
             model_param_path=args.model_param_path,
@@ -42,6 +49,7 @@ def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
             print_str = f"Training mode for model {args.model}"
 
         print(print_str)
+        logging.info(print_str)
 
         function(
             model,
@@ -65,6 +73,7 @@ def main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss):
         train_set=train_dataset,
         lr=0.001,
     )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and test the model.")
