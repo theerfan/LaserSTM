@@ -2,18 +2,15 @@ import logging
 
 import argparse
 
-import torch
 import torch.nn as nn
 
 from LSTM.model import LSTMModel
 from LSTM.training import (
-    CustomSequence,
-    pearson_corr,
     predict,
-    weighted_MSE,
     test_train_lstm,
     tune_train_lstm,
 )
+from LSTM.utils import CustomSequence, pearson_corr, weighted_MSE
 from Transformer.model import TransformerModel
 
 from GAN.training import gan_train
