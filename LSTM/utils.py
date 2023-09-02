@@ -6,8 +6,8 @@ import torch.nn as nn
 from torch.utils import data
 from torchmetrics.regression import PearsonCorrCoef
 
-freq_vectors_shg = np.load("../Data/shg_freq_domain_ds.npy")
-freq_vectors_sfg = np.load("../Data/sfg_freq_domain_ds.npy")
+freq_vectors_shg = np.load("Data/shg_freq_domain_ds.npy")
+freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 
 domain_spacing_shg = (
     freq_vectors_shg[1] - freq_vectors_shg[0]
@@ -88,6 +88,22 @@ class CustomSequence(data.Dataset):
             yield data_tensor, label_tensor
 
 
+def area_under_curve_diff(
+    real_pred: torch.Tensor,
+    complex_pred: torch.Tensor,
+    real_real: torch.Tensor,
+    complex_real: torch.Tensor,
+    spacing: float,
+) -> torch.Tensor:
+    pred_magnitude = torch.trapezoid(real_pred, dx=spacing, dim=-1) + torch.trapezoid(
+        complex_pred, dx=spacing, dim=-1
+    )
+    real_magnitude = torch.trapezoid(real_real, dx=spacing, dim=-1) + torch.trapezoid(
+        complex_real, dx=spacing, dim=-1
+    )
+    return 0.5 * (pred_magnitude - real_magnitude)
+
+
 # Erfan: Total sum of areas under the curve for both real and predicted fields
 # Could also add it to the loss function
 # Could split it into the 6 different sections, get the total area under the curve of each
@@ -124,32 +140,23 @@ def total_area_under_curve(
     ) = re_im_sep_vectors(y_real)
 
     # Calculate the area under the curve for each signal
-    shape = shg1_real_pred.shape
-    shg1_auc = torch.zeros(shape)
-    shg2_auc = torch.zeros(shape)
-    sfg_auc = torch.zeros(shape)
-
-    for i in range(shape[0]):
-        shg1_auc[i] = 0.5 * (
-            torch.trapezoid(shg1_real_pred[i], dx=shg_spacing)
-            - torch.trapezoid(shg1_real_real[i], dx=shg_spacing)
-            + torch.trapezoid(shg1_complex_pred[i], dx=shg_spacing)
-            - torch.trapezoid(shg1_complex_real[i], dx=shg_spacing)
-        )
-
-        shg2_auc[i] = 0.5 * (
-            torch.trapezoid(shg2_real_pred[i], dx=shg_spacing)
-            - torch.trapezoid(shg2_real_real[i], dx=shg_spacing)
-            + torch.trapezoid(shg2_complex_pred[i], dx=shg_spacing)
-            - torch.trapezoid(shg2_complex_real[i], dx=shg_spacing)
-        )
-
-        sfg_auc[i] = 0.5 * (
-            torch.trapezoid(sfg_real_pred[i], dx=sfg_spacing)
-            - torch.trapezoid(sfg_real_real[i], dx=sfg_spacing)
-            + torch.trapezoid(sfg_complex_pred[i], dx=sfg_spacing)
-            - torch.trapezoid(sfg_complex_real[i], dx=sfg_spacing)
-        )
+    shg1_auc = area_under_curve_diff(
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg1_real_real,
+        shg1_complex_real,
+        shg_spacing,
+    )
+    shg2_auc = area_under_curve_diff(
+        shg2_real_pred,
+        shg2_complex_pred,
+        shg2_real_real,
+        shg2_complex_real,
+        shg_spacing,
+    )
+    sfg_auc = area_under_curve_diff(
+        sfg_real_pred, sfg_complex_pred, sfg_real_real, sfg_complex_real, sfg_spacing
+    )
 
     # Calculate the mean of the coefficients
     shg1_auc = torch.mean(shg1_auc)
@@ -159,8 +166,27 @@ def total_area_under_curve(
     return shg1_auc + shg2_auc + sfg_auc
 
 
+# Function to calculate energy for a given set of tensors
+def calculate_energy_diff(
+    real_pred: torch.Tensor,
+    complex_pred: torch.Tensor,
+    real_real: torch.Tensor,
+    complex_real: torch.Tensor,
+    spacing: float,
+):
+    pred_magnitude = torch.sqrt(
+        torch.sum(torch.square(real_pred), dim=-1)
+        + torch.sum(torch.square(complex_pred), dim=-1)
+    )
+    real_magnitude = torch.sqrt(
+        torch.sum(torch.square(real_real), dim=-1)
+        + torch.sum(torch.square(complex_real), dim=-1)
+    )
+    return 0.5 * (pred_magnitude - real_magnitude) * spacing
+
+
 # Convert from a + bi to A * exp(i * theta) to get the energy from the amplitude
-def total_energy(
+def change_in_energy(
     y_pred: torch.Tensor,
     y_real: torch.Tensor,
     shg_spacing: float = domain_spacing_shg,
@@ -184,65 +210,31 @@ def total_energy(
         sfg_complex_real,
     ) = re_im_sep_vectors(y_real)
 
-    # Calculate the area under the curve for each signal
-    shape = shg1_real_pred.shape
-    shg1_energy = torch.zeros(shape)
-    shg2_energy = torch.zeros(shape)
-    sfg_energy = torch.zeros(shape)
+    # Calculate energies
+    shg1_energy_diff = calculate_energy_diff(
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg1_real_real,
+        shg1_complex_real,
+        shg_spacing,
+    )
+    shg2_energy_diff = calculate_energy_diff(
+        shg2_real_pred,
+        shg2_complex_pred,
+        shg2_real_real,
+        shg2_complex_real,
+        shg_spacing,
+    )
+    sfg_energy_diff = calculate_energy_diff(
+        sfg_real_pred, sfg_complex_pred, sfg_real_real, sfg_complex_real, sfg_spacing
+    )
 
-    for i in range(shape[0]):
-        # Convert from a + bi to r * exp(i * theta)
-        shg1_energy[i] = (
-            0.5
-            * (
-                torch.sqrt(
-                    torch.sum(torch.square(shg1_real_pred[i]))
-                    + torch.sum(torch.square(shg1_complex_pred[i]))
-                )
-                - torch.sqrt(
-                    torch.sum(torch.square(shg1_real_real[i]))
-                    + torch.sum(torch.square(shg1_complex_real[i]))
-                )
-            )
-            * shg_spacing
-        )
+    # Calculate the mean of the energy differences in the batches
+    shg1_energy_diff = torch.mean(shg1_energy_diff)
+    shg2_energy_diff = torch.mean(shg2_energy_diff)
+    sfg_energy_diff = torch.mean(sfg_energy_diff)
 
-        shg2_energy[i] = (
-            0.5
-            * (
-                torch.sqrt(
-                    torch.sum(torch.square(shg2_real_pred[i]))
-                    + torch.sum(torch.square(shg2_complex_pred[i]))
-                )
-                - torch.sqrt(
-                    torch.sum(torch.square(shg2_real_real[i]))
-                    + torch.sum(torch.square(shg2_complex_real[i]))
-                )
-            )
-            * shg_spacing
-        )
-
-        sfg_energy[i] = (
-            0.5
-            * (
-                torch.sqrt(
-                    torch.sum(torch.square(sfg_real_pred[i]))
-                    + torch.sum(torch.square(sfg_complex_pred[i]))
-                )
-                - torch.sqrt(
-                    torch.sum(torch.square(sfg_real_real[i]))
-                    + torch.sum(torch.square(sfg_complex_real[i]))
-                )
-            )
-            * sfg_spacing
-        )
-
-    # Calculate the mean of the coefficients
-    shg1_energy = torch.mean(shg1_energy)
-    shg2_energy = torch.mean(shg2_energy)
-    sfg_energy = torch.mean(sfg_energy)
-
-    return shg1_energy + shg2_energy + sfg_energy
+    return shg1_energy_diff + shg2_energy_diff + sfg_energy_diff
 
 
 # `:,` is there because we want to keep the batch dimension
