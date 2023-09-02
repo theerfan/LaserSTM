@@ -5,7 +5,11 @@ import torch.nn as nn
 class LSTMModel(nn.Module):
     # basic one with two linear layers and final output with sigmoid
     def __init__(
-        self, input_size, lstm_hidden_size=1024, linear_layer_size=4096, num_layers=1
+        self,
+        input_size: int,
+        lstm_hidden_size: int = 1024,
+        linear_layer_size: int = 4096,
+        num_layers: int = 1,
     ):
         super().__init__()
         self.input_size = input_size
@@ -23,7 +27,7 @@ class LSTMModel(nn.Module):
         self.fc3 = nn.Linear(linear_layer_size, input_size)
         self.relu = nn.ReLU()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         # hidden state
         h_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
             x.device

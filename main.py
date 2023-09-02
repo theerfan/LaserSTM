@@ -14,13 +14,20 @@ from LSTM.utils import CustomSequence, pearson_corr, weighted_MSE
 from Transformer.model import TransformerModel
 
 from GAN.training import gan_train
+from typing import Callable
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
 
 
-def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
+def main_lstm(
+    args: dict,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    custom_loss: Callable,
+):
     model = LSTMModel(input_size=8264)
     if args.do_prediction == 1:
         print(f"Prediction only mode for model {args.model}")
@@ -61,7 +68,13 @@ def main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss):
         )
 
 
-def main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss):
+def main_gan(
+    args: dict,
+    train_dataset: CustomSequence,
+    val_dataset: CustomSequence,
+    test_dataset: CustomSequence,
+    custom_loss: Callable,
+):
     gan_train(
         input_dim=8264,
         hidden_dim=128,
@@ -70,6 +83,10 @@ def main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss):
         train_set=train_dataset,
         lr=0.001,
     )
+
+
+def test_energy_stuff(val_dataset: CustomSequence):
+    pass
 
 
 if __name__ == "__main__":

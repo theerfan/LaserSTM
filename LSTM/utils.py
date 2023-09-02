@@ -99,7 +99,12 @@ class CustomSequence(data.Dataset):
 # TODO: Also do energy using L2 norm of the complex values (different version)
 
 
-def total_area_under_curve(y_pred, y_real, shg_spacing=domain_spacing_shg, sfg_spacing=domain_spacing_sfg):
+def total_area_under_curve(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg_spacing: float = domain_spacing_shg,
+    sfg_spacing: float = domain_spacing_sfg,
+):
     (
         shg1_real_pred,
         shg1_complex_pred,
@@ -155,7 +160,12 @@ def total_area_under_curve(y_pred, y_real, shg_spacing=domain_spacing_shg, sfg_s
 
 
 # Convert from a + bi to A * exp(i * theta) to get the energy from the amplitude
-def total_energy(y_pred, y_real, shg_spacing=domain_spacing_shg, sfg_spacing=domain_spacing_sfg):
+def total_energy(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg_spacing: float = domain_spacing_shg,
+    sfg_spacing: float = domain_spacing_sfg,
+):
     (
         shg1_real_pred,
         shg1_complex_pred,
@@ -236,7 +246,7 @@ def total_energy(y_pred, y_real, shg_spacing=domain_spacing_shg, sfg_spacing=dom
 
 
 # `:,` is there because we want to keep the batch dimension
-def re_im_sep(fields, detach=False):
+def re_im_sep(fields: torch.Tensor, detach=False):
     shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
     shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
     sfg = (
@@ -254,7 +264,7 @@ def re_im_sep(fields, detach=False):
 
 
 # `:,` is there because we want to keep the batch dimension
-def re_im_sep_vectors(fields, detach=False):
+def re_im_sep_vectors(fields: torch.Tensor, detach=False):
     shg1_real = fields[:, 0:1892]
     shg1_complex = fields[:, 1892 * 2 + 348 : 1892 * 3 + 348]
 
@@ -277,7 +287,13 @@ def re_im_sep_vectors(fields, detach=False):
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal
-def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1) -> float:
+def weighted_MSE(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg1_weight: float = 1,
+    shg2_weight: float = 1,
+    sfg_weight: float = 1,
+) -> torch.Tensor:
     (
         shg1_real_pred,
         shg1_complex_pred,
@@ -312,7 +328,13 @@ def weighted_MSE(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1) -> 
     return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
 
 
-def pearson_corr(y_pred, y_real, shg1_weight=1, shg2_weight=1, sfg_weight=1):
+def pearson_corr(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg1_weight: float = 1,
+    shg2_weight: float = 1,
+    sfg_weight: float = 1,
+):
     (
         shg1_real_pred,
         shg1_complex_pred,
