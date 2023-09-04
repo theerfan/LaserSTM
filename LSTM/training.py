@@ -284,15 +284,14 @@ def tune_train_lstm(
 ):
 
     # Generate possible values for each hyperparameter with a step size of 0.2
-    possible_values = np.arange(0, 1.1, 0.2)  # Include 1.0 as a possible value
+    possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
     # Generate all combinations where the sum of the hyperparameters equals 1
     combinations = [
-        (shg1, shg2, sfg)
-        for shg1 in possible_values
-        for shg2 in possible_values
+        (np.round(shg, 3), np.round(shg, 3), np.around(sfg, 3))
+        for shg in possible_values
         for sfg in possible_values
-        if np.isclose(shg1 + shg2 + sfg, 1.0)
+        if np.isclose(shg + sfg, 1.0)
     ]
 
     results = {}
@@ -320,7 +319,7 @@ def tune_train_lstm(
             use_gpu=True,
             data_parallel=True,
             out_dir=output_dir,
-            model_name="model",
+            model_name="model" + str(combo),
             verbose=verbose,
             save_checkpoints=True,
             custom_loss=current_loss,
