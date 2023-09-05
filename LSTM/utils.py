@@ -9,10 +9,11 @@ from torchmetrics.regression import PearsonCorrCoef
 freq_vectors_shg = np.load("Data/shg_freq_domain_ds.npy")
 freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 
+# TODO: Make sure the scalings are correct (ask Jack)
 domain_spacing_shg = (
     freq_vectors_shg[1] - freq_vectors_shg[0]
-) * 1e12  # scaled to be back in Hz
-domain_spacing_sfg = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) * 1e12
+) #* 1e12  # scaled to be back in Hz
+domain_spacing_sfg = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) #* 1e12
 
 
 def add_prefix(lst: list, prefix="X"):
@@ -101,7 +102,7 @@ def area_under_curve_diff(
     real_magnitude = torch.trapezoid(real_real, dx=spacing, dim=-1) + torch.trapezoid(
         complex_real, dx=spacing, dim=-1
     )
-    return 0.5 * (pred_magnitude - real_magnitude)
+    return 0.5 * (pred_magnitude - real_magnitude) ** 2
 
 
 # Erfan: Total sum of areas under the curve for both real and predicted fields
@@ -166,23 +167,23 @@ def total_area_under_curve(
     return shg1_auc + shg2_auc + sfg_auc
 
 
-# Function to calculate energy for a given set of tensors
-def calculate_energy_diff(
+# Function to calculate pseudo-energy for a given set of tensors
+def calculate_pseudoenergy_diff(
     real_pred: torch.Tensor,
     complex_pred: torch.Tensor,
     real_real: torch.Tensor,
     complex_real: torch.Tensor,
     spacing: float,
 ):
-    pred_magnitude = torch.sqrt(
-        torch.sum(torch.square(real_pred), dim=-1)
-        + torch.sum(torch.square(complex_pred), dim=-1)
+    pred_magnitude = torch.sum(torch.square(real_pred), dim=-1) + torch.sum(
+        torch.square(complex_pred), dim=-1
     )
-    real_magnitude = torch.sqrt(
-        torch.sum(torch.square(real_real), dim=-1)
-        + torch.sum(torch.square(complex_real), dim=-1)
+
+    real_magnitude = torch.sum(torch.square(real_real), dim=-1) + torch.sum(
+        torch.square(complex_real), dim=-1
     )
-    return 0.5 * (pred_magnitude - real_magnitude) * spacing
+
+    return 0.5 * (pred_magnitude - real_magnitude) ** 2 * spacing
 
 
 # Convert from a + bi to A * exp(i * theta) to get the energy from the amplitude
@@ -211,21 +212,21 @@ def change_in_energy(
     ) = re_im_sep_vectors(y_real)
 
     # Calculate energies
-    shg1_energy_diff = calculate_energy_diff(
+    shg1_energy_diff = calculate_pseudoenergy_diff(
         shg1_real_pred,
         shg1_complex_pred,
         shg1_real_real,
         shg1_complex_real,
         shg_spacing,
     )
-    shg2_energy_diff = calculate_energy_diff(
+    shg2_energy_diff = calculate_pseudoenergy_diff(
         shg2_real_pred,
         shg2_complex_pred,
         shg2_real_real,
         shg2_complex_real,
         shg_spacing,
     )
-    sfg_energy_diff = calculate_energy_diff(
+    sfg_energy_diff = calculate_pseudoenergy_diff(
         sfg_real_pred, sfg_complex_pred, sfg_real_real, sfg_complex_real, sfg_spacing
     )
 
@@ -262,6 +263,7 @@ def re_im_sep_vectors(fields: torch.Tensor, detach=False):
 
     shg2_real = fields[:, 1892 : 1892 * 2]
     shg2_complex = fields[:, 1892 * 3 + 348 : 1892 * 4 + 348]
+
     sfg_real = fields[:, 1892 * 2 : 1892 * 2 + 348]
     sfg_complex = fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348]
 
