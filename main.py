@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
     def custom_loss(y_real, y_pred):
         return loss_dict[args.custom_loss](
-            y_real, y_pred, args.shg_weight, args.sfg_weight
+            y_real, y_pred, shg_weight=args.shg_weight, sfg_weight=args.sfg_weight
         )
 
     # The data that is currently here is the V2 data (reIm)
