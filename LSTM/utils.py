@@ -194,6 +194,8 @@ def pseudo_energy_loss(
     y_real: torch.Tensor,
     shg_spacing: float = domain_spacing_shg,
     sfg_spacing: float = domain_spacing_sfg,
+    shg_weight: float = 1,
+    sfg_weight: float = 1,
 ):
     (
         shg1_real_pred,
@@ -237,7 +239,10 @@ def pseudo_energy_loss(
     shg2_energy_diff = torch.mean(shg2_energy_diff)
     sfg_energy_diff = torch.mean(sfg_energy_diff)
 
-    return shg1_energy_diff + shg2_energy_diff + sfg_energy_diff
+    return (
+        shg_weight * (shg1_energy_diff + shg2_energy_diff)
+        + sfg_weight * sfg_energy_diff
+    )
 
 
 # `:,` is there because we want to keep the batch dimension
@@ -280,6 +285,14 @@ def re_im_sep_vectors(fields: torch.Tensor, detach=False):
         pass
     return shg1_real, shg1_complex, shg2_real, shg2_complex, sfg_real, sfg_complex
 
+
+# This is a wrapper for the MSE and BCE losses just to make them have the same
+# signature as the custom loss functions
+def wrapped_MSE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
+    return nn.MSELoss()(y_pred, y_real)
+
+def wrapped_BCE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
+    return nn.BCELoss()(y_pred, y_real)
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal

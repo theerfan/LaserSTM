@@ -10,7 +10,16 @@ from LSTM.training import (
     test_train_lstm,
     tune_train_lstm,
 )
-from LSTM.utils import CustomSequence, pearson_corr, weighted_MSE, pseudo_energy_loss
+from LSTM.utils import (
+    CustomSequence,
+    pearson_corr,
+    weighted_MSE,
+    pseudo_energy_loss,
+    area_under_curve_loss,
+    wrapped_MSE,
+    wrapped_BCE,
+)
+
 from Transformer.model import TransformerModel
 
 from GAN.training import gan_train
@@ -86,7 +95,7 @@ def main_gan(
 
 
 def test_energy_stuff():
-    val_dataset = CustomSequence(".", [0], file_batch_size=1, model_batch_size=512) 
+    val_dataset = CustomSequence(".", [0], file_batch_size=1, model_batch_size=512)
     gen = val_dataset[0]
     X, y = next(gen)
     pseudo_energy_loss(y, y)
@@ -107,6 +116,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--custom_loss", type=str, default="MSE", help="Custom loss function name."
+    )
+
+    # Add arguments for the shg and sfg weight losses
+    parser.add_argument(
+        "--shg_weight", type=float, default=1.0, help="Weight for the SHG loss."
+    )
+
+    parser.add_argument(
+        "--sfg_weight", type=float, default=1.0, help="Weight for the SFG loss."
     )
 
     parser.add_argument(
@@ -146,13 +164,18 @@ if __name__ == "__main__":
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
-        "MSE": nn.MSELoss,
-        "BCE": nn.BCELoss,
+        "MSE": wrapped_MSE,
+        "BCE": wrapped_BCE,
+        "pseudo_energy": pseudo_energy_loss,
+        "area_under_curve": area_under_curve_loss,
     }
 
     args = parser.parse_args()
 
-    custom_loss = loss_dict[args.custom_loss]
+    def custom_loss(y_real, y_pred):
+        return loss_dict[args.custom_loss](
+            y_real, y_pred, args.shg_weight, args.sfg_weight
+        )
 
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
