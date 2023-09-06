@@ -10,7 +10,7 @@ from LSTM.training import (
     test_train_lstm,
     tune_train_lstm,
 )
-from LSTM.utils import CustomSequence, pearson_corr, weighted_MSE, change_in_energy
+from LSTM.utils import CustomSequence, pearson_corr, weighted_MSE, pseudo_energy_loss
 from Transformer.model import TransformerModel
 
 from GAN.training import gan_train
@@ -89,7 +89,7 @@ def test_energy_stuff():
     val_dataset = CustomSequence(".", [0], file_batch_size=1, model_batch_size=512) 
     gen = val_dataset[0]
     X, y = next(gen)
-    change_in_energy(y, y)
+    pseudo_energy_loss(y, y)
     pass
 
 

@@ -12,8 +12,8 @@ freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 # TODO: Make sure the scalings are correct (ask Jack)
 domain_spacing_shg = (
     freq_vectors_shg[1] - freq_vectors_shg[0]
-) #* 1e12  # scaled to be back in Hz
-domain_spacing_sfg = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) #* 1e12
+)  # * 1e12  # scaled to be back in Hz
+domain_spacing_sfg = freq_vectors_sfg[1] - freq_vectors_sfg[0]  # * 1e12
 
 
 def add_prefix(lst: list, prefix="X"):
@@ -116,11 +116,13 @@ def area_under_curve_diff(
 # TODO: Also do energy using L2 norm of the complex values (different version)
 
 
-def total_area_under_curve(
+def area_under_curve_loss(
     y_pred: torch.Tensor,
     y_real: torch.Tensor,
     shg_spacing: float = domain_spacing_shg,
     sfg_spacing: float = domain_spacing_sfg,
+    shg_weight: float = 1,
+    sfg_weight: float = 1,
 ):
     (
         shg1_real_pred,
@@ -164,11 +166,11 @@ def total_area_under_curve(
     shg2_auc = torch.mean(shg2_auc)
     sfg_auc = torch.mean(sfg_auc)
 
-    return shg1_auc + shg2_auc + sfg_auc
+    return shg_weight * (shg1_auc + shg2_auc) + sfg_weight * sfg_auc
 
 
 # Function to calculate pseudo-energy for a given set of tensors
-def calculate_pseudoenergy_diff(
+def calculate_pseudo_energy_diff(
     real_pred: torch.Tensor,
     complex_pred: torch.Tensor,
     real_real: torch.Tensor,
@@ -187,7 +189,7 @@ def calculate_pseudoenergy_diff(
 
 
 # Convert from a + bi to A * exp(i * theta) to get the energy from the amplitude
-def change_in_energy(
+def pseudo_energy_loss(
     y_pred: torch.Tensor,
     y_real: torch.Tensor,
     shg_spacing: float = domain_spacing_shg,
@@ -212,21 +214,21 @@ def change_in_energy(
     ) = re_im_sep_vectors(y_real)
 
     # Calculate energies
-    shg1_energy_diff = calculate_pseudoenergy_diff(
+    shg1_energy_diff = calculate_pseudo_energy_diff(
         shg1_real_pred,
         shg1_complex_pred,
         shg1_real_real,
         shg1_complex_real,
         shg_spacing,
     )
-    shg2_energy_diff = calculate_pseudoenergy_diff(
+    shg2_energy_diff = calculate_pseudo_energy_diff(
         shg2_real_pred,
         shg2_complex_pred,
         shg2_real_real,
         shg2_complex_real,
         shg_spacing,
     )
-    sfg_energy_diff = calculate_pseudoenergy_diff(
+    sfg_energy_diff = calculate_pseudo_energy_diff(
         sfg_real_pred, sfg_complex_pred, sfg_real_real, sfg_complex_real, sfg_spacing
     )
 
@@ -284,8 +286,7 @@ def re_im_sep_vectors(fields: torch.Tensor, detach=False):
 def weighted_MSE(
     y_pred: torch.Tensor,
     y_real: torch.Tensor,
-    shg1_weight: float = 1,
-    shg2_weight: float = 1,
+    shg_weight: float = 1,
     sfg_weight: float = 1,
 ) -> torch.Tensor:
     (
@@ -319,14 +320,13 @@ def weighted_MSE(
         mse(sfg_real_pred, sfg_real_real) + mse(sfg_complex_pred, sfg_complex_real)
     )
 
-    return shg1_weight * shg1_loss + shg2_weight * shg2_loss + sfg_weight * sfg_loss
+    return shg_weight * (shg1_loss + shg2_loss) + sfg_weight * sfg_loss
 
 
 def pearson_corr(
     y_pred: torch.Tensor,
     y_real: torch.Tensor,
-    shg1_weight: float = 1,
-    shg2_weight: float = 1,
+    shg_weight: float = 1,
     sfg_weight: float = 1,
 ):
     (
@@ -373,4 +373,4 @@ def pearson_corr(
     shg2_corr = torch.mean(shg2_coeffs)
     sfg_corr = torch.mean(sfg_coeffs)
 
-    return shg1_weight * shg1_corr + shg2_weight * shg2_corr + sfg_weight * sfg_corr
+    return (shg_weight * shg1_corr + shg2_corr) + sfg_weight * sfg_corr

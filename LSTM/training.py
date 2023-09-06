@@ -288,7 +288,7 @@ def tune_train_lstm(
 
     # Generate all combinations where the sum of the hyperparameters equals 1
     combinations = [
-        (np.round(shg, 3), np.round(shg, 3), np.around(sfg, 3))
+        (np.round(shg, 3), np.around(sfg, 3))
         for shg in possible_values
         for sfg in possible_values
         if np.isclose(shg + sfg, 1.0)
@@ -297,14 +297,13 @@ def tune_train_lstm(
     results = {}
 
     for combo in combinations:
-        shg1_weight, shg2_weight, sfg_weight = combo
+        shg1_weight, sfg_weight = combo
 
         def current_loss(y_pred, y_real):
             return custom_loss(
                 y_pred,
                 y_real,
-                shg1_weight=shg1_weight,
-                shg2_weight=shg2_weight,
+                shg_weight=shg1_weight,
                 sfg_weight=sfg_weight,
             )
 
