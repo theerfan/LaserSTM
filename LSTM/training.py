@@ -32,8 +32,9 @@ def single_pass(
     # Also, TODO: Make it such that it goes through a list of hyperparameters
     for i, sample_generator in enumerate(dataset):
         if verbose:
-            print(f"Processing batch {(i+1) / data_len}")
-            logging.info(f"Processing batch {(i+1) / data_len}")
+            log_str = f"Processing batch {(i+1) / data_len}"
+            print(log_str)
+            logging.info(log_str)
 
         for X, y in sample_generator:
             X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
@@ -76,8 +77,9 @@ def train(
         elif data_parallel:
             if torch.cuda.device_count() > 1:
                 model = nn.DataParallel(model)
-                print("Using", torch.cuda.device_count(), "GPUs!")
-                logging.info("Using", torch.cuda.device_count(), "GPUs!")
+                log_str = f"Using {torch.cuda.device_count()} GPUs!"
+                print(log_str)
+                logging.info(log_str)
             else:
                 Warning("Data parallelism not available, using single GPU instead.")
         else:
@@ -99,8 +101,9 @@ def train(
     # Train
     for epoch in range(num_epochs):
         if verbose:
-            print("Epoch", epoch + 1, "of", num_epochs)
-            logging.info("Epoch", epoch + 1, "of", num_epochs)
+            log_str = f"Epoch {epoch + 1} of {num_epochs}"
+            print(log_str)
+            logging.info(log_str)
 
         model.train()
 
@@ -143,12 +146,9 @@ def train(
             pass
 
         if verbose:
-            print(
-                f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
-            )
-            logging.info(
-                f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
-            )
+            log_str = f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
+            print(log_str)
+            logging.info(log_str)
         else:
             pass
 
@@ -177,8 +177,9 @@ def predict(
 
     device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
     if not use_gpu:
-        print("Warning: GPU not available, using CPU instead.")
-        logging.info("Warning: GPU not available, using CPU instead.")
+        log_str = "Warning: GPU not available, using CPU instead."
+        print(log_str)
+        logging.info(log_str)
 
     # Load model parameters if path is provided
     if model_param_path is not None:
@@ -196,10 +197,11 @@ def predict(
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)
         else:
-            print("Warning: Data parallelism not available, using single GPU instead.")
-            logging.info(
+            log_str = (
                 "Warning: Data parallelism not available, using single GPU instead."
             )
+            print(log_str)
+            logging.info(log_str)
     else:
         try:
             model = model.module
@@ -213,8 +215,9 @@ def predict(
     final_shape = None
 
     if verbose:
-        print("Finished loading the model, starting prediction.")
-        logging.info("Finished loading the model, starting prediction.")
+        log_str = "Finished loading the model, starting prediction."
+        print(log_str)
+        logging.info(log_str)
         whole_start = time.time()
 
     dataset_len = len(test_dataset)
@@ -226,12 +229,9 @@ def predict(
             if verbose:
                 this_batch_start = time.time()
                 this_batch_elapsed = this_batch_start - whole_start
-                print(
-                    f"Processing batch {(j+1)} / {len(test_dataset)} at time {this_batch_elapsed}"
-                )
-                logging.info(
-                    f"Processing batch {(j+1)} / {len(test_dataset)} at time {this_batch_elapsed}"
-                )
+                log_str_2 = f"Processing batch {(j+1)} / {len(test_dataset)} at time {this_batch_elapsed}"
+                print(log_str_2)
+                logging.info(log_str_2)
 
             counter = 0
             for X, y in sample_generator:
@@ -239,10 +239,11 @@ def predict(
                     now_time = time.time()
                     elapsed = now_time - this_batch_start
                     this_batch_start = now_time
-                    print(f"Processing sample {(counter+1)} / n at time {elapsed}")
-                    logging.info(
-                        f"Processing sample {(counter+1)} / n at time {elapsed}"
-                    )
+
+                    log_str_3 = f"Processing sample {(counter+1)} / n at time {elapsed}"
+                    print(log_str_3)
+                    logging.info(log_str_3)
+
                     counter += 1
                 X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
@@ -259,12 +260,14 @@ def predict(
                 all_preds.append(pred.squeeze())
 
             if verbose:
-                print(f"Finished processing samples in {j} batch.")
-                logging.info(f"Finished processing samples in {j} batch.")
+                log_str_4 = f"Finished processing samples in {j} batch."
+                print(log_str_4)
+                logging.info(log_str_4)
 
         if verbose:
-            print("Finished processing all batches.")
-            logging.info("Finished processing all batches.")
+            log_str_5 = "Finished processing all batches."
+            print(log_str_5)
+            logging.info(log_str_5)
 
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
@@ -297,13 +300,13 @@ def tune_train_lstm(
     results = {}
 
     for combo in combinations:
-        shg1_weight, sfg_weight = combo
+        shg_weight, sfg_weight = combo
 
         def current_loss(y_pred, y_real):
             return custom_loss(
                 y_pred,
                 y_real,
-                shg_weight=shg1_weight,
+                shg_weight=shg_weight,
                 sfg_weight=sfg_weight,
             )
 
@@ -330,12 +333,17 @@ def tune_train_lstm(
     # Find the best hyperparameters based on test loss
     best_hyperparameters = min(results, key=results.get)
 
-    print("Best hyperparameters:", best_hyperparameters)
-    logging.info("Best hyperparameters:", best_hyperparameters)
-    print("Val loss:", results[best_hyperparameters])
-    logging.info("Val loss:", results[best_hyperparameters])
-    print("Results:", results)
-    logging.info("Results:", results)
+    log_str = f"Best hyperparameters: {best_hyperparameters}"
+    print(log_str)
+    logging.info(log_str)
+
+    log_str = f"Val loss: {results[best_hyperparameters]}"
+    print(log_str)
+    logging.info(log_str)
+    
+    log_str = f"Results: {results}"
+    print(log_str)
+    logging.info(log_str)
 
     return best_hyperparameters, results
 

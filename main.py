@@ -25,6 +25,8 @@ from Transformer.model import TransformerModel
 from GAN.training import gan_train
 from typing import Callable
 
+from functools import partial
+
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
@@ -39,8 +41,9 @@ def main_lstm(
 ):
     model = LSTMModel(input_size=8264)
     if args.do_prediction == 1:
-        print(f"Prediction only mode for model {args.model}")
-        logging.info(f"Prediction only mode for model {args.model}")
+        log_str = f"Prediction only mode for model {args.model}"
+        print(log_str)
+        logging.info(log_str)
         predict(
             model,
             model_param_path=args.model_param_path,
@@ -120,11 +123,11 @@ if __name__ == "__main__":
 
     # Add arguments for the shg and sfg weight losses
     parser.add_argument(
-        "--shg_weight", type=float, default=1.0, help="Weight for the SHG loss."
+        "--shg_weight", type=float, default=None, help="Weight for the SHG loss."
     )
 
     parser.add_argument(
-        "--sfg_weight", type=float, default=1.0, help="Weight for the SFG loss."
+        "--sfg_weight", type=float, default=None, help="Weight for the SFG loss."
     )
 
     parser.add_argument(
@@ -172,10 +175,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    def custom_loss(y_real, y_pred):
+    def custom_loss(y_real, y_pred, shg_weight=None, sfg_weight=None):
         return loss_dict[args.custom_loss](
-            y_real, y_pred, shg_weight=args.shg_weight, sfg_weight=args.sfg_weight
+            y_real, y_pred, shg_weight=shg_weight, sfg_weight=sfg_weight
         )
+
+    if args.shg_weight is not None and args.sfg_weight is not None:
+        # Do a partial function application
+        custom_loss = partial(
+            custom_loss, shg_weight=args.shg_weight, sfg_weight=args.sfg_weight
+        )
+    else:
+        pass
 
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
