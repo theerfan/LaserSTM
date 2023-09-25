@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: Fine-Tuning",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -16,12 +16,32 @@
                 "LSTM",
                 "--data_dir",
                 ".",
-                "--do_prediction",
-                "True",
-                "--model_param_path", 
-                "Run1\\MSE\\model.pth"
+                "--custom_loss",
+                "weighted_MSE",
+                "--output_dir",
+                "Run1\\MSE\\",
+                "--tune_train", 
+                "1"
             ]
         }, 
+        {
+          "name": "Python: Prediction",
+          "type": "python",
+          "request": "launch",
+          "program": "${file}",
+          "console": "integratedTerminal",
+          "justMyCode": false,
+          "args": [
+              "--model",
+              "LSTM",
+              "--data_dir",
+              ".",
+              "--do_prediction",
+              "1",
+              "--model_param_path", 
+              "Run1\\MSE\\model.pth"
+          ]
+      }, 
         {
             "name": "Python: Remote Attach",
             "type": "python",
