@@ -4,12 +4,6 @@ import argparse
 
 import torch.nn as nn
 
-from LSTM.model import LSTMModel
-from LSTM.training import (
-    predict,
-    test_train_lstm,
-    tune_train_lstm,
-)
 from LSTM.utils import (
     CustomSequence,
     pearson_corr,
@@ -20,81 +14,18 @@ from LSTM.utils import (
     wrapped_BCE,
 )
 
-from Transformer.model import TransformerModel
+from LSTM.main_fn import main_lstm
+from GAN.main_fn import main_gan
+from Transformer.main_fn import main_transformer
+from FNO.main_fn import main_NFO
 
-from GAN.training import gan_train
-from typing import Callable
+from Transformer.model import TransformerModel
 
 from functools import partial
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
-
-
-def main_lstm(
-    args: dict,
-    train_dataset: CustomSequence,
-    val_dataset: CustomSequence,
-    test_dataset: CustomSequence,
-    custom_loss: Callable,
-):
-    model = LSTMModel(input_size=8264)
-    if args.do_prediction == 1:
-        log_str = f"Prediction only mode for model {args.model}"
-        print(log_str)
-        logging.info(log_str)
-        predict(
-            model,
-            model_param_path=args.model_param_path,
-            test_dataset=test_dataset,
-            use_gpu=True,
-            data_parallel=False,
-            output_dir=args.output_dir,
-            output_name="all_preds.npy",
-            verbose=1,
-        )
-    else:
-        # This assumes that `tune_train` and `train_model` have the same signature
-        # (as in required arguments)
-        if args.tune_train == 1:
-            function = tune_train_lstm
-            print_str = f"Tune train mode for model {args.model}"
-        else:
-            function = test_train_lstm
-            print_str = f"Training mode for model {args.model}"
-
-        print(print_str)
-        logging.info(print_str)
-
-        function(
-            model,
-            args.num_epochs,
-            custom_loss,
-            args.epoch_save_interval,
-            args.output_dir,
-            train_dataset,
-            val_dataset,
-            test_dataset,
-            args.verbose,
-        )
-
-
-def main_gan(
-    args: dict,
-    train_dataset: CustomSequence,
-    val_dataset: CustomSequence,
-    test_dataset: CustomSequence,
-    custom_loss: Callable,
-):
-    gan_train(
-        input_dim=8264,
-        hidden_dim=128,
-        output_dim=8264,
-        num_epochs=args.num_epochs,
-        train_set=train_dataset,
-        lr=0.001,
-    )
 
 
 def test_energy_stuff():
@@ -207,16 +138,10 @@ if __name__ == "__main__":
     if args.model == "LSTM":
         main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss)
     elif args.model == "Transformer":
-        model = TransformerModel(
-            n_features=8264,
-            n_predict=8264,
-            n_head=2,
-            n_hidden=128,
-            n_enc_layers=2,
-            n_dec_layers=2,
-            dropout=0.1,
-        )
+        main_transformer(args, train_dataset, val_dataset, test_dataset, custom_loss)
     elif args.model == "GAN":
-        pass
+        main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss)
+    elif args.model == "NFO":
+        main_NFO(args, train_dataset, val_dataset, test_dataset, custom_loss)
     else:
         raise ValueError("Model not supported.")

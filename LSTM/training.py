@@ -17,7 +17,7 @@ logging.basicConfig(
 
 # Returns the normalized loss and the last loss
 # Over a single pass of the dataset
-def single_pass(
+def LSTM_single_pass(
     model: nn.Module,
     dataset: CustomSequence,
     device: torch.device,
@@ -68,6 +68,7 @@ def train(
     save_checkpoints: bool = True,
     custom_loss=None,
     epoch_save_interval: int = 1,
+    custom_single_pass: Callable = None,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
 
@@ -98,6 +99,8 @@ def train(
     if val_dataset is not None:
         val_losses = []
 
+    single_pass_fn = custom_single_pass or LSTM_single_pass
+
     # Train
     for epoch in range(num_epochs):
         if verbose:
@@ -107,7 +110,7 @@ def train(
 
         model.train()
 
-        train_loss, last_train_loss = single_pass(
+        train_loss, last_train_loss = single_pass_fn(
             model, train_dataset, device, optimizer, criterion
         )
         train_losses.append(train_loss)
@@ -116,7 +119,9 @@ def train(
         if val_dataset is not None:
             model.eval()
             with torch.no_grad():
-                val_loss, _ = single_pass(model, val_dataset, device, None, criterion)
+                val_loss, _ = single_pass_fn(
+                    model, val_dataset, device, None, criterion
+                )
                 val_losses.append(val_loss)
         else:
             # For formatting purposes, but it basically means that it's nan
@@ -340,7 +345,7 @@ def tune_train_lstm(
     log_str = f"Val loss: {results[best_hyperparameters]}"
     print(log_str)
     logging.info(log_str)
-    
+
     log_str = f"Results: {results}"
     print(log_str)
     logging.info(log_str)
@@ -362,6 +367,7 @@ def test_train_lstm(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     verbose: int = 1,
+    custom_single_pass: Callable = LSTM_single_pass,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
@@ -376,6 +382,7 @@ def test_train_lstm(
         save_checkpoints=True,
         custom_loss=custom_loss,
         epoch_save_interval=epoch_save_interval,
+        custom_single_pass=custom_single_pass,
     )
 
     all_test_preds = predict(
@@ -395,9 +402,7 @@ def test_train_lstm(
 # Erfan-Jack Meeting:
 # 1. The sfg signal didn't look so good when the input pulse was a bit complicated
 # Re-proportion loss function to make sfg more important (1892 * 2 for shg, 348 for sfg)
-# 2. Instead of MSE, adding some convolution based-loss function might be better
-# Look up Pierson-correlation coefficient: https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
-# [e.g, overkill rn]:
+
 # Time-Frequency Representations: If you are working with time-frequency representations like spectrograms, you can use loss functions that operate directly on these representations. For instance, you can use the spectrogram difference as a loss, or you can use perceptual loss functions that take into account human perception of audio signals. [introduces a lot of time]
 # Wasserstein Loss: The Wasserstein loss, also known as Earth Mover's Distance (EMD), is a metric used in optimal transport theory. It measures the minimum cost of transforming one distribution into another. It has been applied in signal processing tasks, including time and frequency domain analysis, to capture the structure and shape of signals.
 # 3. Check out the intPhEn part again and see what else can be done [Ae^{i\phi}}]
