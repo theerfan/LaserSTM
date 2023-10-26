@@ -111,7 +111,7 @@ def train(
         model.train()
 
         train_loss, last_train_loss = single_pass_fn(
-            model, train_dataset, device, optimizer, criterion
+            model, train_dataset, device, optimizer, criterion, verbose
         )
         train_losses.append(train_loss)
 
