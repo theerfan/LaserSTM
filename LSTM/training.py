@@ -307,6 +307,9 @@ def tune_train_lstm(
     for combo in combinations:
         shg_weight, sfg_weight = combo
 
+        if verbose:
+            print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
+
         def current_loss(y_pred, y_real):
             return custom_loss(
                 y_pred,
