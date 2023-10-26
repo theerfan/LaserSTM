@@ -1,6 +1,14 @@
 torch
 torchmetrics
+torchvision
 numpy
 matplotlib
 scipy
 ptvsd
+neuraloperator
+tensorly
+tensorly-torch
+opt-einsum
+wandb
+h5py
+zarr
