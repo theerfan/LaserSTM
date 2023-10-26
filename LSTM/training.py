@@ -32,7 +32,7 @@ def LSTM_single_pass(
     # Also, TODO: Make it such that it goes through a list of hyperparameters
     for i, sample_generator in enumerate(dataset):
         if verbose:
-            log_str = f"Processing batch {(i+1) / data_len}"
+            log_str = f"Processing batch {(i+1)} / {data_len}"
             print(log_str)
             logging.info(log_str)
 
