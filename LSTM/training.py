@@ -145,9 +145,9 @@ def train(
                 checkpoint_path,
             )
             # Save these things at checkpoints
-            np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
+            np.save(os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_train_losses.npy"), np.array(train_losses))
             if val_dataset is not None:
-                np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+                np.save(os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_val_losses.npy"), np.array(val_losses))
             else:
                 pass
         else:
