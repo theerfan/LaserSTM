@@ -121,17 +121,17 @@ if __name__ == "__main__":
 
     # The data that is currently here is the V2 data (reIm)
     train_dataset = CustomSequence(
-        args.data_dir, range(0, 90), file_batch_size=1, model_batch_size=512
+        args.data_dir, range(0, 90), file_batch_size=1, model_batch_size=2048
     )
     val_dataset = CustomSequence(
-        args.data_dir, [90], file_batch_size=1, model_batch_size=512
+        args.data_dir, [90], file_batch_size=1, model_batch_size=2048
     )
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 99),
         file_batch_size=1,
-        model_batch_size=512,
+        model_batch_size=2048,
         test_mode=True,
     )
 

@@ -28,20 +28,22 @@ def LSTM_single_pass(
     data_len = len(dataset)
     pass_loss = 0
     pass_len = 0
-    # Erfan: This is ChatGPT-improved, let's see if it manages batches correctly
-    # Also, TODO: Make it such that it goes through a list of hyperparameters
     for i, sample_generator in enumerate(dataset):
+
+        # Putting this here because the enumerator on the dataset doesn't work well
+        # TODO: Really need to migrate this to the dataloader, the way this was implemeneted sucks!
+        if i == data_len:
+            break
+
         if verbose:
             log_str = f"Processing batch {(i+1)} / {data_len}"
             print(log_str)
             logging.info(log_str)
-
+        
         for X, y in sample_generator:
-            X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
-
             if optimizer is not None:
                 optimizer.zero_grad()
-
+            
             pred = model(X)
             loss = loss_fn(pred, y)
 
@@ -51,6 +53,7 @@ def LSTM_single_pass(
 
             pass_len += X.size(0)
             pass_loss += loss.item() * X.size(0)
+    
 
     return pass_loss / pass_len, loss
 
@@ -250,7 +253,6 @@ def predict(
                     logging.info(log_str_3)
 
                     counter += 1
-                X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
                 if final_shape is None:
                     final_shape = X.shape[-1]

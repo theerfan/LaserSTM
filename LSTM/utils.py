@@ -66,6 +66,7 @@ class CustomSequence(data.Dataset):
         data = []
         labels = []
 
+        # This iterates over files
         for x, y in zip(batch_x, batch_y):
             if self.test_mode:
                 # Every 100th sample
@@ -76,17 +77,20 @@ class CustomSequence(data.Dataset):
                 temp_x = np.load(os.path.join(self.data_dir, x))
                 temp_y = np.load(os.path.join(self.data_dir, y))
 
-            data.extend(temp_x)
-            labels.extend(temp_y)
+            data = temp_x
+            labels = temp_y
+
+        # Each file is about 3 GB, just move directly into GPU memory
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+        data_tensor = torch.tensor(data, dtype=torch.float32).to(device)
+        labels_tensor = torch.tensor(labels, dtype=torch.float32).to(device)
 
         for i in range(0, len(data), self.model_batch_size):
-            data_batch = data[i : i + self.model_batch_size]
-            labels_batch = labels[i : i + self.model_batch_size]
+            data_batch = data_tensor[i : i + self.model_batch_size]
+            labels_batch = labels_tensor[i : i + self.model_batch_size]
 
-            data_tensor = torch.tensor(np.array(data_batch))
-            label_tensor = torch.tensor(np.array(labels_batch))
-
-            yield data_tensor, label_tensor
+            yield data_batch, labels_batch
 
 
 def area_under_curve_diff(
