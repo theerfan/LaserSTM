@@ -124,15 +124,17 @@ def intensity_phase_plot(
 saved_model_output_dir = "Pearson"  # directory from model training
 data_directory = "/u/scratch/t/theerfan/JackData"  # directory from preprocessing
 
-train_losses = np.load(os.path.join(saved_model_output_dir, "train_losses.npy"))
-val_losses = np.load(os.path.join(saved_model_output_dir, "val_losses.npy"))
+model_name = "model_pearson_1"  # model name from training
+
+train_losses = np.load(os.path.join(saved_model_output_dir, model_name, "train_losses.npy"))
+val_losses = np.load(os.path.join(saved_model_output_dir, model_name, "val_losses.npy"))
 
 with open(
     os.path.join(data_directory, "scaler.pkl"), "rb"
 ) as file:  # can use scaler.pkl or scaler_bckkup.pkl
     scaler = pickle.load(file)
 
-all_preds = np.load(os.path.join(saved_model_output_dir, "all_preds.npy"))
+all_preds = np.load(os.path.join(saved_model_output_dir, model_name, "all_preds.npy"))
 all_preds_trans = np.zeros(all_preds.shape)
 for ii in range(all_preds.shape[0]):
     all_preds_trans[ii] = scaler.inverse_transform(all_preds[ii])
@@ -273,7 +275,7 @@ intensity_phase_plot(
     legend=True,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="pfg1.pdf",
+    save_name=model_name + "_pfg1.pdf",
     
     plot_show=True,
     plot_hold=False,
@@ -290,7 +292,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="pfg2.pdf",
+    save_name=model_name + "_pfg2.pdf",
     
     plot_show=True,
     plot_hold=False,
@@ -307,7 +309,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="pfg3.pdf",
+    save_name=model_name + "_pfg3.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -324,7 +326,7 @@ intensity_phase_plot(
     legend=True,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="pfg4.pdf",
+    save_name=model_name + "_pfg4.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -339,7 +341,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="pfg5.pdf",
+    save_name=model_name + "_pfg5.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -354,7 +356,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="pfg6.pdf",
+    save_name=model_name + "_pfg6.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -374,7 +376,7 @@ intensity_phase_plot(
     legend=True,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="ptd1.pdf",
+    save_name=model_name + "_ptd1.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -389,7 +391,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="ptd2.pdf",
+    save_name=model_name + "_ptd2.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -404,7 +406,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0.2],
     save_format="pdf",
-    save_name="ptd3.pdf",
+    save_name=model_name + "_ptd3.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -422,7 +424,7 @@ intensity_phase_plot(
     legend=True,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="ptd4.pdf",
+    save_name=model_name + "_ptd4.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -437,7 +439,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="ptd5.pdf",
+    save_name=model_name + "_ptd5.pdf",
     plot_show=True,
     plot_hold=False,
 )
@@ -452,7 +454,7 @@ intensity_phase_plot(
     legend=False,
     offsets=[0, 0],
     save_format="pdf",
-    save_name="ptd6.pdf",
+    save_name=model_name + "_ptd6.pdf",
     plot_show=True,
     plot_hold=False,
 )
