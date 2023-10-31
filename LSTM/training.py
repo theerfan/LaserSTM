@@ -8,6 +8,8 @@ import torch.nn as nn
 
 from LSTM.utils import CustomSequence
 
+from Analysis.analyze_reim import do_analysis
+
 import logging
 
 logging.basicConfig(
@@ -424,6 +426,16 @@ def test_train_lstm(
         output_name="all_preds.npy",
         verbose=verbose,
         model_name=model_name + f"_epoch_{num_epochs}",
+    )
+
+    # automatically analyze the results
+
+    do_analysis(
+        output_dir=output_dir,
+        model_name=model_name + f"_epoch_{num_epochs}",
+        test_dataset=test_dataset,
+        file_idx=90,
+        item_idx=15,
     )
 
     return trained_model, train_losses, val_losses, all_test_preds

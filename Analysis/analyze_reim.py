@@ -115,7 +115,7 @@ def intensity_phase_plot(
 
 
 def do_analysis(
-    saved_model_output_dir: str, # directory from model training
+    output_dir: str, # directory from model training
     data_directory: str, # directory from preprocessing
     model_name: str, # model name from training
     file_idx: int, # on which file to do analysis
@@ -123,10 +123,10 @@ def do_analysis(
 ):
 
     train_losses = np.load(
-        os.path.join(saved_model_output_dir, f"{model_name}_train_losses.npy")
+        os.path.join(output_dir, f"{model_name}_train_losses.npy")
     )
     val_losses = np.load(
-        os.path.join(saved_model_output_dir, f"{model_name}_val_losses.npy")
+        os.path.join(output_dir, f"{model_name}_val_losses.npy")
     )
 
     with open(
@@ -135,7 +135,7 @@ def do_analysis(
         scaler = pickle.load(file)
 
     all_preds = np.load(
-        os.path.join(saved_model_output_dir, f"{model_name}_all_preds.npy")
+        os.path.join(output_dir, f"{model_name}_all_preds.npy")
     )
     all_preds_trans = np.zeros(all_preds.shape)
     for j in range(all_preds.shape[0]):
