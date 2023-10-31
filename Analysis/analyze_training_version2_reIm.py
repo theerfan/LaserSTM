@@ -121,20 +121,20 @@ def intensity_phase_plot(
             plt.close()
 
 # %%
-saved_model_output_dir = "~/oneterra/outputs/10-26-2023"  # directory from model training
-data_directory = "~/oneterra/SFG_reIm_version1"  # directory from preprocessing
+saved_model_output_dir = "/home/ubuntu/oneterra/outputs/10-26-2023"  # directory from model training
+data_directory = "/home/ubuntu/oneterra/SFG_reIm_version1"  # directory from preprocessing
 
-model_name = "model(0.3, 0.7)_epoch_10"  # model name from training
+model_name = "model-0.9-0.1_epoch_10"  # model name from training
 
-train_losses = np.load(os.path.join(saved_model_output_dir, model_name, "_train_losses.npy"))
-val_losses = np.load(os.path.join(saved_model_output_dir, model_name, "_val_losses.npy"))
+train_losses = np.load(os.path.join(saved_model_output_dir, f"{model_name}_train_losses.npy"))
+val_losses = np.load(os.path.join(saved_model_output_dir, f"{model_name}_val_losses.npy"))
 
 with open(
     os.path.join(data_directory, "scaler.pkl"), "rb"
 ) as file:  # can use scaler.pkl or scaler_bckkup.pkl
     scaler = pickle.load(file)
 
-all_preds = np.load(os.path.join(saved_model_output_dir, model_name, "all_preds.npy"))
+all_preds = np.load(os.path.join(saved_model_output_dir, f"{model_name}_all_preds.npy"))
 all_preds_trans = np.zeros(all_preds.shape)
 for ii in range(all_preds.shape[0]):
     all_preds_trans[ii] = scaler.inverse_transform(all_preds[ii])

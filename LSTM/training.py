@@ -29,7 +29,6 @@ def LSTM_single_pass(
     pass_loss = 0
     pass_len = 0
     for i, sample_generator in enumerate(dataset):
-
         # Putting this here because the enumerator on the dataset doesn't work well
         # TODO: Really need to migrate this to the dataloader, the way this was implemeneted sucks!
         if i == data_len:
@@ -39,11 +38,11 @@ def LSTM_single_pass(
             log_str = f"Processing batch {(i+1)} / {data_len}"
             print(log_str)
             logging.info(log_str)
-        
+
         for X, y in sample_generator:
             if optimizer is not None:
                 optimizer.zero_grad()
-            
+
             pred = model(X)
             loss = loss_fn(pred, y)
 
@@ -53,7 +52,6 @@ def LSTM_single_pass(
 
             pass_len += X.size(0)
             pass_loss += loss.item() * X.size(0)
-    
 
     return pass_loss / pass_len, loss
 
@@ -145,9 +143,17 @@ def train(
                 checkpoint_path,
             )
             # Save these things at checkpoints
-            np.save(os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_train_losses.npy"), np.array(train_losses))
+            np.save(
+                os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_train_losses.npy"),
+                np.array(train_losses),
+            )
             if val_dataset is not None:
-                np.save(os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_val_losses.npy"), np.array(val_losses))
+                np.save(
+                    os.path.join(
+                        out_dir, f"{model_name}_epoch_{epoch+1}_val_losses.npy"
+                    ),
+                    np.array(val_losses),
+                )
             else:
                 pass
         else:
@@ -183,7 +189,6 @@ def predict(
     verbose: bool = True,
     model_name: str = "",
 ) -> np.ndarray:
-
     device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
     if not use_gpu:
         log_str = "Warning: GPU not available, using CPU instead."
@@ -293,7 +298,6 @@ def tune_train_lstm(
     test_dataset: CustomSequence,
     verbose: int = 1,
 ):
-
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
@@ -312,6 +316,8 @@ def tune_train_lstm(
 
         if verbose:
             print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
+
+        model_name = f"model_{shg_weight}_{sfg_weight}"
 
         def current_loss(y_pred, y_real):
             return custom_loss(
@@ -332,7 +338,7 @@ def tune_train_lstm(
             use_gpu=True,
             data_parallel=True,
             out_dir=output_dir,
-            model_name="model" + str(combo),
+            model_name=model_name,
             verbose=verbose,
             save_checkpoints=True,
             custom_loss=current_loss,
@@ -340,6 +346,19 @@ def tune_train_lstm(
         )
 
         results[combo] = val_losses.flatten().mean()
+
+        all_test_preds = predict(
+            model,
+            model_param_path=os.path.join(
+                output_dir, f"{model_name}_epoch_{num_epochs}.pth"
+            ),
+            test_dataset=test_dataset,
+            use_gpu=True,
+            data_parallel=False,
+            output_dir=output_dir,
+            output_name=model_name + "_all_preds.npy",
+            verbose=verbose,
+        )
 
     # Find the best hyperparameters based on test loss
     best_hyperparameters = min(results, key=results.get)
