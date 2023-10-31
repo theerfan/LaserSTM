@@ -121,13 +121,13 @@ def intensity_phase_plot(
             plt.close()
 
 # %%
-saved_model_output_dir = "Pearson"  # directory from model training
-data_directory = "/u/scratch/t/theerfan/JackData"  # directory from preprocessing
+saved_model_output_dir = "~/oneterra/outputs/10-26-2023"  # directory from model training
+data_directory = "~/oneterra/SFG_reIm_version1"  # directory from preprocessing
 
-model_name = "model_pearson_1"  # model name from training
+model_name = "model(0.3, 0.7)_epoch_10"  # model name from training
 
-train_losses = np.load(os.path.join(saved_model_output_dir, model_name, "train_losses.npy"))
-val_losses = np.load(os.path.join(saved_model_output_dir, model_name, "val_losses.npy"))
+train_losses = np.load(os.path.join(saved_model_output_dir, model_name, "_train_losses.npy"))
+val_losses = np.load(os.path.join(saved_model_output_dir, model_name, "_val_losses.npy"))
 
 with open(
     os.path.join(data_directory, "scaler.pkl"), "rb"

@@ -181,6 +181,7 @@ def predict(
     output_dir: str = ".",
     output_name: str = "all_preds.npy",
     verbose: bool = True,
+    model_name: str = "",
 ) -> np.ndarray:
 
     device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
@@ -277,7 +278,7 @@ def predict(
             logging.info(log_str_5)
 
     all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
-    np.save(os.path.join(output_dir, f"{output_name}"), all_preds)
+    np.save(os.path.join(output_dir, f"{model_name}_{output_name}"), all_preds)
     return all_preds
 
 
