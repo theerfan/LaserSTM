@@ -1,8 +1,0 @@
-/work/UGE/8.6.4/m3/job_scripts/8175678: line 18: module: command not found
-/work/UGE/8.6.4/m3/job_scripts/8175678: line 19: module: command not found
-Traceback (most recent call last):
-  File "LSTM/training.py", line 1, in <module>
-    from train_predict_utils import CustomSequence, train, predict
-  File "/u/home/t/theerfan/LaserSTM/LSTM/train_predict_utils.py", line 1, in <module>
-    import torch
-ModuleNotFoundError: No module named 'torch'

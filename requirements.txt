@@ -12,3 +12,4 @@ opt-einsum
 wandb
 h5py
 zarr
+scikit-learn

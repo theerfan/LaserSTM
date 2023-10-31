@@ -1,27 +1,19 @@
-# %%
 import numpy as np
 import pickle
 import os
 import matplotlib
 
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
-from scipy import signal
-from util import (
-    ifft,
-    fft,
+from Analysis.util import (
     get_intensity,
     get_phase,
-    calc_energy_expanded,
-    energy_match_expanded,
     re_im_sep,
-    change_domains,
     change_domain_and_adjust_energy
 )
 
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 
-# %%
 def intensity_phase_plot(
     domains,
     fields,
@@ -120,7 +112,7 @@ def intensity_phase_plot(
         if ~plot_hold:
             plt.close()
 
-# %%
+
 saved_model_output_dir = "/home/ubuntu/oneterra/outputs/10-26-2023"  # directory from model training
 data_directory = "/home/ubuntu/oneterra/SFG_reIm_version1"  # directory from preprocessing
 
@@ -173,7 +165,6 @@ sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
 sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
 
 
-# %%
 ii = (
     8  # use this to select one of the examples (should be 100 in total to choose among)
 )
@@ -246,7 +237,6 @@ shg2_freq_to_time_direct_true, shg2_freq_to_time_true = change_domain_and_adjust
 )
 
 
-# %%
 # training and validation error
 plt.scatter(
     range(1, train_losses.shape[0] + 1, 1), train_losses, label="Train Loss", alpha=0.6
@@ -260,7 +250,6 @@ plt.legend()
 plt.show()
 
 
-# %%
 # plots frequency domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
 print("------- Normalized True vs Prediction Frequency Domain --------")
 print("*** SFG ***")

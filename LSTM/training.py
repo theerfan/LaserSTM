@@ -317,7 +317,7 @@ def tune_train_lstm(
         if verbose:
             print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
 
-        model_name = f"model_{shg_weight}_{sfg_weight}"
+        model_name = f"LSTM_model_{shg_weight}_{sfg_weight}"
 
         def current_loss(y_pred, y_real):
             return custom_loss(
@@ -356,8 +356,9 @@ def tune_train_lstm(
             use_gpu=True,
             data_parallel=False,
             output_dir=output_dir,
-            output_name=model_name + "_all_preds.npy",
+            output_name="all_preds.npy",
             verbose=verbose,
+            model_name=model_name + f"_epoch_{num_epochs}",
         )
 
     # Find the best hyperparameters based on test loss
@@ -394,6 +395,9 @@ def test_train_lstm(
     verbose: int = 1,
     custom_single_pass: Callable = LSTM_single_pass,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
+    
+    model_name = "LSTM_model"
+
     trained_model, train_losses, val_losses = train(
         model,
         train_dataset,
@@ -402,7 +406,7 @@ def test_train_lstm(
         use_gpu=True,
         data_parallel=True,
         out_dir=output_dir,
-        model_name="model",
+        model_name=model_name,
         verbose=verbose,
         save_checkpoints=True,
         custom_loss=custom_loss,
@@ -419,6 +423,7 @@ def test_train_lstm(
         output_dir=output_dir,
         output_name="all_preds.npy",
         verbose=verbose,
+        model_name=model_name + f"_epoch_{num_epochs}",
     )
 
     return trained_model, train_losses, val_losses, all_test_preds
