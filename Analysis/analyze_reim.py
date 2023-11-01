@@ -4,14 +4,14 @@ import os
 import matplotlib
 
 import matplotlib.pyplot as plt
-from Analysis.util import (
+from util import (
     get_intensity,
     get_phase,
     re_im_sep,
     change_domain_and_adjust_energy,
 )
 
-matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["png.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 
 
@@ -26,11 +26,12 @@ def intensity_phase_plot(
     normalize=False,
     legend=False,
     offsets=None,
-    save_format="pdf",
+    save_format="png",
     save_name=None,
     save=True,
     plot_show=True,
     plot_hold=False,
+    save_dir="",
 ):
     """
     Plot intensity and phase of a field
@@ -100,7 +101,7 @@ def intensity_phase_plot(
         if "." + save_format not in save_name:
             save_name += "." + save_format
         plt.savefig(
-            save_name,
+            os.path.join(save_dir, save_name),
             bbox_inches="tight",
             dpi=300,
             transparent=True,
@@ -120,7 +121,11 @@ def do_analysis(
     model_name: str, # model name from training
     file_idx: int, # on which file to do analysis
     item_idx: int, # which example of the file to do analysis
+    fig_save_dir: str = None, # where to save the figures
 ):
+    
+    if fig_save_dir is None:
+        fig_save_dir = os.path.join(model_name, "figures")
 
     train_losses = np.load(
         os.path.join(output_dir, f"{model_name}_train_losses.npy")
@@ -283,10 +288,11 @@ def do_analysis(
         normalize=True,
         legend=True,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_pfg1.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg1.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
 
     print("*** SHG1 ***")
@@ -299,10 +305,11 @@ def do_analysis(
         normalize=True,
         legend=False,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_pfg2.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg2.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
 
     print("*** SHG2 ***")
@@ -315,10 +322,11 @@ def do_analysis(
         normalize=True,
         legend=False,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_pfg3.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg3.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
 
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
@@ -332,10 +340,11 @@ def do_analysis(
         normalize=False,
         legend=True,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_pfg4.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg4.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG1 ***")
     intensity_phase_plot(
@@ -347,10 +356,11 @@ def do_analysis(
         normalize=False,
         legend=False,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_pfg5.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg5.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
@@ -362,10 +372,11 @@ def do_analysis(
         normalize=False,
         legend=False,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_pfg6.pdf",
+        save_format="png",
+        save_name=model_name + "_pfg6.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
 
     # plots time domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
@@ -381,10 +392,11 @@ def do_analysis(
         normalize=True,
         legend=True,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_ptd1.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd1.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG1 ***")
     intensity_phase_plot(
@@ -396,10 +408,11 @@ def do_analysis(
         normalize=True,
         legend=False,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_ptd2.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd2.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
@@ -411,10 +424,11 @@ def do_analysis(
         normalize=True,
         legend=False,
         offsets=[0, 0.2],
-        save_format="pdf",
-        save_name=model_name + "_ptd3.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd3.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
 
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
@@ -429,10 +443,11 @@ def do_analysis(
         normalize=False,
         legend=True,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_ptd4.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd4.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG1 ***")
     intensity_phase_plot(
@@ -444,10 +459,11 @@ def do_analysis(
         normalize=False,
         legend=False,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_ptd5.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd5.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
@@ -459,8 +475,9 @@ def do_analysis(
         normalize=False,
         legend=False,
         offsets=[0, 0],
-        save_format="pdf",
-        save_name=model_name + "_ptd6.pdf",
+        save_format="png",
+        save_name=model_name + "_ptd6.png",
         plot_show=True,
         plot_hold=False,
+        save_dir=fig_save_dir,
     )
