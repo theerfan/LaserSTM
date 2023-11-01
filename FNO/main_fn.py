@@ -62,25 +62,27 @@ def NFO_single_pass(
     pass_len = 0
 
     for i, sample_generator in enumerate(dataset):
+        # Putting this here becasue enumerator blah blah
+        if i == data_len:
+            break
+
         if verbose:
-            log_str = f"Processing batch {(i+1) / data_len}"
+            log_str = f"Processing batch {(i+1)} / {data_len}"
             print(log_str)
             logging.info(log_str)
 
-        # Get the whole batch at once   
-        X = torch.stack([x for x, y in sample_generator])
-        y = torch.stack([y for x, y in sample_generator])
+        for X, y in sample_generator:
+            X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
 
-        X, y = X.to(torch.float32).to(device), y.to(torch.float32).to(device)
-
-        if optimizer is not None:
-            optimizer.zero_grad()
+            if optimizer is not None:
+                optimizer.zero_grad()
 
             pred = model(X)
             loss = loss_fn(pred, y)
 
-            loss.backward()
-            optimizer.step()
+            if optimizer is not None:
+                loss.backward()
+                optimizer.step()
 
             pass_len += X.size(0)
             pass_loss += loss.item() * X.size(0)
