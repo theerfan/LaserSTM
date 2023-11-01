@@ -100,6 +100,8 @@ def intensity_phase_plot(
             raise ValueError("Save name is not specified")
         if "." + save_format not in save_name:
             save_name += "." + save_format
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         plt.savefig(
             os.path.join(save_dir, save_name),
             bbox_inches="tight",
