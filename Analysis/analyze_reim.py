@@ -11,7 +11,7 @@ from util import (
     change_domain_and_adjust_energy,
 )
 
-matplotlib.rcParams["png.fonttype"] = 42
+matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 
 
