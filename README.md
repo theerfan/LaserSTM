@@ -1,10 +1,8 @@
 # NeurIPS2023
-Data Preprocessing, LSTM Model, and Analysis for 2023 NeurIPS submission
+Data Preprocessing, LSTM Model, and Analysis for something.
 
-Run this using `qsub hoffman2.sh`
 
 TODO:
-1. Move the CustomSequence class to a separate file (instead of LSTM utils)
-2. Move the training boilerplate used between LSTM and NFO to a separate file
-3. "Clean up" the LSTM predict code (why are we doing it like that and how can we make it shorter)
-4. 
+1. Unify single passes and training functions if they're the same (seems to be at least in case of LSTM and NFO, I don't see why we can't get a general training function for all models)
+2. Separate dataset and data loader for the CustomSequence (will eff up training code but we'll fix it)
+3. Fix the transformer model (needs proper testing)
