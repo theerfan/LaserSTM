@@ -434,7 +434,7 @@ def test_train_lstm(
 
     do_analysis(
         output_dir=output_dir,
-        data_directory=data_dir
+        data_directory=data_dir,
         model_name=model_name + f"_epoch_{num_epochs}",
         file_idx=90,
         item_idx=15,
