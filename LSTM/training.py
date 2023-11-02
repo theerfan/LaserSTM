@@ -299,6 +299,7 @@ def tune_train_lstm(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     verbose: int = 1,
+    data_dir: str = ".",
 ):
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
@@ -396,6 +397,7 @@ def test_train_lstm(
     test_dataset: CustomSequence,
     verbose: int = 1,
     custom_single_pass: Callable = LSTM_single_pass,
+    data_dir: str = ".",
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     
     model_name = "LSTM_model"
@@ -432,8 +434,8 @@ def test_train_lstm(
 
     do_analysis(
         output_dir=output_dir,
+        data_directory=data_dir
         model_name=model_name + f"_epoch_{num_epochs}",
-        test_dataset=test_dataset,
         file_idx=90,
         item_idx=15,
     )
