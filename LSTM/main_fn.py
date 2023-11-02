@@ -54,5 +54,5 @@ def main_lstm(
             val_dataset,
             test_dataset,
             args.verbose,
-            args.data_dir,
+            data_dir=args.data_dir,
         )
