@@ -97,7 +97,10 @@ def train(
 
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.1, patience=2, verbose=True
+    )
     train_losses = []
     if val_dataset is not None:
         val_losses = []
@@ -129,6 +132,9 @@ def train(
         else:
             # For formatting purposes, but it basically means that it's nan
             val_loss = -1
+
+        # Update the learning rate if we're not improving
+        scheduler.step(val_loss)
 
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
@@ -400,7 +406,7 @@ def test_train_lstm(
     data_dir: str = ".",
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     
-    model_name = "LSTM_model"
+    model_name = f"LSTM_model_e{num_epochs}"
 
     trained_model, train_losses, val_losses = train(
         model,
@@ -418,16 +424,18 @@ def test_train_lstm(
         custom_single_pass=custom_single_pass,
     )
 
+    last_model_name = f"{model_name}_epoch_{num_epochs}"
+
     all_test_preds = predict(
         model,
-        # model_param_path="model_epoch_2.pth",
+        model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
         test_dataset=test_dataset,
         use_gpu=True,
         data_parallel=False,
         output_dir=output_dir,
         output_name="all_preds.npy",
         verbose=verbose,
-        model_name=model_name + f"_epoch_{num_epochs}",
+        model_name=last_model_name,
     )
 
     # automatically analyze the results
