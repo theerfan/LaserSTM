@@ -127,7 +127,7 @@ def do_analysis(
 ):
     
     if fig_save_dir is None:
-        fig_save_dir = os.path.join(model_name, "figures")
+        fig_save_dir = os.path.join(model_name, f"figures_file{file_idx}_item{item_idx}")
 
     train_losses = np.load(
         os.path.join(output_dir, f"{model_name}_train_losses.npy")
