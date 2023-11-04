@@ -68,11 +68,18 @@ class CustomSequence(data.Dataset):
 
         # This iterates over files
         for x, y in zip(batch_x, batch_y):
+            # in the 10th step in training mode it's all actual data finally
+            # in the test mode we don't have that luxury, 
+            # we only have outputs from the previous steps of the LSTM
+            # (how far back into history to look is a hyperparameter)
+            # For the test mode because we only care about the last step
+            # And the "predict" function is different, that's what we put here to
+            # make it testable
             if self.test_mode:
                 # Every 100th sample
                 temp_x = np.load(os.path.join(self.data_dir, x))[::100]
                 # Every 100th sample, starting from 100th sample
-                temp_y = np.load(os.path.join(self.data_dir, y))[99:][::100]
+                temp_y = np.load(os.path.join(self.data_dir, y))[99:][::100] 
             else:
                 temp_x = np.load(os.path.join(self.data_dir, x))
                 temp_y = np.load(os.path.join(self.data_dir, y))
@@ -247,6 +254,14 @@ def pseudo_energy_loss(
         shg_weight * (shg1_energy_diff + shg2_energy_diff)
         + sfg_weight * sfg_energy_diff
     )
+
+
+# batch size, time steps, features
+# 512, 10, 8264
+# (10, 8264) pass through the LSTM
+# Changes all (10, 8264) at the same time
+# We care about the most recent item for the difference PINN loss function
+# We could get creative and use the previous ones to try to calculate a more accurate version of the dA_i/dz
 
 
 # `:,` is there because we want to keep the batch dimension
