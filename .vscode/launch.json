@@ -25,6 +25,26 @@
             ]
         }, 
         {
+          "name": "Python: Training",
+          "type": "python",
+          "request": "launch",
+          "program": "${file}",
+          "console": "integratedTerminal",
+          "justMyCode": false,
+          "args": [
+              "--model",
+              "LSTM",
+              "--data_dir",
+              "/mnt/oneterra/SFG_reIm_version1/",
+              "--custom_loss",
+              "weighted_MSE",
+              "--output_dir",
+              "/mnt/oneterra/outputs/06-11-2023",
+              "--num_epochs",
+              "10",
+          ]
+      }, 
+        {
           "name": "Python: Prediction",
           "type": "python",
           "request": "launch",

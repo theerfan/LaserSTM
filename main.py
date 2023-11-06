@@ -2,7 +2,6 @@ import logging
 
 import argparse
 
-import torch.nn as nn
 
 from LSTM.utils import (
     CustomSequence,
@@ -29,7 +28,7 @@ logging.basicConfig(
 
 
 def test_energy_stuff():
-    val_dataset = CustomSequence(".", [0], file_batch_size=1, model_batch_size=512)
+    val_dataset = CustomSequence(".", [0], test_mode=True)
     gen = val_dataset[0]
     X, y = next(gen)
     pseudo_energy_loss(y, y)
@@ -54,11 +53,11 @@ if __name__ == "__main__":
 
     # Add arguments for the shg and sfg weight losses
     parser.add_argument(
-        "--shg_weight", type=float, default=None, help="Weight for the SHG loss."
+        "--shg_weight", type=float, default=1, help="Weight for the SHG loss."
     )
 
     parser.add_argument(
-        "--sfg_weight", type=float, default=None, help="Weight for the SFG loss."
+        "--sfg_weight", type=float, default=1, help="Weight for the SFG loss."
     )
 
     parser.add_argument(
@@ -119,19 +118,17 @@ if __name__ == "__main__":
     else:
         pass
 
-    # The data that is currently here is the V2 data (reIm)
+    # Currently using v2 (reIm) data
     train_dataset = CustomSequence(
-        args.data_dir, range(0, 90), file_batch_size=1, model_batch_size=2048
+        args.data_dir,
+        range(0, 90),
     )
-    val_dataset = CustomSequence(
-        args.data_dir, [90], file_batch_size=1, model_batch_size=2048
-    )
+
+    val_dataset = CustomSequence(args.data_dir, [90], test_mode=True)
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 99),
-        file_batch_size=1,
-        model_batch_size=2048,
         test_mode=True,
     )
 
