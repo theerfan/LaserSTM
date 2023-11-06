@@ -148,6 +148,7 @@ def do_analysis(
         "domain_spacing_3": domain_spacing_3,
     }  # beam radius 400 um (and circular beam)
 
+    # Loading the single file out of the test dataset
     y_true = np.load(
         os.path.join(data_directory, f"y_new_{file_idx}.npy")
     )  # these are used to compare to the predictions
@@ -162,16 +163,14 @@ def do_analysis(
 
     # the output file from the "predict" function
     all_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
-    all_preds_trans = np.zeros(all_preds.shape)
-    for j in range(all_preds.shape[0]):
-        all_preds_trans[j] = scaler.inverse_transform(all_preds[j])
-
-    all_preds_trans = all_preds_trans[0]
-
-    y_pred_trans = all_preds_trans[item_idx]
+    
+    # Transform this using the scaler, then get which file
+    # and then get the example using its index
+    y_pred_trans = np.array([scaler.inverse_transform(item) for item in all_preds])[file_idx][item_idx]
 
     ###
 
+    # Get the transformed value of the real item in the dataset
     y_true_trans = y_true[99:][::100][item_idx]
 
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_sep(y_pred_trans)
