@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 import os
-import matplotlib
 
 import matplotlib.pyplot as plt
 from util import (
@@ -11,9 +10,6 @@ from util import (
     change_domain_and_adjust_energy,
 )
 
-matplotlib.rcParams["pdf.fonttype"] = 42
-matplotlib.rcParams["ps.fonttype"] = 42
-
 
 def intensity_phase_plot(
     domains,
@@ -22,7 +18,7 @@ def intensity_phase_plot(
     colors,
     domain_type,
     xlims=None,
-    ylabel=None,
+    y_label=None,
     normalize=False,
     legend=False,
     offsets=None,
@@ -38,45 +34,45 @@ def intensity_phase_plot(
     """
     if domain_type == "time":
         factor = 1e12
-        xlabel = "time (ps)"
+        x_label = "time (ps)"
     elif domain_type == "wavelength":
         factor = 1e9
-        xlabel = "wavelength (nm)"
+        x_label = "wavelength (nm)"
     elif domain_type == "frequency" or domain_type == "freq":
         factor = 1e-12
-        xlabel = "frequency (THz)"
-    for ii in range(len(domains)):
-        domains[ii] = domains[ii] * factor
+        x_label = "frequency (THz)"
+    for i in range(len(domains)):
+        domains[i] = domains[i] * factor
 
     intensities = [get_intensity(field) for field in fields]
     phases = [np.unwrap(get_phase(field)) for field in fields]
 
-    ylabel2 = "Phase (rad)"
+    y_label_2 = "Phase (rad)"
     # TODO: get clear working so that can call function multiple times and have all plots appear
     fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), clear=False)
 
-    axs.set_xlabel(xlabel)
+    axs.set_xlabel(x_label)
 
-    for ii in range(len(intensities)):
+    for i in range(len(intensities)):
         if normalize:
-            intensity = intensities[ii] / np.max(intensities[ii])
-            ylabel1 = "Norm. Intensity (a.u.)"
+            intensity = intensities[i] / np.max(intensities[i])
+            y_label_1 = "Norm. Intensity (a.u.)"
         else:
-            ylabel1 = "Fluence (J/m^2)"
+            y_label_1 = "Fluence (J/m^2)"
             #             warnings.warn("Using default intensity units (J/m^2)")
-            intensity = intensities[ii]
+            intensity = intensities[i]
 
-        if ylabel is None:
-            ylabel1 = ylabel1
+        if y_label is None:
+            y_label_1 = y_label_1
         else:
-            ylabel1 = ylabel
+            y_label_1 = y_label
         if offsets is not None:
-            offset = offsets[ii]
+            offset = offsets[i]
         axs.plot(
-            domains[ii],
+            domains[i],
             intensity + offset,
-            color=colors[ii],
-            label=labels[ii],
+            color=colors[i],
+            label=labels[i],
             alpha=0.6,
         )
     if legend:
@@ -85,15 +81,13 @@ def intensity_phase_plot(
     if xlims is not None:
         axs.set_xlim(xlims[0], xlims[1])
 
-    axs.set_ylabel(ylabel1, color="black")
+    axs.set_ylabel(y_label_1, color="black")
     ax2 = axs.twinx()
 
-    for ii in range(len(intensities)):
-        ax2.plot(
-            domains[ii], phases[ii], color=colors[ii], linestyle="dashed", alpha=0.6
-        )
+    for i in range(len(intensities)):
+        ax2.plot(domains[i], phases[i], color=colors[i], linestyle="dashed", alpha=0.6)
 
-    ax2.set_ylabel(ylabel2, color="black")
+    ax2.set_ylabel(y_label_2, color="black")
 
     if save:
         if save_name is None:
@@ -118,35 +112,23 @@ def intensity_phase_plot(
 
 
 def do_analysis(
-    output_dir: str, # directory from model training
-    data_directory: str, # directory from preprocessing
-    model_name: str, # model name from training
-    file_idx: int, # on which file to do analysis
-    item_idx: int, # which example of the file to do analysis
-    fig_save_dir: str = None, # where to save the figures
+    output_dir: str,  # directory from model training
+    data_directory: str,  # directory from preprocessing
+    model_name: str,  # model name from training
+    file_idx: int,  # on which file to do analysis
+    item_idx: int,  # which example of the file to do analysis
+    fig_save_dir: str = None,  # where to save the figures
 ):
-    
     if fig_save_dir is None:
-        fig_save_dir = os.path.join(model_name, f"figures_file{file_idx}_item{item_idx}")
+        fig_save_dir = os.path.join(
+            model_name, f"figures_file{file_idx}_item{item_idx}"
+        )
 
-    train_losses = np.load(
-        os.path.join(output_dir, f"{model_name}_train_losses.npy")
-    )
-    val_losses = np.load(
-        os.path.join(output_dir, f"{model_name}_val_losses.npy")
-    )
-
+    # Loading files for scaling
     with open(
         os.path.join(data_directory, "scaler.pkl"), "rb"
     ) as file:  # can use scaler.pkl or scaler_bckkup.pkl
         scaler = pickle.load(file)
-
-    all_preds = np.load(
-        os.path.join(output_dir, f"{model_name}_all_preds.npy")
-    )
-    all_preds_trans = np.zeros(all_preds.shape)
-    for j in range(all_preds.shape[0]):
-        all_preds_trans[j] = scaler.inverse_transform(all_preds[j])
 
     freq_vectors_shg1 = np.load("Data/shg_freq_domain_ds.npy")
     freq_vectors_shg2 = freq_vectors_shg1  # these are equivalent here
@@ -166,20 +148,31 @@ def do_analysis(
         "domain_spacing_3": domain_spacing_3,
     }  # beam radius 400 um (and circular beam)
 
-    y_target = np.load(
+    y_true = np.load(
         os.path.join(data_directory, f"y_new_{file_idx}.npy")
     )  # these are used to compare to the predictions
 
-    y_90_trans = scaler.inverse_transform(y_target)
+    y_true = scaler.inverse_transform(y_true)
 
     sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
     sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
     sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
 
+    ### The part where we load the predictions
+
+    # the output file from the "predict" function
+    all_preds = np.load(os.path.join(output_dir, f"{model_name}_all_preds.npy"))
+    all_preds_trans = np.zeros(all_preds.shape)
+    for j in range(all_preds.shape[0]):
+        all_preds_trans[j] = scaler.inverse_transform(all_preds[j])
+
     all_preds_trans = all_preds_trans[0]
 
     y_pred_trans = all_preds_trans[item_idx]
-    y_true_trans = y_90_trans[99:][::100][item_idx]
+
+    ###
+
+    y_true_trans = y_true[99:][::100][item_idx]
 
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_sep(y_pred_trans)
     y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_sep(y_true_trans)
@@ -258,24 +251,6 @@ def do_analysis(
         domain_spacing=domain_spacing_2,
         true_domain_spacing=sfg_original_time_ds,
     )
-
-    # training and validation error
-    plt.scatter(
-        range(1, train_losses.shape[0] + 1, 1),
-        train_losses,
-        label="Train Loss",
-        alpha=0.6,
-    )
-    plt.scatter(
-        range(1, val_losses.shape[0] + 1, 1),
-        val_losses,
-        label="Validation Loss",
-        alpha=0.6,
-    )
-    plt.title("MSE Loss")
-    plt.xlabel("Epoch")
-    plt.legend()
-    plt.show()
 
     # plots frequency domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
     print("------- Normalized True vs Prediction Frequency Domain --------")

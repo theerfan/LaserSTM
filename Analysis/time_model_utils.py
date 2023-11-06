@@ -34,16 +34,10 @@ def time_prediction(
     model_param_path: str = None,
     test_dataset=None,
     batch_size: int = 200,
-    use_gpu: bool = True,
-    data_parallel: bool = False,
     verbose: bool = True,
 ):
-    if test_dataset is None:
-        print("Please pass in the dataset using `CustomSequenceTiming()` function.")
-        sys.exit(0)
-
     # Erfan: Check this re-write to make sure it works
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if model_param_path is not None:
         params = torch.load(model_param_path, map_location=device)
@@ -75,9 +69,8 @@ def time_prediction(
             # if verbose:
             #     print(f"Predicting batch {i+1}/{len(test_dataloader)}")
 
-            if use_gpu:
-                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                X_batch = X_batch.to(device)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            X_batch = X_batch.to(device)
 
             if final_shape is None:
                 final_shape = X_batch.shape[-1]

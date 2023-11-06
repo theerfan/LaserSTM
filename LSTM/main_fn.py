@@ -25,7 +25,6 @@ def main_lstm(
             model,
             model_param_path=args.model_param_path,
             test_dataset=test_dataset,
-            use_gpu=True,
             data_parallel=False,
             output_dir=args.output_dir,
             output_name="all_preds.npy",

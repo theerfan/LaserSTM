@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 
 from LSTM.utils import CustomSequence
+from torch.utils.data import DataLoader
 
 from Analysis.analyze_reim import do_analysis
 
@@ -21,39 +22,31 @@ logging.basicConfig(
 # Over a single pass of the dataset
 def LSTM_single_pass(
     model: nn.Module,
-    dataset: CustomSequence,
-    device: torch.device,
+    dataset: DataLoader,
     optimizer: torch.optim,
     loss_fn: nn.Module,
-    verbose: bool = False,
 ) -> Tuple[float, float]:
     data_len = len(dataset)
     pass_loss = 0
     pass_len = 0
-    for i, sample_generator in enumerate(dataset):
+    for i, X_batch, y_batch in enumerate(dataset):
         # Putting this here because the enumerator on the dataset doesn't work well
         # TODO: Really need to migrate this to the dataloader, the way this was implemeneted sucks!
         if i == data_len:
             break
 
-        if verbose:
-            log_str = f"Processing batch {(i+1)} / {data_len}"
-            print(log_str)
-            logging.info(log_str)
+        if optimizer is not None:
+            optimizer.zero_grad()
 
-        for X, y in sample_generator:
-            if optimizer is not None:
-                optimizer.zero_grad()
+        pred = model(X_batch)
+        loss = loss_fn(pred, y_batch)
 
-            pred = model(X)
-            loss = loss_fn(pred, y)
+        if optimizer is not None:
+            loss.backward()
+            optimizer.step()
 
-            if optimizer is not None:
-                loss.backward()
-                optimizer.step()
-
-            pass_len += X.size(0)
-            pass_loss += loss.item() * X.size(0)
+        pass_len += X_batch.size(0)
+        pass_loss += loss.item() * X_batch.size(0)
 
     return pass_loss / pass_len, loss
 
@@ -63,7 +56,6 @@ def train(
     train_dataset: CustomSequence,
     num_epochs: int = 10,
     val_dataset: CustomSequence = None,
-    use_gpu: bool = True,
     data_parallel: bool = True,
     out_dir: str = ".",
     model_name: str = "model",
@@ -73,21 +65,18 @@ def train(
     epoch_save_interval: int = 1,
     custom_single_pass: Callable = None,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if use_gpu:
-        if device == "cpu":
-            Warning("GPU not available, using CPU instead.")
-        elif data_parallel:
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-                log_str = f"Using {torch.cuda.device_count()} GPUs!"
-                print(log_str)
-                logging.info(log_str)
-            else:
-                Warning("Data parallelism not available, using single GPU instead.")
+    if device == "cpu":
+        Warning("GPU not available, using CPU instead.")
+    elif data_parallel:
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+            log_str = f"Using {torch.cuda.device_count()} GPUs!"
+            print(log_str)
+            logging.info(log_str)
         else:
-            pass
+            Warning("Data parallelism not available, using single GPU instead.")
     else:
         pass
     model.to(device)
@@ -107,6 +96,8 @@ def train(
 
     single_pass_fn = custom_single_pass or LSTM_single_pass
 
+    train_dataloader = DataLoader(train_dataset, batch_size=200)
+
     # Train
     for epoch in range(num_epochs):
         if verbose:
@@ -117,7 +108,7 @@ def train(
         model.train()
 
         train_loss, last_train_loss = single_pass_fn(
-            model, train_dataset, device, optimizer, criterion, verbose
+            model, train_dataloader, optimizer, criterion, verbose
         )
         train_losses.append(train_loss)
 
@@ -125,9 +116,7 @@ def train(
         if val_dataset is not None:
             model.eval()
             with torch.no_grad():
-                val_loss, _ = single_pass_fn(
-                    model, val_dataset, device, None, criterion
-                )
+                val_loss, _ = single_pass_fn(model, val_dataset, None, criterion)
                 val_losses.append(val_loss)
         else:
             # For formatting purposes, but it basically means that it's nan
@@ -190,107 +179,69 @@ def predict(
     model: nn.Module,
     model_param_path: str = None,
     test_dataset: CustomSequence = None,
-    use_gpu: bool = True,
-    data_parallel: bool = False,
     output_dir: str = ".",
     output_name: str = "all_preds.npy",
     verbose: bool = True,
     model_name: str = "",
+    batch_size: int = 200,
 ) -> np.ndarray:
-    device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")
-    if not use_gpu:
-        log_str = "Warning: GPU not available, using CPU instead."
-        print(log_str)
-        logging.info(log_str)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load model parameters if path is provided
     if model_param_path is not None:
         params = torch.load(model_param_path, map_location=device)
-        # remove the 'module.' prefix from the keys
-        params = {k.replace("module.", ""): v for k, v in params.items()}
-        model.load_state_dict(params, strict=False)
-    else:
-        pass
+        if isinstance(params, dict) and "model_state_dict" in params:
+            params = params["model_state_dict"]
+        try:
+            model.load_state_dict(params)
+        except:
+            model = torch.nn.DataParallel(model)
+            model.load_state_dict(params)
 
-    # Check if the output directory exists, if not, create it
-    os.makedirs(output_dir, exist_ok=True)
-
-    if data_parallel:
+    if device == "gpu":
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)
-        else:
-            log_str = (
-                "Warning: Data parallelism not available, using single GPU instead."
-            )
-            print(log_str)
-            logging.info(log_str)
     else:
-        try:
-            model = model.module
-        except AttributeError:
-            pass
+        model = model.to(device)
 
-    model = model.to(device)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+
+    model.to(device)
     model.eval()
-
-    all_preds = []
+    all_preds = None
     final_shape = None
-
-    if verbose:
-        log_str = "Finished loading the model, starting prediction."
-        print(log_str)
-        logging.info(log_str)
-        whole_start = time.time()
-
-    dataset_len = len(test_dataset)
-
+    # i = 0
     with torch.no_grad():
-        for j in range(dataset_len):
-            sample_generator = test_dataset[j]
+        for j, X_batch in enumerate(test_dataloader):
+            X_batch = X_batch.to(torch.float32)
 
-            if verbose:
-                this_batch_start = time.time()
-                this_batch_elapsed = this_batch_start - whole_start
-                log_str_2 = f"Processing batch {(j+1)} / {len(test_dataset)} at time {this_batch_elapsed}"
-                print(log_str_2)
-                logging.info(log_str_2)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            X_batch = X_batch.to(device)
 
-            counter = 0
-            for X, y in sample_generator:
-                if verbose:
-                    now_time = time.time()
-                    elapsed = now_time - this_batch_start
-                    this_batch_start = now_time
+            if final_shape is None:
+                final_shape = X_batch.shape[-1]
 
-                    log_str_3 = f"Processing sample {(counter+1)} / n at time {elapsed}"
-                    print(log_str_3)
-                    logging.info(log_str_3)
+            for _ in range(100):  # need to predict 100 times
+                pred = model(X_batch)
+                X_batch = X_batch[:, 1:, :]  # pop first
 
-                    counter += 1
+                # add to last
+                X_batch = torch.cat(
+                    (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                )
 
-                if final_shape is None:
-                    final_shape = X.shape[-1]
+            # Keep all_preds on GPU instead of sending it back to CPU at "each" iteration
+            # Erfan TODO: Best if we know the value of *pred.squeeze().shape beforehand
+            if all_preds is None:
+                all_preds = torch.zeros(
+                    (len(test_dataset), *pred.squeeze().shape), device=device
+                )
+            else:
+                pass
+            all_preds[j] = pred.squeeze()
 
-                for _ in range(100):
-                    pred = model(X)
-                    X = X[:, 1:, :]  # pop first
-
-                    # add to last
-                    X = torch.cat((X, torch.reshape(pred, (-1, 1, final_shape))), 1)
-
-                all_preds.append(pred.squeeze())
-
-            if verbose:
-                log_str_4 = f"Finished processing samples in {j} batch."
-                print(log_str_4)
-                logging.info(log_str_4)
-
-        if verbose:
-            log_str_5 = "Finished processing all batches."
-            print(log_str_5)
-            logging.info(log_str_5)
-
-    all_preds = torch.stack(all_preds, dim=0).cpu().numpy()
+    # And then we do the concatenation here and send it back to CPU
+    all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
     np.save(os.path.join(output_dir, f"{model_name}_{output_name}"), all_preds)
     return all_preds
 
@@ -344,7 +295,6 @@ def tune_train_lstm(
             train_dataset,
             num_epochs=num_epochs,
             val_dataset=val_dataset,
-            use_gpu=True,
             data_parallel=True,
             out_dir=output_dir,
             model_name=model_name,
@@ -362,7 +312,6 @@ def tune_train_lstm(
                 output_dir, f"{model_name}_epoch_{num_epochs}.pth"
             ),
             test_dataset=test_dataset,
-            use_gpu=True,
             data_parallel=False,
             output_dir=output_dir,
             output_name="all_preds.npy",
@@ -405,7 +354,6 @@ def test_train_lstm(
     custom_single_pass: Callable = LSTM_single_pass,
     data_dir: str = ".",
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
-    
     model_name = f"LSTM_model_e{num_epochs}"
 
     trained_model, train_losses, val_losses = train(
@@ -413,7 +361,6 @@ def test_train_lstm(
         train_dataset,
         num_epochs=num_epochs,
         val_dataset=val_dataset,
-        use_gpu=True,
         data_parallel=True,
         out_dir=output_dir,
         model_name=model_name,
@@ -430,7 +377,6 @@ def test_train_lstm(
         model,
         model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
         test_dataset=test_dataset,
-        use_gpu=True,
         data_parallel=False,
         output_dir=output_dir,
         output_name="all_preds.npy",

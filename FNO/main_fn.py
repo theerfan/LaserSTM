@@ -35,7 +35,6 @@ def main_NFO(
         train_dataset,
         num_epochs=args.num_epochs,
         val_dataset=val_dataset,
-        use_gpu=True,
         data_parallel=True,
         out_dir=args.output_dir,
         model_name="NFO_model",
