@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.utils import data
 from torchmetrics.regression import PearsonCorrCoef
 
+from typing import Iterable
+
 freq_vectors_shg = np.load("Data/shg_freq_domain_ds.npy")
 freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 
@@ -16,13 +18,9 @@ domain_spacing_shg = (
 domain_spacing_sfg = freq_vectors_sfg[1] - freq_vectors_sfg[0]  # * 1e12
 
 
+# Adding prefixes to file names we're trying to iterate
+# because we have multiple versions of the data
 def add_prefix(lst: list, prefix="X"):
-    """
-    Add prefix to list of file names
-    @param lst: list of file names
-    @param prefix: prefix to add
-    @return: list of file names with prefix
-    """
     return [prefix + "_" + str(i) + ".npy" for i in lst]
 
 
@@ -30,74 +28,54 @@ class CustomSequence(data.Dataset):
     def __init__(
         self,
         data_dir: str,
-        file_idx: list,
-        file_batch_size: int,
-        model_batch_size: int,
+        file_idx: Iterable,
         test_mode: bool = False,
         train_prefix: str = "X_new",
         val_prefix: str = "y_new",
+        crystal_length: int = 100,
     ):
-        """
-        Custom PyTorch dataset for loading data
-        @param data_dir: directory containing data
-        @param file_idx: list of file indices to load
-        @param file_batch_size: number of files to load at once
-        @param model_batch_size: number of samples to load at once to feed into model
-        @param test_mode: whether to load data for testing
-        """
         self.Xnames = add_prefix(file_idx, train_prefix)
         self.ynames = add_prefix(file_idx, val_prefix)
-        self.file_batch_size = file_batch_size
-        self.model_batch_size = model_batch_size
         self.test_mode = test_mode
         self.data_dir = data_dir
+        self.crystal_length = crystal_length
+
+    # NOTE: We always assume that we have 10000 examples per file.
+    def get_num_samples_per_file(self):
+        return 10000
 
     def __len__(self):
-        return int(np.ceil(len(self.Xnames) / float(self.file_batch_size)))
+        # Assuming every file has the same number of samples, otherwise you need a more dynamic way
+        return len(self.Xnames) * self.get_num_samples_per_file()
 
     def __getitem__(self, idx):
-        batch_x = self.Xnames[
-            idx * self.file_batch_size : (idx + 1) * self.file_batch_size
-        ]
-        batch_y = self.ynames[
-            idx * self.file_batch_size : (idx + 1) * self.file_batch_size
-        ]
+        # Compute file index and sample index within that file
+        num_samples_per_file = self.get_num_samples_per_file()
+        file_idx = idx // num_samples_per_file
+        sample_idx = idx % num_samples_per_file
 
-        data = []
-        labels = []
+        # Load data
+        data = np.load(os.path.join(self.data_dir, self.Xnames[file_idx]))
+        labels = np.load(os.path.join(self.data_dir, self.ynames[file_idx]))
 
-        # This iterates over files
-        for x, y in zip(batch_x, batch_y):
-            # in the 10th step in training mode it's all actual data finally
-            # in the test mode we don't have that luxury, 
-            # we only have outputs from the previous steps of the LSTM
-            # (how far back into history to look is a hyperparameter)
-            # For the test mode because we only care about the last step
-            # And the "predict" function is different, that's what we put here to
-            # make it testable
-            if self.test_mode:
-                # Every 100th sample
-                temp_x = np.load(os.path.join(self.data_dir, x))[::100]
-                # Every 100th sample, starting from 100th sample
-                temp_y = np.load(os.path.join(self.data_dir, y))[99:][::100] 
-            else:
-                temp_x = np.load(os.path.join(self.data_dir, x))
-                temp_y = np.load(os.path.join(self.data_dir, y))
-
-            data = temp_x
-            labels = temp_y
+        # In test mode, we only care about the first thing that goes
+        # into the crystal and the thing that comes out. (All steps of crystal at once)
+        if self.test_mode:
+            data = data[sample_idx :: self.crystal_length]
+            labels = labels[
+                (sample_idx + self.crystal_length - 1) :: self.crystal_length
+            ]
+        else:
+            data = data[sample_idx]
+            labels = labels[sample_idx]
 
         # Each file is about 3 GB, just move directly into GPU memory
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
         data_tensor = torch.tensor(data, dtype=torch.float32).to(device)
         labels_tensor = torch.tensor(labels, dtype=torch.float32).to(device)
 
-        for i in range(0, len(data), self.model_batch_size):
-            data_batch = data_tensor[i : i + self.model_batch_size]
-            labels_batch = labels_tensor[i : i + self.model_batch_size]
-
-            yield data_batch, labels_batch
+        return data_tensor, labels_tensor
 
 
 def area_under_curve_diff(
@@ -310,8 +288,10 @@ def re_im_sep_vectors(fields: torch.Tensor, detach=False):
 def wrapped_MSE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
     return nn.MSELoss()(y_pred, y_real)
 
+
 def wrapped_BCE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
     return nn.BCELoss()(y_pred, y_real)
+
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal

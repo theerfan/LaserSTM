@@ -22,19 +22,13 @@ logging.basicConfig(
 # Over a single pass of the dataset
 def LSTM_single_pass(
     model: nn.Module,
-    dataset: DataLoader,
+    dataloader: DataLoader,
     optimizer: torch.optim,
     loss_fn: nn.Module,
 ) -> Tuple[float, float]:
-    data_len = len(dataset)
     pass_loss = 0
-    pass_len = 0
-    for i, X_batch, y_batch in enumerate(dataset):
-        # Putting this here because the enumerator on the dataset doesn't work well
-        # TODO: Really need to migrate this to the dataloader, the way this was implemeneted sucks!
-        if i == data_len:
-            break
-
+    pass_len = len(dataloader)
+    for X_batch, y_batch in dataloader:
         if optimizer is not None:
             optimizer.zero_grad()
 
@@ -45,7 +39,6 @@ def LSTM_single_pass(
             loss.backward()
             optimizer.step()
 
-        pass_len += X_batch.size(0)
         pass_loss += loss.item() * X_batch.size(0)
 
     return pass_loss / pass_len, loss
@@ -64,6 +57,7 @@ def train(
     custom_loss=None,
     epoch_save_interval: int = 1,
     custom_single_pass: Callable = None,
+    batch_size: int = 200,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -96,7 +90,8 @@ def train(
 
     single_pass_fn = custom_single_pass or LSTM_single_pass
 
-    train_dataloader = DataLoader(train_dataset, batch_size=200)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
     # Train
     for epoch in range(num_epochs):
@@ -108,7 +103,7 @@ def train(
         model.train()
 
         train_loss, last_train_loss = single_pass_fn(
-            model, train_dataloader, optimizer, criterion, verbose
+            model, train_dataloader, optimizer, criterion
         )
         train_losses.append(train_loss)
 
@@ -116,7 +111,7 @@ def train(
         if val_dataset is not None:
             model.eval()
             with torch.no_grad():
-                val_loss, _ = single_pass_fn(model, val_dataset, None, criterion)
+                val_loss, _ = single_pass_fn(model, val_dataloader, None, criterion)
                 val_losses.append(val_loss)
         else:
             # For formatting purposes, but it basically means that it's nan
@@ -164,14 +159,16 @@ def train(
             pass
 
     # Save everything at the end
-    np.save(os.path.join(out_dir, "train_losses.npy"), np.array(train_losses))
+    train_losses = np.array(train_losses)
+    np.save(os.path.join(out_dir, "train_losses.npy"), train_losses)
     if val_dataset is not None:
-        np.save(os.path.join(out_dir, "val_losses.npy"), np.array(val_losses))
+        val_losses = np.array(val_losses)
+        np.save(os.path.join(out_dir, "val_losses.npy"), val_losses)
     else:
         pass
+
     torch.save(model.state_dict(), os.path.join(out_dir, f"{model_name}.pth"))
-    train_losses = np.array(train_losses)
-    val_losses = np.array(val_losses)
+
     return model, train_losses, val_losses
 
 
@@ -212,11 +209,8 @@ def predict(
     final_shape = None
     # i = 0
     with torch.no_grad():
-        for j, X_batch in enumerate(test_dataloader):
+        for j, (X_batch, _) in test_dataloader:
             X_batch = X_batch.to(torch.float32)
-
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            X_batch = X_batch.to(device)
 
             if final_shape is None:
                 final_shape = X_batch.shape[-1]
