@@ -114,14 +114,14 @@ def intensity_phase_plot(
 def do_analysis(
     output_dir: str,  # directory from model training
     data_directory: str,  # directory from preprocessing
-    model_name: str,  # model name from training
+    model_save_name: str,  # model name from training
     file_idx: int,  # on which file to do analysis
     item_idx: int,  # which example of the file to do analysis
     fig_save_dir: str = None,  # where to save the figures
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
-            model_name, f"figures_file{file_idx}_item{item_idx}"
+            model_save_name, f"figures_file{file_idx}_item{item_idx}"
         )
 
     # Loading files for scaling
@@ -161,7 +161,7 @@ def do_analysis(
     ### The part where we load the predictions
 
     # the output file from the "predict" function
-    all_preds = np.load(os.path.join(output_dir, f"{model_name}_all_preds.npy"))
+    all_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
     all_preds_trans = np.zeros(all_preds.shape)
     for j in range(all_preds.shape[0]):
         all_preds_trans[j] = scaler.inverse_transform(all_preds[j])
@@ -266,7 +266,7 @@ def do_analysis(
         legend=True,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_pfg1.jpg",
+        save_name=model_save_name + "_pfg1.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -283,7 +283,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_pfg2.jpg",
+        save_name=model_save_name + "_pfg2.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -300,7 +300,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_pfg3.jpg",
+        save_name=model_save_name + "_pfg3.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -318,7 +318,7 @@ def do_analysis(
         legend=True,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_pfg4.jpg",
+        save_name=model_save_name + "_pfg4.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -334,7 +334,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_pfg5.jpg",
+        save_name=model_save_name + "_pfg5.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -350,7 +350,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_pfg6.jpg",
+        save_name=model_save_name + "_pfg6.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -370,7 +370,7 @@ def do_analysis(
         legend=True,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_ptd1.jpg",
+        save_name=model_save_name + "_ptd1.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -386,7 +386,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_ptd2.jpg",
+        save_name=model_save_name + "_ptd2.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -402,7 +402,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
-        save_name=model_name + "_ptd3.jpg",
+        save_name=model_save_name + "_ptd3.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -421,7 +421,7 @@ def do_analysis(
         legend=True,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_ptd4.jpg",
+        save_name=model_save_name + "_ptd4.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -437,7 +437,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_ptd5.jpg",
+        save_name=model_save_name + "_ptd5.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
@@ -453,7 +453,7 @@ def do_analysis(
         legend=False,
         offsets=[0, 0],
         save_format="jpg",
-        save_name=model_name + "_ptd6.jpg",
+        save_name=model_save_name + "_ptd6.jpg",
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,

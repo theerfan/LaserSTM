@@ -51,7 +51,7 @@ def train(
     val_dataset: CustomSequence = None,
     data_parallel: bool = True,
     out_dir: str = ".",
-    model_name: str = "model",
+    model_save_name: str = "model",
     verbose: bool = True,
     save_checkpoints: bool = True,
     custom_loss=None,
@@ -124,7 +124,7 @@ def train(
         # (So you wouldn't have terabytes of checkpoints just sitting there)
         # approved.
         if save_checkpoints and epoch % epoch_save_interval == 0:
-            checkpoint_path = os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}.pth")
+            checkpoint_path = os.path.join(out_dir, f"{model_save_name}_epoch_{epoch+1}.pth")
             torch.save(
                 {
                     "epoch": epoch,
@@ -136,13 +136,13 @@ def train(
             )
             # Save these things at checkpoints
             np.save(
-                os.path.join(out_dir, f"{model_name}_epoch_{epoch+1}_train_losses.npy"),
+                os.path.join(out_dir, f"{model_save_name}_epoch_{epoch+1}_train_losses.npy"),
                 np.array(train_losses),
             )
             if val_dataset is not None:
                 np.save(
                     os.path.join(
-                        out_dir, f"{model_name}_epoch_{epoch+1}_val_losses.npy"
+                        out_dir, f"{model_save_name}_epoch_{epoch+1}_val_losses.npy"
                     ),
                     np.array(val_losses),
                 )
@@ -167,7 +167,7 @@ def train(
     else:
         pass
 
-    torch.save(model.state_dict(), os.path.join(out_dir, f"{model_name}.pth"))
+    torch.save(model.state_dict(), os.path.join(out_dir, f"{model_save_name}.pth"))
 
     return model, train_losses, val_losses
 
@@ -179,7 +179,7 @@ def predict(
     output_dir: str = ".",
     output_name: str = "all_preds.npy",
     verbose: bool = True,
-    model_name: str = "",
+    model_save_name: str = "",
     batch_size: int = 200,
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -236,12 +236,13 @@ def predict(
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = torch.cat(all_preds, dim=0).cpu().numpy()
-    np.save(os.path.join(output_dir, f"{model_name}_{output_name}"), all_preds)
+    np.save(os.path.join(output_dir, f"{model_save_name}_{output_name}"), all_preds)
     return all_preds
 
 
 def tune_train_lstm(
     model: torch.nn.Module,
+    model_save_name: str,
     num_epochs: int,
     custom_loss: Callable,
     epoch_save_interval: int,
@@ -271,7 +272,7 @@ def tune_train_lstm(
         if verbose:
             print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
 
-        model_name = f"LSTM_model_{shg_weight}_{sfg_weight}"
+        model_save_name = f"{model_save_name}_{shg_weight}_{sfg_weight}"
 
         def current_loss(y_pred, y_real):
             return custom_loss(
@@ -291,7 +292,7 @@ def tune_train_lstm(
             val_dataset=val_dataset,
             data_parallel=True,
             out_dir=output_dir,
-            model_name=model_name,
+            model_save_name=model_save_name,
             verbose=verbose,
             save_checkpoints=True,
             custom_loss=current_loss,
@@ -303,14 +304,14 @@ def tune_train_lstm(
         all_test_preds = predict(
             model,
             model_param_path=os.path.join(
-                output_dir, f"{model_name}_epoch_{num_epochs}.pth"
+                output_dir, f"{model_save_name}_epoch_{num_epochs}.pth"
             ),
             test_dataset=test_dataset,
             data_parallel=False,
             output_dir=output_dir,
             output_name="all_preds.npy",
             verbose=verbose,
-            model_name=model_name + f"_epoch_{num_epochs}",
+            model_save_name=model_save_name + f"_epoch_{num_epochs}",
         )
 
     # Find the best hyperparameters based on test loss
@@ -337,6 +338,7 @@ def tune_train_lstm(
 
 def test_train_lstm(
     model: torch.nn.Module,
+    model_save_name: str,
     num_epochs: int,
     custom_loss: Callable,
     epoch_save_interval: int,
@@ -348,7 +350,6 @@ def test_train_lstm(
     custom_single_pass: Callable = LSTM_single_pass,
     data_dir: str = ".",
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
-    model_name = f"LSTM_model_e{num_epochs}"
 
     trained_model, train_losses, val_losses = train(
         model,
@@ -357,7 +358,7 @@ def test_train_lstm(
         val_dataset=val_dataset,
         data_parallel=True,
         out_dir=output_dir,
-        model_name=model_name,
+        model_save_name=model_save_name,
         verbose=verbose,
         save_checkpoints=True,
         custom_loss=custom_loss,
@@ -365,7 +366,7 @@ def test_train_lstm(
         custom_single_pass=custom_single_pass,
     )
 
-    last_model_name = f"{model_name}_epoch_{num_epochs}"
+    last_model_name = f"{model_save_name}_epoch_{num_epochs}"
 
     all_test_preds = predict(
         model,
@@ -375,7 +376,7 @@ def test_train_lstm(
         output_dir=output_dir,
         output_name="all_preds.npy",
         verbose=verbose,
-        model_name=last_model_name,
+        model_save_name=last_model_name,
     )
 
     # automatically analyze the results
@@ -383,7 +384,7 @@ def test_train_lstm(
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
-        model_name=model_name + f"_epoch_{num_epochs}",
+        model_save_name=model_save_name + f"_epoch_{num_epochs}",
         file_idx=90,
         item_idx=15,
     )

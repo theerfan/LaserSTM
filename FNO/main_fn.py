@@ -37,7 +37,7 @@ def main_NFO(
         val_dataset=val_dataset,
         data_parallel=True,
         out_dir=args.output_dir,
-        model_name="NFO_model",
+        model_save_name="NFO_model",
         verbose=args.verbose,
         save_checkpoints=True,
         custom_loss=custom_loss,

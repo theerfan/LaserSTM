@@ -42,6 +42,10 @@ if __name__ == "__main__":
         "--model", type=str, required=True, help="Model to use for training."
     )
     parser.add_argument(
+        "--model_save_name", type=str, required=True, help="Model to use for training."
+    )
+
+    parser.add_argument(
         "--data_dir", type=str, required=True, help="Path to the data directory."
     )
     parser.add_argument(
