@@ -113,13 +113,6 @@ def get_cmd_args():
         help="The example of the file to use for analysis",
     )
 
-    parser.add_argument(
-        "--model_param_path",
-        type=str,
-        default=None,
-        help="Continue training from this particular file",
-    )
-
     return parser.parse_args()
 
 

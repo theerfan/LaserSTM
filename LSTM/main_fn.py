@@ -16,7 +16,7 @@ def main_lstm(
     test_dataset: CustomSequence,
     custom_loss: Callable,
 ):
-    model = LSTMModel(input_size=8264)
+    model = LSTMModel(input_size=8264, lstm_hidden_size=2048)
     if args.do_prediction == 1:
         log_str = f"Prediction only mode for model {args.model}"
         print(log_str)
