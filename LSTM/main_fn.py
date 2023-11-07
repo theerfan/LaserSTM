@@ -15,7 +15,6 @@ def main_lstm(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     custom_loss: Callable,
-    batch_size: int = 9_000
 ):
     model = LSTMModel(input_size=8264)
     if args.do_prediction == 1:
@@ -55,5 +54,7 @@ def main_lstm(
             test_dataset,
             args.verbose,
             data_dir=args.data_dir,
-            batch_size=batch_size,
+            batch_size=args.batch_size,
+            analysis_file_idx=args.analysis_file,
+            analysis_item_idx=args.analysis_example,
         )

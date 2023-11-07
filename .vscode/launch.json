@@ -64,10 +64,12 @@
         "LSTM",
         "--data_dir",
         "/mnt/oneterra/SFG_reIm_version1/",
+        "--output_dir",
+        "/mnt/oneterra/outputs/06-11-2023",
         "--do_prediction",
         "1",
         "--model_param_path",
-        "/mnt/oneterra/outputs/02-11-2023/LSTM_model_e30_noscheduler_epoch_30.pth"
+        "/mnt/oneterra/outputs/06-11-2023/LSTM_model_latest_epoch_1.pth"
       ]
     },
     {
