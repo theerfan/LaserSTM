@@ -162,11 +162,13 @@ def do_analysis(
     ### The part where we load the predictions
 
     # the output file from the "predict" function
+    # this has a shape of (files, predictions, channels)
     all_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
     
     # Transform this using the scaler, then get which file
     # and then get the example using its index
-    y_pred_trans = np.array([scaler.inverse_transform(item) for item in all_preds])[file_idx][item_idx]
+    y_pred_trans = scaler.inverse_transform(all_preds[file_idx])[item_idx]
+    # y_pred_trans = np.array([scaler.inverse_transform(item) for item in all_preds])[file_idx][item_idx]
 
     ###
 

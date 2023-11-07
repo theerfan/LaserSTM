@@ -15,6 +15,7 @@ def main_lstm(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     custom_loss: Callable,
+    batch_size: int = 9_000
 ):
     model = LSTMModel(input_size=8264)
     if args.do_prediction == 1:
@@ -25,7 +26,6 @@ def main_lstm(
             model,
             model_param_path=args.model_param_path,
             test_dataset=test_dataset,
-            data_parallel=False,
             output_dir=args.output_dir,
             output_name="all_preds.npy",
             verbose=1,
@@ -45,6 +45,7 @@ def main_lstm(
 
         function_to_exec(
             model,
+            args.model_save_name,
             args.num_epochs,
             custom_loss,
             args.epoch_save_interval,
@@ -54,4 +55,5 @@ def main_lstm(
             test_dataset,
             args.verbose,
             data_dir=args.data_dir,
+            batch_size=batch_size,
         )

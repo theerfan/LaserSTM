@@ -28,21 +28,41 @@ class CustomSequence(data.Dataset):
     def __init__(
         self,
         data_dir: str,
-        file_idx: Iterable,
+        file_indexes: Iterable,
         test_mode: bool = False,
         train_prefix: str = "X_new",
         val_prefix: str = "y_new",
         crystal_length: int = 100,
     ):
-        self.Xnames = add_prefix(file_idx, train_prefix)
-        self.ynames = add_prefix(file_idx, val_prefix)
+        self.Xnames = add_prefix(file_indexes, train_prefix)
+        self.ynames = add_prefix(file_indexes, val_prefix)
+        self.file_indexes = file_indexes
         self.test_mode = test_mode
         self.data_dir = data_dir
         self.crystal_length = crystal_length
+        self.current_file_idx = None
+        self.current_data = None
+        self.current_labels = None
 
     # NOTE: We always assume that we have 10000 examples per file.
     def get_num_samples_per_file(self):
-        return 10000
+        return 10_000
+
+    def load_data_for_file_index(self, file_idx):
+        if file_idx != self.current_file_idx:
+            # Clear memory of previously loaded data
+            self.current_data = None
+            self.current_labels = None
+            # Load new data
+            self.current_data = np.load(
+                os.path.join(self.data_dir, self.Xnames[file_idx])
+            )
+            self.current_labels = np.load(
+                os.path.join(self.data_dir, self.ynames[file_idx])
+            )
+            self.current_file_idx = file_idx
+        else:
+            pass
 
     def __len__(self):
         # Assuming every file has the same number of samples, otherwise you need a more dynamic way
@@ -54,20 +74,18 @@ class CustomSequence(data.Dataset):
         file_idx = idx // num_samples_per_file
         sample_idx = idx % num_samples_per_file
 
-        # Load data
-        data = np.load(os.path.join(self.data_dir, self.Xnames[file_idx]))
-        labels = np.load(os.path.join(self.data_dir, self.ynames[file_idx]))
+         # Load data if not already in memory or if file index has changed
+        self.load_data_for_file_index(file_idx)
+
+       # Get the specific sample from the currently loaded data
+        data = self.current_data[sample_idx]
+        labels = self.current_labels[sample_idx]
 
         # In test mode, we only care about the first thing that goes
         # into the crystal and the thing that comes out. (All steps of crystal at once)
         if self.test_mode:
-            data = data[sample_idx :: self.crystal_length]
-            labels = labels[
-                (sample_idx + self.crystal_length - 1) :: self.crystal_length
-            ]
-        else:
-            data = data[sample_idx]
-            labels = labels[sample_idx]
+            data = data[:: self.crystal_length]
+            labels = labels[self.crystal_length - 1::][:: self.crystal_length]
 
         # Each file is about 3 GB, just move directly into GPU memory
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

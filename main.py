@@ -27,14 +27,6 @@ logging.basicConfig(
 )
 
 
-def test_energy_stuff():
-    val_dataset = CustomSequence(".", [0], test_mode=True)
-    gen = val_dataset[0]
-    X, y = next(gen)
-    pseudo_energy_loss(y, y)
-    pass
-
-
 if __name__ == "__main__":
     # test_energy_stuff()
     parser = argparse.ArgumentParser(description="Train and test the model.")
@@ -42,7 +34,10 @@ if __name__ == "__main__":
         "--model", type=str, required=True, help="Model to use for training."
     )
     parser.add_argument(
-        "--model_save_name", type=str, required=True, help="Model to use for training."
+        "--model_save_name",
+        type=str,
+        default="LSTM_model_latest",
+        help="Model to use for training.",
     )
 
     parser.add_argument(
@@ -132,7 +127,7 @@ if __name__ == "__main__":
 
     test_dataset = CustomSequence(
         args.data_dir,
-        range(91, 99),
+        range(91, 100),
         test_mode=True,
     )
 

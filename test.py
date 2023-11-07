@@ -1,3 +1,4 @@
+##
 import numpy as np
 import os
 
@@ -13,3 +14,26 @@ for i in range(0, 100):
     fname = os.path.join(direct, f"X_new_{i}.npy")
     shape = get_npy_shape(fname)
     print("Shape of the npy file:", shape)
+##
+
+
+###
+# def test_energy_stuff():
+#     val_dataset = CustomSequence(".", [0], test_mode=True)
+#     gen = val_dataset[0]
+#     X, y = next(gen)
+#     pseudo_energy_loss(y, y)
+#     pass
+###
+
+
+
+# from Analysis.analyze_reim import do_analysis
+
+# do_analysis(
+#     "/mnt/oneterra/outputs/02-11-2023/",
+#     "/mnt/oneterra/SFG_reIm_version1/",
+#     "LSTM_model_e30_noscheduler_epoch_30",
+#     0,
+#     30
+# )'

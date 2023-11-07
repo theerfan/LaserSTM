@@ -25,10 +25,14 @@ def LSTM_single_pass(
     dataloader: DataLoader,
     optimizer: torch.optim,
     loss_fn: nn.Module,
+    verbose: bool = True,
 ) -> Tuple[float, float]:
     pass_loss = 0
     pass_len = len(dataloader)
-    for X_batch, y_batch in dataloader:
+    for i, (X_batch, y_batch) in enumerate(dataloader):
+        if verbose:
+            print(f"On batch {i} out of {pass_len}")
+
         if optimizer is not None:
             optimizer.zero_grad()
 
@@ -85,8 +89,7 @@ def train(
         optimizer, mode="min", factor=0.1, patience=2, verbose=True
     )
     train_losses = []
-    if val_dataset is not None:
-        val_losses = []
+    val_losses = [] if val_dataset is not None else None
 
     single_pass_fn = custom_single_pass or LSTM_single_pass
 
@@ -113,12 +116,10 @@ def train(
             with torch.no_grad():
                 val_loss, _ = single_pass_fn(model, val_dataloader, None, criterion)
                 val_losses.append(val_loss)
+            # Update the learning rate if we're not improving
+            scheduler.step(val_loss)
         else:
-            # For formatting purposes, but it basically means that it's nan
-            val_loss = -1
-
-        # Update the learning rate if we're not improving
-        scheduler.step(val_loss)
+            pass
 
         # Erfan: Maybe delete the older checkpoints after saving the new one?
         # (So you wouldn't have terabytes of checkpoints just sitting there)
@@ -134,11 +135,14 @@ def train(
                 },
                 checkpoint_path,
             )
+
             # Save these things at checkpoints
             np.save(
                 os.path.join(out_dir, f"{model_save_name}_epoch_{epoch+1}_train_losses.npy"),
                 np.array(train_losses),
             )
+
+            # valuation
             if val_dataset is not None:
                 np.save(
                     os.path.join(
@@ -152,7 +156,9 @@ def train(
             pass
 
         if verbose:
-            log_str = f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}, Val Loss={val_loss:.18f}"
+            log_str = f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}"
+            if val_loss is not None:
+                log_str += f"Val Loss={val_loss:.18f}"
             print(log_str)
             logging.info(log_str)
         else:
@@ -180,7 +186,6 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
     model_save_name: str = "",
-    batch_size: int = 200,
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -201,7 +206,9 @@ def predict(
     else:
         model = model.to(device)
 
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+    # We do this to have the same length for both dataloader and dataset
+    # for "analysis" purposes
+    test_dataloader = DataLoader(test_dataset, batch_size=test_dataset.get_num_samples_per_file())
 
     model.to(device)
     model.eval()
@@ -209,7 +216,9 @@ def predict(
     final_shape = None
     # i = 0
     with torch.no_grad():
-        for j, (X_batch, _) in test_dataloader:
+        for j, (X_batch, _) in enumerate(test_dataloader):
+            if verbose:
+                print(f"On batch {j} out of {len(test_dataloader)}")
             X_batch = X_batch.to(torch.float32)
 
             if final_shape is None:
@@ -252,7 +261,9 @@ def tune_train_lstm(
     test_dataset: CustomSequence,
     verbose: int = 1,
     data_dir: str = ".",
+    batch_size: int = 200,
 ):
+
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
@@ -297,6 +308,7 @@ def tune_train_lstm(
             save_checkpoints=True,
             custom_loss=current_loss,
             epoch_save_interval=epoch_save_interval,
+            batch_size=batch_size
         )
 
         results[combo] = val_losses.flatten().mean()
@@ -349,6 +361,9 @@ def test_train_lstm(
     verbose: int = 1,
     custom_single_pass: Callable = LSTM_single_pass,
     data_dir: str = ".",
+    analysis_file_idx: int = 90,
+    analysis_item_idx: int = 15,
+    batch_size: int = 200,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
 
     trained_model, train_losses, val_losses = train(
@@ -364,6 +379,7 @@ def test_train_lstm(
         custom_loss=custom_loss,
         epoch_save_interval=epoch_save_interval,
         custom_single_pass=custom_single_pass,
+        batch_size=batch_size
     )
 
     last_model_name = f"{model_save_name}_epoch_{num_epochs}"
@@ -379,14 +395,17 @@ def test_train_lstm(
         model_save_name=last_model_name,
     )
 
-    # automatically analyze the results
+    ## automatically analyze the results
+    # adjust the "relative" position of the file, 
+    # since we get the "absolute" index of the file as input
+    testset_starting_point = test_dataset.file_indexes[0]
 
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
         model_save_name=model_save_name + f"_epoch_{num_epochs}",
-        file_idx=90,
-        item_idx=15,
+        file_idx=testset_starting_point - analysis_file_idx,
+        item_idx=analysis_item_idx,
     )
 
     return trained_model, train_losses, val_losses, all_test_preds
