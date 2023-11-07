@@ -62,8 +62,11 @@ def train(
     epoch_save_interval: int = 1,
     custom_single_pass: Callable = None,
     batch_size: int = 200,
+    model_param_path: str = None
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = load_model_params(model, model_param_path, device)
 
     if device == "cpu":
         Warning("GPU not available, using CPU instead.")
@@ -184,6 +187,23 @@ def train(
     return model, train_losses, val_losses
 
 
+def load_model_params(model: nn.Module, model_param_path: str, device: torch.device) -> nn.Module:
+    # Load model parameters if path is provided
+    if model_param_path is not None:
+        params = torch.load(model_param_path, map_location=device)
+        if isinstance(params, dict) and "model_state_dict" in params:
+            params = params["model_state_dict"]
+        try:
+            model.load_state_dict(params)
+        except:
+            model = torch.nn.DataParallel(model)
+            model.load_state_dict(params)
+    else:
+        pass
+
+    return model
+
+
 def predict(
     model: nn.Module,
     model_param_path: str = None,
@@ -195,16 +215,7 @@ def predict(
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load model parameters if path is provided
-    if model_param_path is not None:
-        params = torch.load(model_param_path, map_location=device)
-        if isinstance(params, dict) and "model_state_dict" in params:
-            params = params["model_state_dict"]
-        try:
-            model.load_state_dict(params)
-        except:
-            model = torch.nn.DataParallel(model)
-            model.load_state_dict(params)
+    model = load_model_params(model, model_param_path, device)
 
     if device == "gpu":
         if torch.cuda.device_count() > 1:
@@ -261,6 +272,7 @@ def tune_train_lstm(
     verbose: int = 1,
     data_dir: str = ".",
     batch_size: int = 200,
+    model_param_path: str = None,
 ):
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
@@ -307,6 +319,7 @@ def tune_train_lstm(
             custom_loss=current_loss,
             epoch_save_interval=epoch_save_interval,
             batch_size=batch_size,
+            model_param_path=model_param_path
         )
 
         results[combo] = val_losses.flatten().mean()
@@ -361,6 +374,7 @@ def test_train_lstm(
     analysis_file_idx: int = 90,
     analysis_item_idx: int = 15,
     batch_size: int = 200,
+    model_param_path: str = None,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
@@ -376,9 +390,12 @@ def test_train_lstm(
         epoch_save_interval=epoch_save_interval,
         custom_single_pass=custom_single_pass,
         batch_size=batch_size,
+        model_param_path=model_param_path,
     )
 
     last_model_name = f"{model_save_name}_epoch_{num_epochs}"
+
+    # In predict we use the path of the model that was trained the latest
 
     all_test_preds = predict(
         model,

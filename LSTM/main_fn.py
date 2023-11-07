@@ -57,4 +57,5 @@ def main_lstm(
             batch_size=args.batch_size,
             analysis_file_idx=args.analysis_file,
             analysis_item_idx=args.analysis_example,
+            model_param_path=args.model_param_path
         )

@@ -27,8 +27,7 @@ logging.basicConfig(
 )
 
 
-if __name__ == "__main__":
-    # test_energy_stuff()
+def get_cmd_args():
     parser = argparse.ArgumentParser(description="Train and test the model.")
     parser.add_argument(
         "--model", type=str, required=True, help="Model to use for training."
@@ -93,6 +92,38 @@ if __name__ == "__main__":
         help="Whether to print the progress or not.",
     )
 
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=9_000,
+        help="How large should the batch be to maximize GPU memory util",
+    )
+
+    parser.add_argument(
+        "--analysis_file",
+        type=int,
+        default=90,
+        help="The file to use for final analysis.",
+    )
+
+    parser.add_argument(
+        "--analysis_example",
+        type=int,
+        default=15,
+        help="The example of the file to use for analysis",
+    )
+
+    parser.add_argument(
+        "--model_param_path",
+        type=str,
+        default=None,
+        help="Continue training from this particular file",
+    )
+
+    return parser.parse_args()
+
+
+def get_custom_loss(args):
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
@@ -101,8 +132,6 @@ if __name__ == "__main__":
         "pseudo_energy": pseudo_energy_loss,
         "area_under_curve": area_under_curve_loss,
     }
-
-    args = parser.parse_args()
 
     def custom_loss(y_real, y_pred, shg_weight=None, sfg_weight=None):
         return loss_dict[args.custom_loss](
@@ -117,19 +146,32 @@ if __name__ == "__main__":
     else:
         pass
 
-    # Currently using v2 (reIm) data
+
+def get_datasets(args):
     train_dataset = CustomSequence(
         args.data_dir,
         range(0, 90),
     )
 
-    val_dataset = CustomSequence(args.data_dir, [90], test_mode=True)
+    val_dataset = CustomSequence(args.data_dir, [90])
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 100),
         test_mode=True,
     )
+
+    return train_dataset, val_dataset, test_dataset
+
+
+# Currently using v2 (reIm) data
+if __name__ == "__main__":
+    # Get the args from command line
+    args = get_cmd_args()
+    # Construct the custom loss
+    custom_loss = get_custom_loss()
+    # Construct the datasets
+    train_dataset, val_dataset, test_dataset = get_datasets(args)
 
     if args.model == "LSTM":
         main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss)
