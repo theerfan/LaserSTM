@@ -81,7 +81,7 @@ def get_cmd_args():
     parser.add_argument(
         "--model_param_path",
         type=str,
-        default="model.pth",
+        default=None,
         help="Path to the model parameters.",
     )
 
