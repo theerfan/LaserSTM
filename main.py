@@ -162,7 +162,7 @@ if __name__ == "__main__":
     # Get the args from command line
     args = get_cmd_args()
     # Construct the custom loss
-    custom_loss = get_custom_loss()
+    custom_loss = get_custom_loss(args)
     # Construct the datasets
     train_dataset, val_dataset, test_dataset = get_datasets(args)
 
