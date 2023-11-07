@@ -27,7 +27,7 @@ def main_lstm(
             test_dataset=test_dataset,
             output_dir=args.output_dir,
             output_name="all_preds.npy",
-            verbose=1,
+            verbose=args.verbose,
         )
     else:
         # This assumes that `tune_train` and `train_model` have the same signature
