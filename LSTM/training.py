@@ -219,7 +219,6 @@ def predict(
         for j, (X_batch, _) in enumerate(test_dataloader):
             if verbose:
                 print(f"On batch {j} out of {len(test_dataloader)}")
-            X_batch = X_batch.to(torch.float32)
 
             if final_shape is None:
                 final_shape = X_batch.shape[-1]
