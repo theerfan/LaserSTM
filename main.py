@@ -95,7 +95,7 @@ def get_cmd_args():
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=9_000,
+        default=7_500,
         help="How large should the batch be to maximize GPU memory util",
     )
 
