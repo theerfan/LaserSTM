@@ -26,18 +26,29 @@ data_dir = "/mnt/oneterra/SFG_reIm_version1"
 file_dir = os.path.join(data_dir, "X_new_0.npy")
 
 X = np.load(file_dir)
-
 X_0 = X[0]
-
 shg1, shg2, sfg = re_im_sep(X_0)
+shg1_0, shg2_0, sfg_0 = shg1[0], shg2[0], sfg[0]
 
 time = np.linspace(-500e-15, 500e-15, 128)
+central_freq = 800e-9
 
-central_wavelength = 800e-9
-
-pulse = pypret.Pulse(time, central_wavelength)
-
-pulse.set_field(shg1)
+# create simulation grid
+ft = pypret.FourierTransform(shg1_0.shape[0], dt=5.0e-15)
+# instantiate a pulse object, central wavelength 800 nm
+pulse = pypret.Pulse(ft, central_freq)
+pulse.spectrum = shg1_0
 
 pypret.PulsePlot(pulse)
 plt.savefig("frog1.jpg")
+
+
+# simulate a frog measurement
+delay = np.linspace(-500e-15, 500e-15, 128)  # delay in s
+pnps = pypret.PNPS(pulse, "frog", "shg")
+# calculate the measurement trace
+pnps.calculate(pulse.spectrum, delay)
+original_spectrum = pulse.spectrum
+# and plot it
+pypret.MeshDataPlot(pnps.trace)
+plt.savefig("frog2.jpg")

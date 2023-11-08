@@ -88,9 +88,9 @@ def train(
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.1, patience=2, verbose=True
-    )
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True
+    # )
     train_losses = []
     val_losses = [] if val_dataset is not None else None
 
@@ -122,7 +122,7 @@ def train(
                 )
                 val_losses.append(val_loss)
             # Update the learning rate if we're not improving
-            scheduler.step(val_loss)
+            # scheduler.step(val_loss)
         else:
             pass
 
