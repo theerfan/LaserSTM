@@ -25,7 +25,6 @@ class LSTMModel(nn.Module):
         self.fc2 = nn.Linear(linear_layer_size, linear_layer_size)
         self.fc3 = nn.Linear(linear_layer_size, input_size)
         self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
 
     def forward(self, x: torch.Tensor):
         # hidden state
@@ -41,7 +40,7 @@ class LSTMModel(nn.Module):
         out = self.fc1(out[:, -1, :])
         out = self.relu(out)
         out = self.fc2(out)
-        out = self.tanh(out)
+        out = self.relu(out)
         out = self.fc3(out)
         out = torch.sigmoid(out)
 

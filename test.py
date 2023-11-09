@@ -28,12 +28,13 @@
 
 
 
-# from Analysis.analyze_reim import do_analysis
+from Analysis.analyze_reim import do_analysis
 
-# do_analysis(
-#     "/mnt/oneterra/outputs/06-11-2023/",
-#     "/mnt/oneterra/SFG_reIm_version1/",
-#     "LSTM_model_latest",
-#     0,
-#     15
-# )
+
+do_analysis(
+    "/mnt/oneterra/outputs/07-11-2023/",
+    "/mnt/oneterra/SFG_reIm_version1/",
+    "LSTM_more_nonlinear_epoch_10",
+    3,
+    45
+)
