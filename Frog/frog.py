@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pypret
 import matplotlib.pyplot as plt
+from scipy.constants import c
 
 # `:,` is there because we want to keep the batch dimension
 def re_im_sep(fields: np.array, detach=False):
@@ -31,10 +32,12 @@ shg1, shg2, sfg = re_im_sep(X_0)
 shg1_0, shg2_0, sfg_0 = shg1[0], shg2[0], sfg[0]
 
 time = np.linspace(-500e-15, 500e-15, 128)
-central_freq = 800e-9
+central_freq = 1025e-9 / 2
+w_0 = 2 * np.pi * (central_freq / 2) / c
+dt = time[1] - time[0]
 
 # create simulation grid
-ft = pypret.FourierTransform(shg1_0.shape[0], dt=5.0e-15)
+ft = pypret.FourierTransform(shg1_0.shape[0], dt=dt, w0=w_0)
 # instantiate a pulse object, central wavelength 800 nm
 pulse = pypret.Pulse(ft, central_freq)
 pulse.spectrum = shg1_0
