@@ -5,6 +5,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: FNO",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--model",
+        "FNO",
+        "--data_dir",
+        "/mnt/oneterra/SFG_reIm_version1/",
+        "--custom_loss",
+        "weighted_MSE",
+        "--output_dir",
+        "/mnt/oneterra/outputs/08-11-2023",
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

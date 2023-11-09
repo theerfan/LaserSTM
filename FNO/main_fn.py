@@ -2,15 +2,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 from neuralop import H1Loss, LpLoss
-from neuralop.models import FNO
 from neuralop import Trainer
 from LSTM.utils import CustomSequence
-from LSTM.training import train
+from LSTM.training import train, predict
+from FNO.model import FNO_wrapper
+from Analysis.analyze_reim import do_analysis
 from typing import Tuple
-import logging  
+import logging
+import os
 
 
-def main_NFO(
+def main_FNO(
     args: dict,
     train_dataset: CustomSequence,
     val_dataset: CustomSequence,
@@ -24,26 +26,63 @@ def main_NFO(
 
     # Iniiate FNO model with explicit parameters
     # n_modes: tuple of ints, number of modes in each dimension (if 1d data, then (n_modes,) is going to work)
-    model = FNO(n_modes=(16,), hidden_channels=64, in_channels=10, out_channels=10)
+    model = FNO_wrapper(
+        n_modes=(16,), hidden_channels=64, in_channels=10, out_channels=10
+    )
     model = model.to(device)
 
     # Loss function
     custom_loss = custom_loss or H1Loss()
 
+    model_save_name = args.model_save_name
+    num_epochs = args.num_epochs
+    output_dir = args.output_dir
+
     trained_model, train_losses, val_losses = train(
         model,
         train_dataset,
-        num_epochs=args.num_epochs,
+        num_epochs=num_epochs,
         val_dataset=val_dataset,
         data_parallel=True,
-        out_dir=args.output_dir,
-        model_save_name="NFO_model",
+        out_dir=output_dir,
+        model_save_name=model_save_name,
         verbose=args.verbose,
         save_checkpoints=True,
         custom_loss=custom_loss,
         epoch_save_interval=args.epoch_save_interval,
-        custom_single_pass=NFO_single_pass,
+        batch_size=args.batch_size,
+        model_param_path=args.model_param_path,
     )
+
+    last_model_name = f"{model_save_name}_epoch_{num_epochs}"
+
+    # In predict we use the path of the model that was trained the latest
+
+    all_test_preds = predict(
+        model,
+        model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
+        test_dataset=test_dataset,
+        output_dir=output_dir,
+        output_name="all_preds.npy",
+        verbose=args.verbose,
+        model_save_name=last_model_name,
+        batch_size=args.batch_size,
+    )
+
+    ## automatically analyze the results
+    # adjust the "relative" position of the file,``
+    # since we get the "absolute" index of the file as input
+    testset_starting_point = test_dataset.file_indexes[0]
+
+    do_analysis(
+        output_dir=output_dir,
+        data_directory=args.data_dir,
+        model_save_name=model_save_name + f"_epoch_{num_epochs}",
+        file_idx=testset_starting_point - args.analysis_file,
+        item_idx=args.analysis_example,
+    )
+
+    return trained_model, train_losses, val_losses, all_test_preds
 
 
 # Returns the normalized loss and the last loss
@@ -85,5 +124,5 @@ def NFO_single_pass(
 
             pass_len += X.size(0)
             pass_loss += loss.item() * X.size(0)
-        
+
     return pass_loss / pass_len, loss

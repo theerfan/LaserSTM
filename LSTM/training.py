@@ -212,6 +212,7 @@ def predict(
     output_name: str = "all_preds.npy",
     verbose: bool = True,
     model_save_name: str = "",
+    batch_size: int = None,
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -225,17 +226,20 @@ def predict(
 
     # We do this to have the same length for both dataloader and dataset
     # for "analysis" purposes
+    batch_size = batch_size or test_dataset.get_num_samples_per_file()
     test_dataloader = DataLoader(
-        test_dataset, batch_size=test_dataset.get_num_samples_per_file()
+        test_dataset, batch_size=batch_size
     )
 
     model.to(device)
     model.eval()
+    current_preds = []
     all_preds = []
     final_shape = None
 
     with torch.no_grad():
         for j, (X_batch, _) in enumerate(test_dataloader):
+            X_batch = X_batch.to(device)
             if verbose:
                 print(f"On batch {j} out of {len(test_dataloader)}")
 
@@ -250,8 +254,14 @@ def predict(
                 X_batch = torch.cat(
                     (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
                 )
+            
+            current_preds.append(pred.squeeze().cpu().numpy())
 
-            all_preds.append(pred.squeeze().cpu().numpy())
+            # If we've processed all samples in one file, concatenate the predictions
+            # into one array for that file and add it to the list of all predictions
+            if current_preds[0].shape[0] == test_dataset.get_num_samples_per_file():
+                all_preds.append(np.concatenate(current_preds, axis=0))
+                current_preds = []
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = np.array(all_preds)

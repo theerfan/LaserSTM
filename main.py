@@ -16,7 +16,7 @@ from LSTM.utils import (
 from LSTM.main_fn import main_lstm
 from GAN.main_fn import main_gan
 from Transformer.main_fn import main_transformer
-from FNO.main_fn import main_NFO
+from FNO.main_fn import main_FNO
 
 from Transformer.model import TransformerModel
 
@@ -151,7 +151,8 @@ def get_datasets(args):
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 100),
-        test_mode=True,
+        load_in_gpu=False,
+        # test_mode=True,
     )
 
     return train_dataset, val_dataset, test_dataset
@@ -172,7 +173,7 @@ if __name__ == "__main__":
         main_transformer(args, train_dataset, val_dataset, test_dataset, custom_loss)
     elif args.model == "GAN":
         main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss)
-    elif args.model == "NFO":
-        main_NFO(args, train_dataset, val_dataset, test_dataset, custom_loss)
+    elif args.model == "FNO":
+        main_FNO(args, train_dataset, val_dataset, test_dataset, custom_loss)
     else:
         raise ValueError("Model not supported.")

@@ -33,6 +33,7 @@ class CustomSequence(data.Dataset):
         train_prefix: str = "X_new",
         val_prefix: str = "y_new",
         crystal_length: int = 100,
+        load_in_gpu: bool = True,
     ):
         self.Xnames = add_prefix(file_indexes, train_prefix)
         self.ynames = add_prefix(file_indexes, val_prefix)
@@ -43,6 +44,7 @@ class CustomSequence(data.Dataset):
         self.current_file_idx = None
         self.current_data = None
         self.current_labels = None
+        self.load_in_gpu = load_in_gpu
 
     # NOTE: We always assume that we have 10000 examples per file.
     def get_num_samples_per_file(self):
@@ -87,11 +89,14 @@ class CustomSequence(data.Dataset):
             data = data[:: self.crystal_length]
             labels = labels[self.crystal_length - 1::][:: self.crystal_length]
 
-        # Each file is about 3 GB, just move directly into GPU memory
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        data_tensor = torch.tensor(data, dtype=torch.float32)
+        labels_tensor = torch.tensor(labels, dtype=torch.float32)
 
-        data_tensor = torch.tensor(data, dtype=torch.float32).to(device)
-        labels_tensor = torch.tensor(labels, dtype=torch.float32).to(device)
+        if self.load_in_gpu:
+            # Each file is about 3 GB, just move directly into GPU memory
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            data_tensor = data_tensor.to(device)
+            labels_tensor = labels_tensor.to(device)
 
         return data_tensor, labels_tensor
 
