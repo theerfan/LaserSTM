@@ -31,43 +31,58 @@ def main_FNO(
     )
     model = model.to(device)
 
-    # Loss function
-    custom_loss = custom_loss or H1Loss()
+    if args.do_prediction == 1:
+        log_str = f"Prediction only mode for model {args.model}"
+        print(log_str)
+        logging.info(log_str)
+        predict(
+            model,
+            model_param_path=args.model_param_path,
+            test_dataset=test_dataset,
+            output_dir=args.output_dir,
+            output_name="all_preds.npy",
+            verbose=args.verbose,
+            model_save_name=args.model_save_name,
+            batch_size=args.batch_size,
+        )
+    else:
+        # Loss function
+        custom_loss = custom_loss or H1Loss()
 
-    model_save_name = args.model_save_name
-    num_epochs = args.num_epochs
-    output_dir = args.output_dir
+        model_save_name = args.model_save_name
+        num_epochs = args.num_epochs
+        output_dir = args.output_dir
 
-    trained_model, train_losses, val_losses = train(
-        model,
-        train_dataset,
-        num_epochs=num_epochs,
-        val_dataset=val_dataset,
-        data_parallel=True,
-        out_dir=output_dir,
-        model_save_name=model_save_name,
-        verbose=args.verbose,
-        save_checkpoints=True,
-        custom_loss=custom_loss,
-        epoch_save_interval=args.epoch_save_interval,
-        batch_size=args.batch_size,
-        model_param_path=args.model_param_path,
-    )
+        trained_model, train_losses, val_losses = train(
+            model,
+            train_dataset,
+            num_epochs=num_epochs,
+            val_dataset=val_dataset,
+            data_parallel=True,
+            out_dir=output_dir,
+            model_save_name=model_save_name,
+            verbose=args.verbose,
+            save_checkpoints=True,
+            custom_loss=custom_loss,
+            epoch_save_interval=args.epoch_save_interval,
+            batch_size=args.batch_size,
+            model_param_path=args.model_param_path,
+        )
 
-    last_model_name = f"{model_save_name}_epoch_{num_epochs}"
+        last_model_name = f"{model_save_name}_epoch_{num_epochs}"
 
-    # In predict we use the path of the model that was trained the latest
+        # In predict we use the path of the model that was trained the latest
 
-    all_test_preds = predict(
-        model,
-        model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
-        test_dataset=test_dataset,
-        output_dir=output_dir,
-        output_name="all_preds.npy",
-        verbose=args.verbose,
-        model_save_name=last_model_name,
-        batch_size=args.batch_size,
-    )
+        all_test_preds = predict(
+            model,
+            model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
+            test_dataset=test_dataset,
+            output_dir=output_dir,
+            output_name="all_preds.npy",
+            verbose=args.verbose,
+            model_save_name=last_model_name,
+            batch_size=args.batch_size,
+        )
 
     ## automatically analyze the results
     # adjust the "relative" position of the file,``
