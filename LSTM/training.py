@@ -259,7 +259,7 @@ def predict(
 
             # If we've processed all samples in one file, concatenate the predictions
             # into one array for that file and add it to the list of all predictions
-            if current_preds[0].shape[0] == test_dataset.get_num_samples_per_file():
+            if len(current_preds) == test_dataset.get_num_samples_per_file():
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []
 

@@ -31,7 +31,12 @@ def main_FNO(
     )
     model = model.to(device)
 
+    # adjust the "relative" position of the file,``
+    # since we get the "absolute" index of the file as input
+    testset_starting_point = test_dataset.file_indexes[0]
+
     if args.do_prediction == 1:
+        pass
         log_str = f"Prediction only mode for model {args.model}"
         print(log_str)
         logging.info(log_str)
@@ -44,6 +49,13 @@ def main_FNO(
             verbose=args.verbose,
             model_save_name=args.model_save_name,
             batch_size=args.batch_size,
+        )
+        do_analysis(
+            output_dir=args.output_dir,
+            data_directory=args.data_dir,
+            model_save_name=args.model_save_name,
+            file_idx=testset_starting_point - args.analysis_file,
+            item_idx=args.analysis_example,
         )
     else:
         # Loss function
@@ -84,18 +96,14 @@ def main_FNO(
             batch_size=args.batch_size,
         )
 
-    ## automatically analyze the results
-    # adjust the "relative" position of the file,``
-    # since we get the "absolute" index of the file as input
-    testset_starting_point = test_dataset.file_indexes[0]
-
-    do_analysis(
-        output_dir=output_dir,
-        data_directory=args.data_dir,
-        model_save_name=model_save_name + f"_epoch_{num_epochs}",
-        file_idx=testset_starting_point - args.analysis_file,
-        item_idx=args.analysis_example,
-    )
+        ## automatically analyze the results
+        do_analysis(
+            output_dir=args.output_dir,
+            data_directory=args.data_dir,
+            model_save_name=args.model_save_name + f"_epoch_{args.num_epochs}",
+            file_idx=testset_starting_point - args.analysis_file,
+            item_idx=args.analysis_example,
+        )
 
     return trained_model, train_losses, val_losses, all_test_preds
 
