@@ -259,6 +259,7 @@ def predict(
 
             # If we've processed all samples in one file, concatenate the predictions
             # into one array for that file and add it to the list of all predictions
+            # NOTE: This only works properly if #samples_per_file is divisible by batch_size
             if len(current_preds) * batch_size == test_dataset.get_num_samples_per_file():
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []
