@@ -23,6 +23,28 @@
       ]
     },
     {
+      "name": "Python: FNO - Prediction",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--model",
+        "FNO",
+        "--data_dir",
+        "/mnt/oneterra/SFG_reIm_version1/",
+        "--output_dir",
+        "/mnt/oneterra/outputs/06-11-2023",
+        "--do_prediction",
+        "1",
+        "--model_param_path",
+        "/mnt/oneterra/outputs/08-11-2023/FNO_att1_epoch_10.pth",
+        "--batch_size",
+        "128"
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
