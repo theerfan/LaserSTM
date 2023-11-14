@@ -1,8 +1,7 @@
 from argparse import Namespace
 from functools import partial
 from typing import Callable
-from Utilz.data import (
-    CustomSequence,
+from Utilz.losses import (
     pearson_corr,
     weighted_MSE,
     pseudo_energy_loss,
@@ -10,6 +9,7 @@ from Utilz.data import (
     wrapped_MSE,
     wrapped_BCE,
 )
+from Utilz.data import CustomSequence
 
 
 def get_custom_loss(args: Namespace) -> Callable:
