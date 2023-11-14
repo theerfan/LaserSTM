@@ -5,7 +5,7 @@ import numpy as np
 
 from GAN.model import Generator, Discriminator
 
-from LSTM.training import CustomSequence
+from Utilz.training import CustomSequence
 
 import os
 

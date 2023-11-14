@@ -11,7 +11,8 @@ from Utilz.data import (
     wrapped_BCE,
 )
 
-def get_custom_loss(args) -> Callable:
+
+def get_custom_loss(args: Namespace) -> Callable:
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
@@ -37,19 +38,28 @@ def get_custom_loss(args) -> Callable:
     return custom_loss
 
 
-def get_datasets(args):
+def get_datasets(
+    args: Namespace,
+    train_test_mode: bool = False,
+    val_test_mode: bool = False,
+    test_test_mode: bool = True,
+):
     train_dataset = CustomSequence(
         args.data_dir,
         range(0, 90),
+        test_mode=train_test_mode,
+        crystal_length=args.crystal_length,
     )
 
-    val_dataset = CustomSequence(args.data_dir, [90])
+    val_dataset = CustomSequence(
+        args.data_dir, [90], test_mode=val_test_mode, crystal_length=args.crystal_length
+    )
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 100),
-        load_in_gpu=False,
-        # test_mode=True,
+        test_mode=test_test_mode,
+        crystal_length=args.crystal_length,
     )
 
     return train_dataset, val_dataset, test_dataset

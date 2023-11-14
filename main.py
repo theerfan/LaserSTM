@@ -2,27 +2,11 @@ import logging
 
 import argparse
 
-
-from Utilz.data import (
-    CustomSequence,
-    pearson_corr,
-    weighted_MSE,
-    pseudo_energy_loss,
-    area_under_curve_loss,
-    wrapped_MSE,
-    wrapped_BCE,
-)
-
 from LSTM.main_fn import main_lstm
 from GAN.main_fn import main_gan
 from Transformer.main_fn import main_transformer
 from FNO.main_fn import main_FNO
 
-from Transformer.model import TransformerModel
-
-from functools import partial
-
-from typing import Callable
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
@@ -132,24 +116,18 @@ def get_cmd_args():
     return parser.parse_args()
 
 
-
-
 # Currently using v2 (reIm) data
 if __name__ == "__main__":
     # Get the args from command line
     args = get_cmd_args()
-    # Construct the custom loss
-    custom_loss = get_custom_loss(args)
-    # Construct the datasets
-    train_dataset, val_dataset, test_dataset = get_datasets(args)
 
     if args.model == "LSTM":
-        main_lstm(args, train_dataset, val_dataset, test_dataset, custom_loss)
+        main_lstm(args)
     elif args.model == "Transformer":
-        main_transformer(args, train_dataset, val_dataset, test_dataset, custom_loss)
+        main_transformer(args)
     elif args.model == "GAN":
-        main_gan(args, train_dataset, val_dataset, test_dataset, custom_loss)
+        main_gan(args)
     elif args.model == "FNO":
-        main_FNO(args, train_dataset, val_dataset, test_dataset, custom_loss)
+        main_FNO(args)
     else:
         raise ValueError("Model not supported.")
