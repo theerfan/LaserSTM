@@ -227,6 +227,11 @@ def predict(
     # We do this to have the same length for both dataloader and dataset
     # for "analysis" purposes
     batch_size = batch_size or test_dataset.get_num_samples_per_file()
+    # If #samples_per_file is not divisible by batch_size, find the nearest smaller batch size that is
+    while test_dataset.get_num_samples_per_file() % batch_size != 0:
+        batch_size -= 1
+    print(f"To confirm - Batch size: {batch_size}")
+    
     test_dataloader = DataLoader(
         test_dataset, batch_size=batch_size
     )
@@ -257,9 +262,6 @@ def predict(
             
             current_preds.append(pred.squeeze().cpu().numpy())
 
-            # If we've processed all samples in one file, concatenate the predictions
-            # into one array for that file and add it to the list of all predictions
-            # NOTE: This only works properly if #samples_per_file is divisible by batch_size
             if len(current_preds) * batch_size == test_dataset.get_num_samples_per_file():
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []

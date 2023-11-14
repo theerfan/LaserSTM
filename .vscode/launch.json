@@ -35,7 +35,7 @@
         "--data_dir",
         "/mnt/oneterra/SFG_reIm_version1/",
         "--output_dir",
-        "/mnt/oneterra/outputs/06-11-2023",
+        "/mnt/oneterra/outputs/08-11-2023",
         "--do_prediction",
         "1",
         "--model_param_path",
