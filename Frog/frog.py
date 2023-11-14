@@ -31,10 +31,12 @@ X_0 = X[0]
 shg1, shg2, sfg = re_im_sep(X_0)
 shg1_0, shg2_0, sfg_0 = shg1[0], shg2[0], sfg[0]
 
-time = np.linspace(-500e-15, 500e-15, 128)
+sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
+sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
+dt = sfg_original_time[1] - sfg_original_time[0]
+
 central_freq = 1025e-9 / 2
 w_0 = 2 * np.pi * (central_freq / 2) / c
-dt = time[1] - time[0]
 
 # create simulation grid
 ft = pypret.FourierTransform(shg1_0.shape[0], dt=dt, w0=w_0)
