@@ -1,6 +1,6 @@
 from typing import Callable
 from GAN.training import gan_train
-from LSTM.utils import CustomSequence
+from Utilz.data import CustomSequence
 
 
 def main_gan(

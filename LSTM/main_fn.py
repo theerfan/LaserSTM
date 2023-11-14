@@ -4,17 +4,13 @@ from LSTM.training import (
     test_train_lstm,
     tune_train_lstm,
 )
-from LSTM.utils import CustomSequence
+from Utilz.data import CustomSequence
 from typing import Callable
 import logging
 
 
 def main_lstm(
     args: dict,
-    train_dataset: CustomSequence,
-    val_dataset: CustomSequence,
-    test_dataset: CustomSequence,
-    custom_loss: Callable,
 ):
     model = LSTMModel(input_size=8264, lstm_hidden_size=2048)
     if args.do_prediction == 1:

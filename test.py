@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 direct = "/mnt/oneterra/SFG_reIm_version1_reduced/"
+direct = "/mnt/oneterra/SFG_reIm_version1"
 
 def get_npy_shape(npy_file_path):
     with open(npy_file_path, 'rb') as f:
@@ -11,7 +12,7 @@ def get_npy_shape(npy_file_path):
         return shape
 
 for i in range(0, 10):
-    fname = os.path.join(direct, f"X_new_{i}.npy")
+    fname = os.path.join(direct, f"y_new_{i}.npy")
     shape = get_npy_shape(fname)
     print("Shape of the npy file:", shape)
 #

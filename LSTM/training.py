@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from LSTM.utils import CustomSequence
+from Utilz.data import CustomSequence
 from torch.utils.data import DataLoader
 
 from Analysis.analyze_reim import do_analysis

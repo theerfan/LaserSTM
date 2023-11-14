@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from neuralop import H1Loss, LpLoss
 from neuralop import Trainer
-from LSTM.utils import CustomSequence
+from Utilz.data import CustomSequence
 from LSTM.training import train, predict
 from FNO.model import FNO_wrapper
 from Analysis.analyze_reim import do_analysis

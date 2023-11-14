@@ -1,7 +1,7 @@
 # TODO: Implement main function for transformer model
 
 from Transformer.model import TransformerModel
-from LSTM.utils import CustomSequence
+from Utilz.data import CustomSequence
 from typing import Callable
 import logging
 
