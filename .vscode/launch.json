@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: FNO",
+      "name": "FNO - Training",
       "type": "python",
       "request": "launch",
       "program": "${file}",
@@ -23,7 +23,7 @@
       ]
     },
     {
-      "name": "Python: FNO - Prediction",
+      "name": "FNO - Prediction",
       "type": "python",
       "request": "launch",
       "program": "${file}",
@@ -53,7 +53,7 @@
       "justMyCode": true
     },
     {
-      "name": "Python: Fine-Tuning",
+      "name": "LSTM - Fine-tuning",
       "type": "python",
       "request": "launch",
       "program": "${file}",
@@ -73,7 +73,7 @@
       ]
     },
     {
-      "name": "Python: Training",
+      "name": "LSTM - Training",
       "type": "python",
       "request": "launch",
       "program": "${file}",
@@ -87,13 +87,13 @@
         "--custom_loss",
         "weighted_MSE",
         "--output_dir",
-        "/mnt/oneterra/outputs/06-11-2023",
+        "/mnt/oneterra/outputs/14-11-2023",
         "--num_epochs",
         "10",
       ]
     },
     {
-      "name": "Python: Prediction",
+      "name": "LSTM - Prediction",
       "type": "python",
       "request": "launch",
       "program": "${file}",

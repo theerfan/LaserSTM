@@ -22,6 +22,8 @@ from Transformer.model import TransformerModel
 
 from functools import partial
 
+from typing import Callable
+
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
@@ -113,10 +115,17 @@ def get_cmd_args():
         help="The example of the file to use for analysis",
     )
 
+    parser.add_argument(
+        "--crystal_length",
+        type=int,
+        default=100,
+        help="The assumed length for our crystal",
+    )
+
     return parser.parse_args()
 
 
-def get_custom_loss(args):
+def get_custom_loss(args) -> Callable:
     loss_dict = {
         "weighted_MSE": weighted_MSE,
         "pearson_corr": pearson_corr,
@@ -138,6 +147,8 @@ def get_custom_loss(args):
         )
     else:
         pass
+
+    return custom_loss
 
 
 def get_datasets(args):

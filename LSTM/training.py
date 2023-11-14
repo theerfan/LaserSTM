@@ -263,6 +263,7 @@ def predict(
             current_preds.append(pred.squeeze().cpu().numpy())
 
             if len(current_preds) * batch_size == test_dataset.get_num_samples_per_file():
+                print("adding something to all_preds!!")
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []
 

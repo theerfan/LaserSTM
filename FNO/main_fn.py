@@ -105,7 +105,7 @@ def main_FNO(
             item_idx=args.analysis_example,
         )
 
-    return trained_model, train_losses, val_losses, all_test_preds
+    return model, train_losses, val_losses, all_test_preds
 
 
 # Returns the normalized loss and the last loss
