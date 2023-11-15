@@ -26,7 +26,9 @@ class LSTMModel(nn.Module):
         self.fc3 = nn.Linear(linear_layer_size, input_size)
         self.relu = nn.ReLU()
 
-    def forward(self, x: torch.Tensor, h_0: torch.Tensor, c_0: torch.Tensor):
+    def forward(
+        self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
+    ):
         # hidden state
         if h_0 is None:
             h_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
