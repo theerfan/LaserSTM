@@ -12,6 +12,8 @@ from Analysis.analyze_reim import do_analysis
 
 import logging
 
+import time
+
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
@@ -192,6 +194,8 @@ def load_model_params(
     # Load model parameters if path is provided
     if model_param_path is not None:
         params = torch.load(model_param_path, map_location=device)
+        # remove the 'module.' prefix from the keys
+        params = {k.replace("module.", ""): v for k, v in params.items()}
         if isinstance(params, dict) and "model_state_dict" in params:
             params = params["model_state_dict"]
         try:
@@ -243,6 +247,8 @@ def predict(
     all_preds = []
     final_shape = None
 
+    start_time = time.time()
+
     with torch.no_grad():
         for j, (X_batch, _) in enumerate(test_dataloader):
             X_batch = X_batch.to(device)
@@ -273,6 +279,11 @@ def predict(
                 print("adding something to all_preds!!")
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []
+    
+    end_time = time.time()
+
+    # print elapsed time in seconds
+    print(f"Elapsed time: {end_time - start_time} seconds")
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = np.array(all_preds)

@@ -113,6 +113,20 @@ def get_cmd_args():
         help="Are we modeling a slice of the crystal or the whole crystal?",
     )
 
+    parser.add_argument(
+        "--lstm_hidden_size",
+        type=int,
+        default=1024,
+        help="Hidden size of the LSTM model",
+    )
+
+    parser.add_argument(
+        "--lstm_num_layers",
+        type=int,
+        default=1,
+        help="Number of layers of the LSTM model",
+    )
+
     return parser.parse_args()
 
 
