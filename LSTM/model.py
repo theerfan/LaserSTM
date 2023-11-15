@@ -26,15 +26,17 @@ class LSTMModel(nn.Module):
         self.fc3 = nn.Linear(linear_layer_size, input_size)
         self.relu = nn.ReLU()
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, h_0: torch.Tensor, c_0: torch.Tensor):
         # hidden state
-        h_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
-            x.device
-        )  # Modified line
+        if h_0 is None:
+            h_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
+                x.device
+            )
         # cell state
-        c_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
-            x.device
-        )  # Modified line
+        if c_0 is None:
+            c_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
+                x.device
+            )
 
         out, (hn, cn) = self.lstm(x, (h_0, c_0))
         out = self.fc1(out[:, -1, :])
