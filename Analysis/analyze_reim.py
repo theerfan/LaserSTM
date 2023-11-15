@@ -118,6 +118,7 @@ def do_analysis(
     file_idx: int,  # on which file to do analysis
     item_idx: int,  # which example of the file to do analysis
     fig_save_dir: str = None,  # where to save the figures
+    crystal_length: int = 100,  # length of the crystal
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -173,7 +174,7 @@ def do_analysis(
     ###
 
     # Get the transformed value of the real item in the dataset
-    y_true_trans = y_true[99:][::100][item_idx]
+    y_true_trans = y_true[crystal_length - 1:][::crystal_length][item_idx]
 
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_sep(y_pred_trans)
     y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_sep(y_true_trans)
