@@ -312,11 +312,16 @@ def tune_and_train(
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
     # Generate all combinations where the sum of the hyperparameters equals 1
+    # combinations = [
+    #     (np.round(shg, 3), np.around(sfg, 3))
+    #     for shg in possible_values
+    #     for sfg in possible_values
+    #     if np.isclose(shg + sfg, 1.0)
+    # ]
+
     combinations = [
-        (np.round(shg, 3), np.around(sfg, 3))
-        for shg in possible_values
-        for sfg in possible_values
-        if np.isclose(shg + sfg, 1.0)
+        (0.3, 0.7),
+        (0.5, 0.5),
     ]
 
     results = {}
@@ -327,7 +332,7 @@ def tune_and_train(
         if verbose:
             print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
 
-        model_save_name = f"{model_save_name}_{shg_weight}_{sfg_weight}"
+        model_save_name = f"{model_save_name}_shg_{shg_weight}_sfg_{sfg_weight}"
 
         def current_loss(y_pred, y_real):
             return custom_loss(
