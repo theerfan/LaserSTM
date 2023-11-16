@@ -220,10 +220,12 @@ def predict(
     batch_size: int = None,
     is_slice: bool = True,
     crystal_length: int = 100,
+    load_model: bool = True,
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = load_model_params(model, model_param_path, device)
+    if load_model:
+        model = load_model_params(model, model_param_path, device)
 
     if device == "gpu":
         if torch.cuda.device_count() > 1:
@@ -378,6 +380,7 @@ def tune_and_train(
             model_save_name=model_save_name + f"_epoch_{num_epochs}",
             is_slice=is_slice,
             crystal_length=crystal_length,
+            load_model=False,
         )
 
     # Find the best hyperparameters based on test loss
@@ -470,6 +473,7 @@ def train_and_test(
         crystal_length=crystal_length,
         is_slice=is_slice,
         # If it's a slice, it will need smaller batch size
+        load_model=False,
     )
 
     ## automatically analyze the results
