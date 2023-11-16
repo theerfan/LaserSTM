@@ -21,9 +21,10 @@ class LSTMModel(nn.Module):
             dropout=0,
             num_layers=num_layers,
         )
-        self.fc1 = nn.Linear(lstm_hidden_size, linear_layer_size)
-        self.fc2 = nn.Linear(linear_layer_size, linear_layer_size)
-        self.fc3 = nn.Linear(linear_layer_size, input_size)
+        # self.fc1 = nn.Linear(lstm_hidden_size, linear_layer_size)
+        # self.fc2 = nn.Linear(linear_layer_size, linear_layer_size)
+        # self.fc3 = nn.Linear(linear_layer_size, input_size)
+        self.fc1 = nn.Linear(lstm_hidden_size, input_size)
         self.relu = nn.ReLU()
 
     def forward(
@@ -43,9 +44,9 @@ class LSTMModel(nn.Module):
         out, (hn, cn) = self.lstm(x, (h_0, c_0))
         out = self.fc1(out[:, -1, :])
         out = self.relu(out)
-        out = self.fc2(out)
-        out = self.relu(out)
-        out = self.fc3(out)
-        out = torch.sigmoid(out)
+        # out = self.fc2(out)
+        # out = self.relu(out)
+        # out = self.fc3(out)
+        # out = torch.re(out)
 
         return out

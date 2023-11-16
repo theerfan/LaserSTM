@@ -302,7 +302,10 @@ def tune_and_train(
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
     verbose: int = 1,
+    custom_single_pass: Callable = default_single_pass,
     data_dir: str = ".",
+    analysis_file_idx: int = 90,
+    analysis_item_idx: int = 15,
     batch_size: int = 200,
     model_param_path: str = None,
     crystal_length: int = 100,
@@ -373,10 +376,15 @@ def tune_and_train(
             output_name="all_preds.npy",
             verbose=verbose,
             model_save_name=model_save_name + f"_epoch_{num_epochs}",
+            is_slice=is_slice,
+            crystal_length=crystal_length,
         )
 
     # Find the best hyperparameters based on test loss
     best_hyperparameters = min(results, key=results.get)
+
+    # find best model's save name from the best hyperparameters
+    model_save_name = f"{model_save_name}_shg_{best_hyperparameters[0]}_sfg_{best_hyperparameters[1]}"
 
     log_str = f"Best hyperparameters: {best_hyperparameters}"
     print(log_str)
@@ -389,6 +397,19 @@ def tune_and_train(
     log_str = f"Results: {results}"
     print(log_str)
     logging.info(log_str)
+
+    ## do analysis on the best hyperparameters
+    # adjust the "relative" position of the file,
+    # since we get the "absolute" index of the file as input
+    testset_starting_point = test_dataset.file_indexes[0]
+
+    do_analysis(
+        output_dir=output_dir,
+        data_directory=data_dir,
+        model_save_name=model_save_name + f"_epoch_{num_epochs}",
+        file_idx=testset_starting_point - analysis_file_idx,
+        item_idx=analysis_item_idx,
+    )
 
     return best_hyperparameters, results
 
