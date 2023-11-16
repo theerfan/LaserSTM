@@ -9,6 +9,7 @@ class LSTMModel(nn.Module):
         lstm_hidden_size: int = 1024,
         linear_layer_size: int = 4096,
         num_layers: int = 1,
+        **kwargs
     ):
         super().__init__()
         self.input_size = input_size

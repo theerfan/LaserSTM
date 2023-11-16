@@ -23,10 +23,18 @@ def main_FNO(
             args, False, False, True
         )
     
+    model_dict = {
+        "n_modes": (16,),
+        "hidden_channels": model.hidden_channels,
+        "in_channels": model.in_channels,
+        "out_channels": model.out_channels,
+    }
+    
     main_function(
         args,
         model,
         train_dataset,
         val_dataset,
         test_dataset,
+        model_dict=model_dict,
     )

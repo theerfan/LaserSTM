@@ -6,10 +6,16 @@ from Utilz.main_fn import main_function
 def main_lstm(
     args: dict,
 ):
+
+    model_dict = {
+        "input_size": 8264,
+        "lstm_hidden_size": args.lstm_hidden_size,
+        "linear_layer_size": args.linear_layer_size,
+        "num_layers": args.lstm_num_layers,
+    }
+
     model = LSTMModel(
-        input_size=8264,
-        lstm_hidden_size=args.lstm_hidden_size,
-        num_layers=args.lstm_num_layers,
+        **model_dict,
     )
     train_dataset, val_dataset, test_dataset = get_datasets(args)
 
@@ -19,4 +25,5 @@ def main_lstm(
         train_dataset,
         val_dataset,
         test_dataset,
+        model_dict=model_dict,
     )

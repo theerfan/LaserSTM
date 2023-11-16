@@ -1,23 +1,25 @@
-from LSTM.model import LSTMModel
 from Utilz.training import (
     predict,
     train_and_test,
     tune_and_train,
 )
-from Utilz.loads import get_datasets, get_custom_loss
+from Utilz.loads import get_custom_loss
 from Utilz.data import (
     CustomSequence,
 )
 import logging
 import torch.nn as nn
 
+from argparse import Namespace
+
 
 def main_function(
-    args: dict,
+    args: Namespace,
     model: nn.Module,
     train_dataset: CustomSequence,
     val_dataset: CustomSequence,
     test_dataset: CustomSequence,
+    model_dict: dict = None,
 ):
     custom_loss = get_custom_loss(args)
 
@@ -30,7 +32,7 @@ def main_function(
             model_param_path=args.model_param_path,
             test_dataset=test_dataset,
             output_dir=args.output_dir,
-            output_name="all_preds.npy",
+            output_name=args.model_save_name + "_all_preds.npy",
             verbose=args.verbose,
         )
     else:
@@ -62,4 +64,5 @@ def main_function(
             analysis_file_idx=args.analysis_file,
             analysis_item_idx=args.analysis_example,
             model_param_path=args.model_param_path,
+            model_dict=model_dict,
         )

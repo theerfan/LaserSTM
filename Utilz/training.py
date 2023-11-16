@@ -13,6 +13,7 @@ from Analysis.analyze_reim import do_analysis
 import logging
 
 import time
+import copy
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
@@ -312,7 +313,9 @@ def tune_and_train(
     model_param_path: str = None,
     crystal_length: int = 100,
     is_slice: bool = True,
+    model_dict: dict = None,
 ):
+
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
@@ -346,6 +349,9 @@ def tune_and_train(
                 shg_weight=shg_weight,
                 sfg_weight=sfg_weight,
             )
+
+        # initialize a new model to train with the new hyperparameters
+        model = type(model)(**model_dict)
 
         # Train the model with the training dataset
         # This assumes a train function is available and works similarly to the one in main.py
@@ -440,6 +446,7 @@ def train_and_test(
     model_param_path: str = None,
     crystal_length: int = 100,
     is_slice: bool = True,
+    model_dict: dict = None,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
