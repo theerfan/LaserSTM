@@ -134,6 +134,13 @@ def get_cmd_args():
         help="Number of layers of the LSTM model",
     )
 
+    parser.add_argument(
+        "--loss_reduction",
+        type=str,
+        default="mean",
+        help="Reduction type for the loss function.",
+    )
+
     return parser.parse_args()
 
 

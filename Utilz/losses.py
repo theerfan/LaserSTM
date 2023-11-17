@@ -235,6 +235,7 @@ def weighted_MSE(
     y_real: torch.Tensor,
     shg_weight: float = 1,
     sfg_weight: float = 1,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     (
         shg1_real_pred,
@@ -254,20 +255,24 @@ def weighted_MSE(
         sfg_complex_real,
     ) = re_im_sep_vectors(y_real)
 
-    mse = nn.MSELoss()
+    mse = nn.MSELoss(reduction=reduction)
 
     shg1_loss = 0.5 * (
         mse(shg1_real_pred, shg1_real_real) + mse(shg1_complex_pred, shg1_complex_real)
     )
+    shg1_loss_mean = torch.mean(shg1_loss, dim=-1)
+
     shg2_loss = 0.5 * (
         mse(shg2_real_pred, shg2_real_real) + mse(shg2_complex_pred, shg2_complex_real)
     )
+    shg2_loss_mean = torch.mean(shg2_loss, dim=-1)
 
     sfg_loss = 0.5 * (
         mse(sfg_real_pred, sfg_real_real) + mse(sfg_complex_pred, sfg_complex_real)
     )
+    sfg_loss_mean = torch.mean(sfg_loss, dim=-1)
 
-    return shg_weight * (shg1_loss + shg2_loss) + sfg_weight * sfg_loss
+    return shg_weight * (shg1_loss_mean + shg2_loss_mean) + sfg_weight * sfg_loss_mean
 
 
 def pearson_corr(

@@ -15,6 +15,8 @@ import logging
 import time
 import copy
 
+from functools import partial
+
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
 )
@@ -42,8 +44,14 @@ def default_single_pass(
         loss = loss_fn(pred, y_batch)
 
         if optimizer is not None:
-            loss.backward()
-            optimizer.step()
+            # If the loss is a scalar, 
+            if len(loss.shape) == 0:
+                loss.backward()
+                optimizer.step()
+            else:
+                for loss_item in loss:
+                    loss_item.backward()
+                    optimizer.step()
 
         pass_loss += loss.item()
 
@@ -342,13 +350,9 @@ def tune_and_train(
 
         model_save_name = f"{model_save_name}_shg_{shg_weight}_sfg_{sfg_weight}"
 
-        def current_loss(y_pred, y_real):
-            return custom_loss(
-                y_pred,
-                y_real,
-                shg_weight=shg_weight,
-                sfg_weight=sfg_weight,
-            )
+        current_loss = partial(
+            custom_loss, shg_weight=shg_weight, sfg_weight=sfg_weight
+        )
 
         # initialize a new model to train with the new hyperparameters
         model = type(model)(**model_dict)

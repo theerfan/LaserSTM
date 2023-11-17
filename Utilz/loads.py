@@ -24,9 +24,14 @@ def get_custom_loss(args: Namespace) -> Callable:
 
     def custom_loss(y_real, y_pred, shg_weight=None, sfg_weight=None):
         return loss_dict[args.custom_loss](
-            y_real, y_pred, shg_weight=shg_weight, sfg_weight=sfg_weight
+            y_real,
+            y_pred,
+            shg_weight=shg_weight,
+            sfg_weight=sfg_weight,
+            reduction=args.loss_reduction,
         )
 
+    # If we have default values for the weights, then we can do a partial function
     if args.shg_weight is not None and args.sfg_weight is not None:
         # Do a partial function application
         custom_loss = partial(
