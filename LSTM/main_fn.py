@@ -10,7 +10,7 @@ def main_lstm(
     model_dict = {
         "input_size": 8264,
         "lstm_hidden_size": args.lstm_hidden_size,
-        "linear_layer_size": args.linear_layer_size,
+        "linear_layer_size": args.lstm_linear_layer_size,
         "num_layers": args.lstm_num_layers,
     }
 

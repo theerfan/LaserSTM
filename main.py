@@ -127,6 +127,13 @@ def get_cmd_args():
         help="Number of layers of the LSTM model",
     )
 
+    parser.add_argument(
+        "--lstm_linear_layer_size",
+        type=int,
+        default=4096,
+        help="Number of layers of the LSTM model",
+    )
+
     return parser.parse_args()
 
 
