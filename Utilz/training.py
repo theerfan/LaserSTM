@@ -57,7 +57,7 @@ def default_single_pass(
 
         pass_loss += loss.mean().item()
 
-    return pass_loss / pass_len, loss
+    return pass_loss / pass_len, loss.mean().item()
 
 
 def train(
