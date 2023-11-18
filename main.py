@@ -137,7 +137,7 @@ def get_cmd_args():
     parser.add_argument(
         "--loss_reduction",
         type=str,
-        default="mean",
+        default="none",
         help="Reduction type for the loss function.",
     )
 

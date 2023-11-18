@@ -45,7 +45,7 @@ class LSTMModel(nn.Module):
                 x.device
             )
 
-        out, (hn, cn) = self.lstm(x, (h_0, c_0))
-        out = self.linear(out[:, -1, :])
+        out_1, (hn, cn) = self.lstm(x, (h_0, c_0))
+        out = self.linear(out_1[:, -1, :])
 
         return out

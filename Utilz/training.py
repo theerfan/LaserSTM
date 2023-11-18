@@ -33,6 +33,7 @@ def default_single_pass(
 ) -> Tuple[float, float]:
     pass_loss = 0
     pass_len = len(dataloader)
+    torch.autograd.set_detect_anomaly(True)
     for i, (X_batch, y_batch) in enumerate(dataloader):
         if verbose:
             print(f"On batch {i} out of {pass_len}")
@@ -44,16 +45,17 @@ def default_single_pass(
         loss = loss_fn(pred, y_batch)
 
         if optimizer is not None:
-            # If the loss is a scalar, 
+            # If the loss is a scalar,
             if len(loss.shape) == 0:
                 loss.backward()
                 optimizer.step()
             else:
-                for loss_item in loss:
-                    loss_item.backward()
-                    optimizer.step()
+                loss.backward(
+                    torch.ones(loss.shape[0]).to(loss.device), retain_graph=True
+                )
+                optimizer.step()
 
-        pass_loss += loss.item()
+        pass_loss += loss.mean().item()
 
     return pass_loss / pass_len, loss
 
@@ -290,7 +292,7 @@ def predict(
                 print("adding something to all_preds!!")
                 all_preds.append(np.concatenate(current_preds, axis=0))
                 current_preds = []
-    
+
     end_time = time.time()
 
     # print elapsed time in seconds
@@ -323,7 +325,6 @@ def tune_and_train(
     is_slice: bool = True,
     model_dict: dict = None,
 ):
-
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
 
@@ -397,7 +398,9 @@ def tune_and_train(
     best_hyperparameters = min(results, key=results.get)
 
     # find best model's save name from the best hyperparameters
-    model_save_name = f"{model_save_name}_shg_{best_hyperparameters[0]}_sfg_{best_hyperparameters[1]}"
+    model_save_name = (
+        f"{model_save_name}_shg_{best_hyperparameters[0]}_sfg_{best_hyperparameters[1]}"
+    )
 
     log_str = f"Best hyperparameters: {best_hyperparameters}"
     print(log_str)
