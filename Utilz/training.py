@@ -150,7 +150,7 @@ def train(
                     "epoch": epoch,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
-                    "loss": last_train_loss.item(),
+                    "loss": last_train_loss,
                 },
                 checkpoint_path,
             )
