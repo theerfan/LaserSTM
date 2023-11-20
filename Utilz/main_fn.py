@@ -65,4 +65,5 @@ def main_function(
             analysis_item_idx=args.analysis_example,
             model_param_path=args.model_param_path,
             model_dict=model_dict,
+            learning_rate=args.lr,
         )

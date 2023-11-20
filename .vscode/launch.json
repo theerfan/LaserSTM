@@ -67,8 +67,12 @@
         "--custom_loss",
         "weighted_MSE",
         "--output_dir",
-        "Run1\\MSE\\",
+        "/mnt/oneterra/outputs/20-11-2023/",
         "--tune_train",
+        "1",
+        "--num_epochs",
+        "10",
+        "--batch_size",
         "1"
       ]
     },

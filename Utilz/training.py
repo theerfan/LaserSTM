@@ -28,7 +28,7 @@ def default_single_pass(
     model: nn.Module,
     dataloader: DataLoader,
     optimizer: torch.optim,
-    loss_fn: nn.Module,
+    loss_fn: Callable,
     verbose: bool = True,
 ) -> Tuple[float, float]:
     pass_loss = 0
@@ -43,6 +43,8 @@ def default_single_pass(
 
         pred = model(X_batch)
         loss = loss_fn(pred, y_batch)
+
+        logging.info(f"Loss: {loss.mean().item()}")
 
         if optimizer is not None:
             # If the loss is a scalar,
@@ -75,6 +77,7 @@ def train(
     custom_single_pass: Callable = None,
     batch_size: int = 200,
     model_param_path: str = None,
+    learning_rate: float = 1e-4,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -99,7 +102,7 @@ def train(
 
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     #     optimizer, mode="min", factor=0.1, patience=2, verbose=True
     # )
@@ -324,6 +327,7 @@ def tune_and_train(
     crystal_length: int = 100,
     is_slice: bool = True,
     model_dict: dict = None,
+    learning_rate: float = 1e-4,
 ):
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
@@ -375,6 +379,7 @@ def tune_and_train(
             epoch_save_interval=epoch_save_interval,
             batch_size=batch_size,
             model_param_path=model_param_path,
+            learning_rate=learning_rate,
         )
 
         results[combo] = val_losses.flatten().mean()
@@ -454,6 +459,7 @@ def train_and_test(
     crystal_length: int = 100,
     is_slice: bool = True,
     model_dict: dict = None,
+    learning_rate: float = 1e-4,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
@@ -470,6 +476,7 @@ def train_and_test(
         custom_single_pass=custom_single_pass,
         batch_size=batch_size,
         model_param_path=model_param_path,
+        learning_rate=learning_rate,
     )
 
     last_model_name = f"{model_save_name}_epoch_{num_epochs}"

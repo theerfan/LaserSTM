@@ -26,9 +26,9 @@ class LSTMModel(nn.Module):
             nn.Linear(lstm_hidden_size, linear_layer_size),
             nn.ReLU(),
             nn.Linear(linear_layer_size, linear_layer_size),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(linear_layer_size, input_size),
-            nn.ReLU(),
+            nn.Sigmoid(),
         )
 
     def forward(
