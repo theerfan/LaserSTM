@@ -9,6 +9,7 @@ from Utilz.data import (
 )
 import logging
 import torch.nn as nn
+import os
 
 from argparse import Namespace
 
@@ -29,6 +30,7 @@ def main_function(
         log_str = f"Prediction only mode for model {args.model}"
         print(log_str)
         logging.info(log_str)
+        model_save_name = os.path.basename(args.model_param_path).split(".")[0]
         predict(
             model,
             model_param_path=args.model_param_path,
@@ -38,11 +40,13 @@ def main_function(
             verbose=args.verbose,
         )
 
+        testset_starting_point = test_dataset.file_indexes[0]
+
         do_analysis(
             args.output_dir,
             args.data_dir,
-            args.model_save_name,
-            args.analysis_file,
+            model_save_name,
+            testset_starting_point - args.analysis_file ,
             args.analysis_example,
         )
     else:
