@@ -73,7 +73,9 @@
         "--num_epochs",
         "10",
         "--batch_size",
-        "1"
+        "128",
+        "--loss_reduction",
+        "none"
       ]
     },
     {

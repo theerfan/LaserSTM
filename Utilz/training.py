@@ -52,9 +52,8 @@ def default_single_pass(
                 loss.backward()
                 optimizer.step()
             else:
-                loss.backward(
-                    torch.ones(loss.shape[0]).to(loss.device), retain_graph=True
-                )
+                for l in loss:
+                    l.backward(retain_graph=True)  
                 optimizer.step()
 
         pass_loss += loss.mean().item()
@@ -103,9 +102,9 @@ def train(
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode="min", factor=0.1, patience=2, verbose=True
-    # )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.75, patience=2, verbose=True
+    )
     train_losses = []
     val_losses = [] if val_dataset is not None else None
 
@@ -137,7 +136,7 @@ def train(
                 )
                 val_losses.append(val_loss)
             # Update the learning rate if we're not improving
-            # scheduler.step(val_loss)
+            scheduler.step(val_loss)
         else:
             pass
 

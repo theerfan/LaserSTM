@@ -32,9 +32,9 @@
 from Analysis.analyze_reim import do_analysis
 
 do_analysis(
-    "/mnt/oneterra/outputs/15-11-2023/",
+    "/mnt/oneterra/outputs/20-11-2023/",
     "/mnt/oneterra/SFG_reIm_version1/",
-    "LSTM_hyper_shg_0.3_sfg_0.7_epoch_10",
+    "LSTM_hyper_scheduler_shg_0.3_sfg_0.7_epoch_10",
     0,
     15
 )

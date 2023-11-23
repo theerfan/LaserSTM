@@ -12,6 +12,8 @@ import torch.nn as nn
 
 from argparse import Namespace
 
+from Analysis.analyze_reim import do_analysis
+
 
 def main_function(
     args: Namespace,
@@ -34,6 +36,14 @@ def main_function(
             output_dir=args.output_dir,
             output_name=args.model_save_name + "_all_preds.npy",
             verbose=args.verbose,
+        )
+
+        do_analysis(
+            args.output_dir,
+            args.data_dir,
+            args.model_save_name,
+            args.analysis_file,
+            args.analysis_example,
         )
     else:
         # This assumes that `tune_train` and `train_model` have the same signature

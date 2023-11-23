@@ -37,11 +37,11 @@ def get_cmd_args():
 
     # Add arguments for the shg and sfg weight losses
     parser.add_argument(
-        "--shg_weight", type=float, default=1, help="Weight for the SHG loss."
+        "--shg_weight", type=float, default=None, help="Weight for the SHG loss."
     )
 
     parser.add_argument(
-        "--sfg_weight", type=float, default=1, help="Weight for the SFG loss."
+        "--sfg_weight", type=float, default=None, help="Weight for the SFG loss."
     )
 
     parser.add_argument(
@@ -137,8 +137,15 @@ def get_cmd_args():
     parser.add_argument(
         "--loss_reduction",
         type=str,
-        default="none",
+        default="mean",
         help="Reduction type for the loss function.",
+    )
+
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=1e-4,
+        help="Learning rate for the model.",
     )
 
     return parser.parse_args()
