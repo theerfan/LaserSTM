@@ -302,7 +302,9 @@ def predict(
 
     # And then we do the concatenation here and send it back to CPU
     all_preds = np.array(all_preds)
-    np.save(os.path.join(output_dir, f"{model_save_name}_{output_name}"), all_preds)
+    if model_save_name != "":
+        model_save_name = f"{model_save_name}_"
+    np.save(os.path.join(output_dir, f"{model_save_name}{output_name}"), all_preds)
     return all_preds
 
 
