@@ -36,7 +36,7 @@ def main_function(
             model_param_path=args.model_param_path,
             test_dataset=test_dataset,
             output_dir=args.output_dir,
-            output_name=args.model_save_name + "_all_preds.npy",
+            output_name=model_save_name + "_all_preds.npy",
             verbose=args.verbose,
         )
 
