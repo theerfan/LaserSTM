@@ -31,6 +31,8 @@ class LSTMModel(nn.Module):
             nn.Sigmoid(),
         )
 
+        print(f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}")
+
     def forward(
         self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
     ):

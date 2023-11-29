@@ -53,7 +53,7 @@ def default_single_pass(
                 optimizer.step()
             else:
                 for l in loss:
-                    l.backward(retain_graph=True)  
+                    l.backward(retain_graph=True)
                 optimizer.step()
 
         pass_loss += loss.mean().item()
@@ -102,8 +102,11 @@ def train(
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    scheduler_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.75, patience=2, verbose=True
+    )
+    scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=100, eta_min=0.0001, last_epoch=-1
     )
     train_losses = []
     val_losses = [] if val_dataset is not None else None
@@ -136,7 +139,8 @@ def train(
                 )
                 val_losses.append(val_loss)
             # Update the learning rate if we're not improving
-            scheduler.step(val_loss)
+            scheduler_plateau.step(val_loss)
+            scheduler_cosine.step()
         else:
             pass
 
@@ -296,6 +300,9 @@ def predict(
                 current_preds = []
 
     end_time = time.time()
+
+    # TODO: This is a way of trying to stop the process from getting killed for some unknown reason!
+    # del model
 
     # print elapsed time in seconds
     print(f"Elapsed time: {end_time - start_time} seconds")
