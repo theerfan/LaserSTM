@@ -68,15 +68,18 @@ class CustomSequence(data.Dataset):
         # Load data if not already in memory or if file index has changed
         self.load_data_for_file_index(file_idx)
 
-        # Get the specific sample from the currently loaded data
-        data = self.current_data[sample_idx]
-        labels = self.current_labels[sample_idx]
+        data = self.current_data
+        labels = self.current_labels
 
         # In test mode, we only care about the first thing that goes
         # into the crystal and the thing that comes out. (All steps of crystal at once)
         if self.test_mode:
             data = data[:: self.crystal_length]
             labels = labels[self.crystal_length - 1 : :][:: self.crystal_length]
+        
+        # Get the specific sample from the currently loaded data
+        data = self.current_data[sample_idx]
+        labels = self.current_labels[sample_idx]
 
         data_tensor = torch.tensor(data, dtype=torch.float32)
         labels_tensor = torch.tensor(labels, dtype=torch.float32)

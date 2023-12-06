@@ -46,7 +46,7 @@ def main_function(
             args.output_dir,
             args.data_dir,
             model_save_name,
-            testset_starting_point - args.analysis_file ,
+            testset_starting_point - args.analysis_file,
             args.analysis_example,
         )
     else:

@@ -169,65 +169,6 @@ def pseudo_energy_loss(
     )
 
 
-# batch size, time steps, features
-# 512, 10, 8264
-# (10, 8264) pass through the LSTM
-# Changes all (10, 8264) at the same time
-# We care about the most recent item for the difference PINN loss function
-# We could get creative and use the previous ones to try to calculate a more accurate version of the dA_i/dz
-
-
-# `:,` is there because we want to keep the batch dimension
-def re_im_sep(fields: torch.Tensor, detach=False):
-    shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
-    shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
-    sfg = (
-        fields[:, 1892 * 2 : 1892 * 2 + 348]
-        + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
-    )
-
-    if detach:
-        shg1 = shg1.detach().numpy()
-        shg2 = shg2.detach().numpy()
-        sfg = sfg.detach().numpy()
-    else:
-        pass
-    return shg1, shg2, sfg
-
-
-# `:,` is there because we want to keep the batch dimension
-def re_im_sep_vectors(fields: torch.Tensor, detach=False):
-    shg1_real = fields[:, 0:1892]
-    shg1_complex = fields[:, 1892 * 2 + 348 : 1892 * 3 + 348]
-
-    shg2_real = fields[:, 1892 : 1892 * 2]
-    shg2_complex = fields[:, 1892 * 3 + 348 : 1892 * 4 + 348]
-
-    sfg_real = fields[:, 1892 * 2 : 1892 * 2 + 348]
-    sfg_complex = fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348]
-
-    if detach:
-        shg1_real = shg1_real.detach().numpy()
-        shg1_complex = shg1_complex.detach().numpy()
-        shg2_real = shg2_real.detach().numpy()
-        shg2_complex = shg2_complex.detach().numpy()
-        sfg_real = sfg_real.detach().numpy()
-        sfg_complex = sfg_complex.detach().numpy()
-    else:
-        pass
-    return shg1_real, shg1_complex, shg2_real, shg2_complex, sfg_real, sfg_complex
-
-
-# This is a wrapper for the MSE and BCE losses just to make them have the same
-# signature as the custom loss functions
-def wrapped_MSE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
-    return nn.MSELoss()(y_pred, y_real)
-
-
-def wrapped_BCE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
-    return nn.BCELoss()(y_pred, y_real)
-
-
 # This is a custom loss function that gives different weights
 # to the different parts of the signal
 def weighted_MSE(
@@ -326,3 +267,62 @@ def pearson_corr(
     sfg_corr = torch.mean(sfg_coeffs)
 
     return (shg_weight * shg1_corr + shg2_corr) + sfg_weight * sfg_corr
+
+
+# batch size, time steps, features
+# 512, 10, 8264
+# (10, 8264) pass through the LSTM
+# Changes all (10, 8264) at the same time
+# We care about the most recent item for the difference PINN loss function
+# We could get creative and use the previous ones to try to calculate a more accurate version of the dA_i/dz
+
+
+# `:,` is there because we want to keep the batch dimension
+def re_im_sep(fields: torch.Tensor, detach=False):
+    shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
+    shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
+    sfg = (
+        fields[:, 1892 * 2 : 1892 * 2 + 348]
+        + fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] * 1j
+    )
+
+    if detach:
+        shg1 = shg1.detach().numpy()
+        shg2 = shg2.detach().numpy()
+        sfg = sfg.detach().numpy()
+    else:
+        pass
+    return shg1, shg2, sfg
+
+
+# `:,` is there because we want to keep the batch dimension
+def re_im_sep_vectors(fields: torch.Tensor, detach=False):
+    shg1_real = fields[:, 0:1892]
+    shg1_complex = fields[:, 1892 * 2 + 348 : 1892 * 3 + 348]
+
+    shg2_real = fields[:, 1892 : 1892 * 2]
+    shg2_complex = fields[:, 1892 * 3 + 348 : 1892 * 4 + 348]
+
+    sfg_real = fields[:, 1892 * 2 : 1892 * 2 + 348]
+    sfg_complex = fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348]
+
+    if detach:
+        shg1_real = shg1_real.detach().numpy()
+        shg1_complex = shg1_complex.detach().numpy()
+        shg2_real = shg2_real.detach().numpy()
+        shg2_complex = shg2_complex.detach().numpy()
+        sfg_real = sfg_real.detach().numpy()
+        sfg_complex = sfg_complex.detach().numpy()
+    else:
+        pass
+    return shg1_real, shg1_complex, shg2_real, shg2_complex, sfg_real, sfg_complex
+
+
+# This is a wrapper for the MSE and BCE losses just to make them have the same
+# signature as the custom loss functions
+def wrapped_MSE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
+    return nn.MSELoss()(y_pred, y_real)
+
+
+def wrapped_BCE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
+    return nn.BCELoss()(y_pred, y_real)

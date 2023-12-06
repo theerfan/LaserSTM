@@ -58,8 +58,8 @@ class TransformerModel(nn.Transformer):
         n_predict,
         n_head,
         n_hidden,
-        n_enc_layers,
-        n_dec_layers,
+        n_enc_layers = 0,
+        n_dec_layers = 6,
         dropout=0.5,
     ):
         super(TransformerModel, self).__init__(
@@ -77,7 +77,7 @@ class TransformerModel(nn.Transformer):
         self.n_features = n_features
         self.linear = nn.Linear(n_features, n_predict)
 
-        # self.init_weights()
+        self.init_weights()
 
     def _generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
