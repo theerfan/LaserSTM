@@ -47,6 +47,7 @@ def area_under_curve_loss(
     sfg_spacing: float = domain_spacing_sfg,
     shg_weight: float = 1,
     sfg_weight: float = 1,
+    **kwargs,
 ):
     (
         shg1_real_pred,
@@ -120,6 +121,7 @@ def pseudo_energy_loss(
     sfg_spacing: float = domain_spacing_sfg,
     shg_weight: float = 1,
     sfg_weight: float = 1,
+    **kwargs,
 ):
     (
         shg1_real_pred,
@@ -177,6 +179,7 @@ def weighted_MSE(
     shg_weight: float = 1,
     sfg_weight: float = 1,
     reduction: str = "mean",
+    **kwargs,
 ) -> torch.Tensor:
     (
         shg1_real_pred,
@@ -221,6 +224,7 @@ def pearson_corr(
     y_real: torch.Tensor,
     shg_weight: float = 1,
     sfg_weight: float = 1,
+    **kwargs,
 ):
     (
         shg1_real_pred,
@@ -326,3 +330,17 @@ def wrapped_MSE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.T
 
 def wrapped_BCE(y_pred: torch.Tensor, y_real: torch.Tensor, **kwargs) -> torch.Tensor:
     return nn.BCELoss()(y_pred, y_real)
+
+
+def wMSE_and_energy(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg_weight: float = 1,
+    sfg_weight: float = 1,
+    **kwargs,
+) -> torch.Tensor:
+    return weighted_MSE(
+        y_pred, y_real, shg_weight, sfg_weight, **kwargs
+    ) + pseudo_energy_loss(
+        y_pred, y_real, shg_weight=shg_weight, sfg_weight=sfg_weight, **kwargs
+    )
