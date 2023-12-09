@@ -1,6 +1,6 @@
 
 # mkdir /mnt/oneterra/
-# mount /dev/nvme2n1p1 /mnt/oneterra
+# mount /dev/nvme1n1p1 /mnt/oneterra
 
 # conda init bash
 # conda activate pytorch

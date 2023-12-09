@@ -9,6 +9,8 @@ class LSTMModel(nn.Module):
         lstm_hidden_size: int = 1024,
         linear_layer_size: int = 4096,
         num_layers: int = 1,
+        LSTM_dropout: float = 0.0,
+        fc_dropout: float = 0.0,
         **kwargs,
     ):
         super().__init__()
@@ -19,19 +21,23 @@ class LSTMModel(nn.Module):
             input_size,
             lstm_hidden_size,
             batch_first=True,
-            dropout=0,
+            dropout=LSTM_dropout,
             num_layers=num_layers,
         )
         self.linear = nn.Sequential(
             nn.Linear(lstm_hidden_size, linear_layer_size),
             nn.ReLU(),
+            nn.Dropout(fc_dropout),
             nn.Linear(linear_layer_size, linear_layer_size),
             nn.Tanh(),
+            nn.Dropout(fc_dropout),
             nn.Linear(linear_layer_size, input_size),
             nn.Sigmoid(),
         )
 
-        print(f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}")
+        print(
+            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}"
+        )
 
     def forward(
         self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None

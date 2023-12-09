@@ -12,6 +12,8 @@ def main_lstm(
         "lstm_hidden_size": args.lstm_hidden_size,
         "linear_layer_size": args.lstm_linear_layer_size,
         "num_layers": args.lstm_num_layers,
+        "LSTM_dropout": args.lstm_dropout,
+        "fc_dropout": args.fc_dropout,
     }
 
     model = LSTMModel(

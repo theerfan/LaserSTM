@@ -77,6 +77,7 @@ def train(
     batch_size: int = 200,
     model_param_path: str = None,
     learning_rate: float = 1e-4,
+    shuffle: bool = True,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -113,7 +114,7 @@ def train(
 
     single_pass_fn = custom_single_pass or default_single_pass
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
     # Train

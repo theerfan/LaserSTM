@@ -9,8 +9,8 @@ freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 # TODO: Make sure the scalings are correct (ask Jack)
 domain_spacing_shg = (
     freq_vectors_shg[1] - freq_vectors_shg[0]
-)  # * 1e12  # scaled to be back in Hz
-domain_spacing_sfg = freq_vectors_sfg[1] - freq_vectors_sfg[0]  # * 1e12
+) * 1e-12  # scaled to be back in Hz
+domain_spacing_sfg = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) * 1e-12
 
 
 def area_under_curve_diff(
@@ -161,6 +161,11 @@ def pseudo_energy_loss(
     )
 
     # Calculate the mean of the energy differences in the batches
+    # NOTE: We need tonormalize the energy differences of shg1 and shg2 by dividing by its max value
+    # because sfg energy diff is like 0.61 and shg1 and shg2 are like 61 (!)
+    shg1_energy_diff = shg1_energy_diff / torch.max(shg1_energy_diff)
+    shg2_energy_diff = shg2_energy_diff / torch.max(shg2_energy_diff)
+
     shg1_energy_diff = torch.mean(shg1_energy_diff)
     shg2_energy_diff = torch.mean(shg2_energy_diff)
     sfg_energy_diff = torch.mean(sfg_energy_diff)

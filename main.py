@@ -148,6 +148,20 @@ def get_cmd_args():
         help="Learning rate for the model.",
     )
 
+    parser.add_argument(
+        "--lstm_dropout",
+        type=float,
+        default=0.3,
+        help="Learning rate for the model.",
+    )
+
+    parser.add_argument(
+        "--fc_dropout",
+        type=float,
+        default=0.3,
+        help="Learning rate for the model.",
+    )
+
     return parser.parse_args()
 
 
