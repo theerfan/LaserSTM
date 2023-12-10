@@ -42,6 +42,9 @@ def intensity_phase_plot(
     plot_show=True,
     plot_hold=False,
     save_dir="",
+    save=False,
+    axs=None,
+    fig=None
 ):
     """
     Plot intensity and phase of a field
@@ -64,7 +67,9 @@ def intensity_phase_plot(
     phases = [np.unwrap(get_phase(field)) for field in fields]
 
     y_label_2 = "Phase (rad)"
-    fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), clear=False)
+
+    if axs is None:
+        fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), clear=False)
 
     axs.set_xlabel(x_label)
 
@@ -90,6 +95,7 @@ def intensity_phase_plot(
             label=labels[i],
             alpha=0.6,
         )
+
     plt.legend()
 
     if xlims is not None:
@@ -109,13 +115,10 @@ def intensity_phase_plot(
 
     axs2.set_ylabel(y_label_2, color="black")
 
-    save_figure(save_name, save_format, save_dir)
+    if save:
+        save_figure(save_name, save_format, save_dir)
 
-    if plot_show:
-        plt.show()
-    else:
-        if ~plot_hold:
-            plt.close()
+    return fig
 
 
 def do_analysis(
@@ -272,60 +275,20 @@ def do_analysis(
     colors_list = ["red", "black"]
     labels_list = ["true", "pred"]
 
-    # plots frequency domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
-    print("------- Normalized True vs Prediction Frequency Domain --------")
+    nrows = 2
+    ncols = 3
 
-    print("*** SFG ***")
-    intensity_phase_plot(
-        freq_vectors_sfg_list,
-        fields_sfg_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg1.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
+    new_fig, new_axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(30, 15))
 
-    print("*** SHG1 ***")
-    intensity_phase_plot(
-        freq_vectors_shg1_list,
-        fields_shg1_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg2.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
-
-    print("*** SHG2 ***")
-    intensity_phase_plot(
-        freq_vectors_shg2_list,
-        fields_shg2_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg3.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
+    # Flatten the array of axes if it's 2D
+    if nrows > 1 and ncols > 1:
+        new_axs = new_axs.flatten()
+    else:  # 1D array of axes
+        new_axs = new_axs.reshape(-1)
 
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
     print("*** SFG ***")
-    intensity_phase_plot(
+    fig_pfg4 = intensity_phase_plot(
         freq_vectors_sfg_list,
         fields_sfg_list,
         labels_list,
@@ -338,9 +301,11 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[0],
     )
+
     print("*** SHG1 ***")
-    intensity_phase_plot(
+    fig_pfg5 = intensity_phase_plot(
         freq_vectors_shg1_list,
         fields_shg1_list,
         labels_list,
@@ -353,9 +318,11 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[1],
     )
+
     print("*** SHG2 ***")
-    intensity_phase_plot(
+    fig_pfg6 = intensity_phase_plot(
         freq_vectors_shg2_list,
         fields_shg2_list,
         labels_list,
@@ -368,6 +335,7 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[2],
     )
 
     sfg_time_vector_list = [sfg_original_time, sfg_original_time]
@@ -378,59 +346,10 @@ def do_analysis(
     shg1_freq_to_time_list = [shg1_freq_to_time_true, shg1_freq_to_time_pred]
     shg2_freq_to_time_list = [shg2_freq_to_time_true, shg2_freq_to_time_pred]
 
-    # plots time domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
-    print("------- Normalized True vs Prediction Time Domain --------")
-    print("*** SFG ***")
-    intensity_phase_plot(
-        sfg_time_vector_list,
-        sfg_freq_to_time_list,
-        labels_list,
-        colors_list,
-        "time",
-        xlims=[-15, 15],
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd1.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
-
-    print("*** SHG1 ***")
-    intensity_phase_plot(
-        shg1_time_vector_list,
-        shg1_freq_to_time_list,
-        labels_list,
-        colors_list,
-        "time",
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd2.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
-    print("*** SHG2 ***")
-    intensity_phase_plot(
-        shg2_time_vector_list,
-        shg2_freq_to_time_list,
-        labels_list,
-        colors_list,
-        "time",
-        normalize=True,
-        offsets=[0, 0.2],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd3.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-    )
-
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
+
     print("*** SFG ***")
-    intensity_phase_plot(
+    fig_ptd4 = intensity_phase_plot(
         sfg_time_vector_list,
         sfg_freq_to_time_list,
         labels_list,
@@ -444,9 +363,11 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[3],
     )
+
     print("*** SHG1 ***")
-    intensity_phase_plot(
+    fig_ptd5 = intensity_phase_plot(
         shg1_time_vector_list,
         shg1_freq_to_time_list,
         labels_list,
@@ -459,9 +380,11 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[4],
     )
+
     print("*** SHG2 ***")
-    intensity_phase_plot(
+    fig_ptd6 = intensity_phase_plot(
         shg2_time_vector_list,
         shg2_freq_to_time_list,
         labels_list,
@@ -474,4 +397,12 @@ def do_analysis(
         plot_show=True,
         plot_hold=False,
         save_dir=fig_save_dir,
+        axs=new_axs[5],
     )
+
+    print("------- Frequency Domain --------")
+
+    new_fig.tight_layout()
+    plt.show()
+
+    save_figure(model_save_name + "_All.jpg", "jpg", fig_save_dir)
