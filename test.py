@@ -38,6 +38,7 @@ do_analysis(
     "/mnt/oneterra/outputs/06-12-2023",
     "/mnt/oneterra/SFG_reIm_version1/",
     "LSTM_100_epoch_66",
+    91,
     0,
     15
 )

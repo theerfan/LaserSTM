@@ -437,7 +437,8 @@ def tune_and_train(
         output_dir=output_dir,
         data_directory=data_dir,
         model_save_name=model_save_name + f"_epoch_{num_epochs}",
-        file_idx=testset_starting_point - analysis_file_idx,
+        file_idx=analysis_file_idx,
+        all_preds_idx=testset_starting_point - analysis_file_idx,
         item_idx=analysis_item_idx,
     )
 
@@ -515,7 +516,8 @@ def train_and_test(
         output_dir=output_dir,
         data_directory=data_dir,
         model_save_name=model_save_name + f"_epoch_{num_epochs}",
-        file_idx=testset_starting_point - analysis_file_idx,
+        file_idx=analysis_file_idx,
+        all_preds_idx=testset_starting_point - analysis_file_idx,
         item_idx=analysis_item_idx,
     )
 

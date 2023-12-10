@@ -31,14 +31,14 @@ def main_function(
         print(log_str)
         logging.info(log_str)
         model_save_name = os.path.basename(args.model_param_path).split(".")[0]
-        # predict(
-        #     model,
-        #     model_param_path=args.model_param_path,
-        #     test_dataset=test_dataset,
-        #     output_dir=args.output_dir,
-        #     output_name=model_save_name + "_all_preds.npy",
-        #     verbose=args.verbose,
-        # )
+        predict(
+            model,
+            model_param_path=args.model_param_path,
+            test_dataset=test_dataset,
+            output_dir=args.output_dir,
+            output_name=model_save_name + "_all_preds.npy",
+            verbose=args.verbose,
+        )
 
         testset_starting_point = test_dataset.file_indexes[0]
 
@@ -46,8 +46,9 @@ def main_function(
             args.output_dir,
             args.data_dir,
             model_save_name,
-            testset_starting_point - args.analysis_file,
-            args.analysis_example,
+            file_idx=args.analysis_file,
+            all_preds_idx=testset_starting_point - args.analysis_file,
+            item_idx=args.analysis_example,
         )
     else:
         # This assumes that `tune_train` and `train_model` have the same signature

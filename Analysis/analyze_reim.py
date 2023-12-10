@@ -126,6 +126,7 @@ def do_analysis(
     data_directory: str,  # directory from preprocessing
     model_save_name: str,  # model name from training
     file_idx: int,  # on which file to do analysis
+    all_preds_idx: int,  # which prediction to use
     item_idx: int,  # which example of the file to do analysis
     fig_save_dir: str = None,  # where to save the figures
     crystal_length: int = 100,  # length of the crystal
@@ -178,8 +179,7 @@ def do_analysis(
 
     # Transform this using the scaler, then get which file
     # and then get the example using its index
-    y_pred_trans = scaler.inverse_transform(all_preds[file_idx])[item_idx]
-    # y_pred_trans = np.array([scaler.inverse_transform(item) for item in all_preds])[file_idx][item_idx]
+    y_pred_trans = scaler.inverse_transform(all_preds[all_preds_idx])[item_idx]
 
     ###
 
