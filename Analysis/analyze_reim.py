@@ -11,6 +11,22 @@ from Analysis.util import (
 )
 
 
+def save_figure(save_name, save_format, save_dir):
+    if save_name is None:
+        raise ValueError("Save name is not specified")
+    if "." + save_format not in save_name:
+        save_name += "." + save_format
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    plt.savefig(
+        os.path.join(save_dir, save_name),
+        bbox_inches="tight",
+        dpi=300,
+        transparent=True,
+        format=save_format,
+    )
+
+
 def intensity_phase_plot(
     domains,
     fields,
@@ -20,11 +36,9 @@ def intensity_phase_plot(
     xlims=None,
     y_label=None,
     normalize=False,
-    legend=False,
     offsets=None,
     save_format="jpg",
     save_name=None,
-    save=True,
     plot_show=True,
     plot_hold=False,
     save_dir="",
@@ -41,14 +55,15 @@ def intensity_phase_plot(
     elif domain_type == "frequency" or domain_type == "freq":
         factor = 1e-12
         x_label = "frequency (THz)"
-    for i in range(len(domains)):
-        domains[i] = domains[i] * factor
+
+    # NOTE: Modifying the domains itself will change the original domains in the calling scope!
+    # Which was causing our problems
+    factored_domains = [domain * factor for domain in domains]
 
     intensities = [get_intensity(field) for field in fields]
     phases = [np.unwrap(get_phase(field)) for field in fields]
 
     y_label_2 = "Phase (rad)"
-    # TODO: get clear working so that can call function multiple times and have all plots appear
     fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), clear=False)
 
     axs.set_xlabel(x_label)
@@ -59,7 +74,7 @@ def intensity_phase_plot(
             y_label_1 = "Norm. Intensity (a.u.)"
         else:
             y_label_1 = "Fluence (J/m^2)"
-            #             warnings.warn("Using default intensity units (J/m^2)")
+            # warnings.warn("Using default intensity units (J/m^2)")
             intensity = intensities[i]
 
         if y_label is None:
@@ -69,40 +84,32 @@ def intensity_phase_plot(
         if offsets is not None:
             offset = offsets[i]
         axs.plot(
-            domains[i],
+            factored_domains[i],
             intensity + offset,
             color=colors[i],
             label=labels[i],
             alpha=0.6,
         )
-    if legend:
-        plt.legend()
+    plt.legend()
 
     if xlims is not None:
         axs.set_xlim(xlims[0], xlims[1])
 
     axs.set_ylabel(y_label_1, color="black")
-    ax2 = axs.twinx()
+    axs2 = axs.twinx()
 
     for i in range(len(intensities)):
-        ax2.plot(domains[i], phases[i], color=colors[i], linestyle="dashed", alpha=0.6)
-
-    ax2.set_ylabel(y_label_2, color="black")
-
-    if save:
-        if save_name is None:
-            raise ValueError("Save name is not specified")
-        if "." + save_format not in save_name:
-            save_name += "." + save_format
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        plt.savefig(
-            os.path.join(save_dir, save_name),
-            bbox_inches="tight",
-            dpi=300,
-            transparent=True,
-            format=save_format,
+        axs2.plot(
+            factored_domains[i],
+            phases[i],
+            color=colors[i],
+            linestyle="dashed",
+            alpha=0.6,
         )
+
+    axs2.set_ylabel(y_label_2, color="black")
+
+    save_figure(save_name, save_format, save_dir)
 
     if plot_show:
         plt.show()
@@ -165,7 +172,7 @@ def do_analysis(
     # the output file from the "predict" function
     # this has a shape of (files, predictions, channels)
     all_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
-    
+
     # Transform this using the scaler, then get which file
     # and then get the example using its index
     y_pred_trans = scaler.inverse_transform(all_preds[file_idx])[item_idx]
@@ -174,7 +181,7 @@ def do_analysis(
     ###
 
     # Get the transformed value of the real item in the dataset
-    y_true_trans = y_true[crystal_length - 1:][::crystal_length][item_idx]
+    y_true_trans = y_true[crystal_length - 1 :][::crystal_length][item_idx]
 
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_sep(y_pred_trans)
     y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_sep(y_true_trans)
@@ -254,18 +261,28 @@ def do_analysis(
         true_domain_spacing=sfg_original_time_ds,
     )
 
+    freq_vectors_sfg_list = [freq_vectors_sfg, freq_vectors_sfg]
+    freq_vectors_shg1_list = [freq_vectors_shg1, freq_vectors_shg1]
+    freq_vectors_shg2_list = [freq_vectors_shg2, freq_vectors_shg2]
+
+    fields_sfg_list = [y_true_trans_sfg, y_pred_trans_sfg]
+    fields_shg1_list = [y_true_trans_shg1, y_pred_trans_shg1]
+    fields_shg2_list = [y_true_trans_shg2, y_pred_trans_shg2]
+
+    colors_list = ["red", "black"]
+    labels_list = ["true", "pred"]
+
     # plots frequency domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
     print("------- Normalized True vs Prediction Frequency Domain --------")
-    print("*** SFG ***")
 
+    print("*** SFG ***")
     intensity_phase_plot(
-        [freq_vectors_sfg, freq_vectors_sfg],
-        [y_true_trans_sfg, y_pred_trans_sfg],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_sfg_list,
+        fields_sfg_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=True,
-        legend=True,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_pfg1.jpg",
@@ -276,13 +293,12 @@ def do_analysis(
 
     print("*** SHG1 ***")
     intensity_phase_plot(
-        [freq_vectors_shg1, freq_vectors_shg1],
-        [y_true_trans_shg1, y_pred_trans_shg1],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_shg1_list,
+        fields_shg1_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=True,
-        legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_pfg2.jpg",
@@ -293,13 +309,12 @@ def do_analysis(
 
     print("*** SHG2 ***")
     intensity_phase_plot(
-        [freq_vectors_shg2, freq_vectors_shg2],
-        [y_true_trans_shg2, y_pred_trans_shg2],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_shg2_list,
+        fields_shg2_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=True,
-        legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_pfg3.jpg",
@@ -311,13 +326,12 @@ def do_analysis(
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
     print("*** SFG ***")
     intensity_phase_plot(
-        [freq_vectors_sfg, freq_vectors_sfg],
-        [y_true_trans_sfg, y_pred_trans_sfg],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_sfg_list,
+        fields_sfg_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=False,
-        legend=True,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_pfg4.jpg",
@@ -327,13 +341,12 @@ def do_analysis(
     )
     print("*** SHG1 ***")
     intensity_phase_plot(
-        [freq_vectors_shg1, freq_vectors_shg1],
-        [y_true_trans_shg1, y_pred_trans_shg1],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_shg1_list,
+        fields_shg1_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=False,
-        legend=False,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_pfg5.jpg",
@@ -343,13 +356,12 @@ def do_analysis(
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
-        [freq_vectors_shg2, freq_vectors_shg2],
-        [y_true_trans_shg2, y_pred_trans_shg2],
-        ["true", "pred"],
-        ["red", "black"],
+        freq_vectors_shg2_list,
+        fields_shg2_list,
+        labels_list,
+        colors_list,
         "freq",
         normalize=False,
-        legend=False,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_pfg6.jpg",
@@ -358,18 +370,25 @@ def do_analysis(
         save_dir=fig_save_dir,
     )
 
+    sfg_time_vector_list = [sfg_original_time, sfg_original_time]
+    shg1_time_vector_list = [sfg_original_time, sfg_original_time]
+    shg2_time_vector_list = [sfg_original_time, sfg_original_time]
+
+    sfg_freq_to_time_list = [sfg_freq_to_time_true, sfg_freq_to_time_pred]
+    shg1_freq_to_time_list = [shg1_freq_to_time_true, shg1_freq_to_time_pred]
+    shg2_freq_to_time_list = [shg2_freq_to_time_true, shg2_freq_to_time_pred]
+
     # plots time domain for all three fields (prediction vs true) normalized (first three) and non-normalized (next three)
     print("------- Normalized True vs Prediction Time Domain --------")
     print("*** SFG ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [sfg_freq_to_time_true, sfg_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        sfg_time_vector_list,
+        sfg_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         xlims=[-15, 15],
         normalize=True,
-        legend=True,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_ptd1.jpg",
@@ -377,15 +396,15 @@ def do_analysis(
         plot_hold=False,
         save_dir=fig_save_dir,
     )
+
     print("*** SHG1 ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [shg1_freq_to_time_true, shg1_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        shg1_time_vector_list,
+        shg1_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         normalize=True,
-        legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_ptd2.jpg",
@@ -395,13 +414,12 @@ def do_analysis(
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [shg2_freq_to_time_true, shg2_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        shg2_time_vector_list,
+        shg2_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         normalize=True,
-        legend=False,
         offsets=[0, 0.2],
         save_format="jpg",
         save_name=model_save_name + "_ptd3.jpg",
@@ -413,14 +431,13 @@ def do_analysis(
     print("------- Non-normalized True vs Prediction Frequency Domain --------")
     print("*** SFG ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [sfg_freq_to_time_true, sfg_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        sfg_time_vector_list,
+        sfg_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         xlims=[-15, 15],
         normalize=False,
-        legend=True,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_ptd4.jpg",
@@ -430,13 +447,12 @@ def do_analysis(
     )
     print("*** SHG1 ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [shg1_freq_to_time_true, shg1_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        shg1_time_vector_list,
+        shg1_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         normalize=False,
-        legend=False,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_ptd5.jpg",
@@ -446,13 +462,12 @@ def do_analysis(
     )
     print("*** SHG2 ***")
     intensity_phase_plot(
-        [sfg_original_time, sfg_original_time],
-        [shg2_freq_to_time_true, shg2_freq_to_time_pred],
-        ["true", "pred"],
-        ["red", "black"],
+        shg2_time_vector_list,
+        shg2_freq_to_time_list,
+        labels_list,
+        colors_list,
         "time",
         normalize=False,
-        legend=False,
         offsets=[0, 0],
         save_format="jpg",
         save_name=model_save_name + "_ptd6.jpg",
