@@ -36,7 +36,7 @@ class LSTMModel(nn.Module):
         )
 
         print(
-            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}"
+            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}"
         )
 
     def forward(
