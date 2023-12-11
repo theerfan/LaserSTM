@@ -1,18 +1,18 @@
 # #
-# import numpy as np
-# import os
+import numpy as np
+import os
 
-# # direct = "/mnt/oneterra/SFG_reIm_version1_reduced/"
-# direct = "/mnt/oneterra/SFG_reIm_version1/"
-# # direct = "/mnt/oneterra/outputs/04-12-2023"
+# direct = "/mnt/oneterra/SFG_reIm_version1_reduced/"
+direct = "/mnt/oneterra/SFG_reIm_version1/"
+# direct = "/mnt/oneterra/outputs/04-12-2023"
 
-# def get_npy_shape(npy_file_path):
-#     with open(npy_file_path, 'rb') as f:
-#         version = np.lib.format.read_magic(f)
-#         shape, fortran_order, dtype = np.lib.format._read_array_header(f, version)
-#         return shape
+def get_npy_shape(npy_file_path):
+    with open(npy_file_path, 'rb') as f:
+        version = np.lib.format.read_magic(f)
+        shape, fortran_order, dtype = np.lib.format._read_array_header(f, version)
+        return shape, dtype 
 
-# print(get_npy_shape(os.path.join(direct, "y_new_0.npy")))
+print(get_npy_shape(os.path.join(direct, "X_new_0.npy")))
 
 # for i in range(0, 10):
 #     fname = os.path.join(direct, f"y_new_{i}.npy")
@@ -32,16 +32,16 @@
 
 
 
-from Analysis.analyze_reim import do_analysis
+# from Analysis.analyze_reim import do_analysis
 
-do_analysis(
-    "/mnt/oneterra/outputs/06-12-2023",
-    "/mnt/oneterra/SFG_reIm_version1/",
-    "LSTM_100_epoch_66",
-    91,
-    0,
-    15
-)
+# do_analysis(
+#     "/mnt/oneterra/outputs/06-12-2023",
+#     "/mnt/oneterra/SFG_reIm_version1/",
+#     "LSTM_100_epoch_66",
+#     91,
+#     0,
+#     15
+# )
 
 # import os
 # import re
