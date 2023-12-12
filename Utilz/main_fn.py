@@ -26,7 +26,21 @@ def main_function(
 ):
     custom_loss = get_custom_loss(args)
 
-    if args.do_prediction == 1:
+    if args.do_analysis == 1:
+        log_str = f"Prediction only mode for model {args.model}"
+        print(log_str)
+        logging.info(log_str)
+        model_save_name = os.path.basename(args.model_param_path).split(".")[0]
+        do_analysis(
+            args.output_dir,
+            args.data_dir,
+            model_save_name,
+            file_idx=args.analysis_file,
+            all_preds_idx=args.all_preds_idx,
+            item_idx=args.analysis_example,
+        )
+
+    elif args.do_prediction == 1:
         log_str = f"Prediction only mode for model {args.model}"
         print(log_str)
         logging.info(log_str)

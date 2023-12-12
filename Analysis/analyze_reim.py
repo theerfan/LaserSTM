@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from Analysis.util import (
     get_intensity,
     get_phase,
-    re_im_sep,
+    re_im_combined,
     change_domain_and_adjust_energy,
 )
 
@@ -148,9 +148,9 @@ def do_analysis(
 
     domain_spacing_1 = (
         freq_vectors_shg1[1] - freq_vectors_shg1[0]
-    ) * 1e12  # scaled to be back in Hz
-    domain_spacing_2 = (freq_vectors_shg2[1] - freq_vectors_shg2[0]) * 1e12
-    domain_spacing_3 = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) * 1e12
+    ) #* 1e12  # scaled to be back in Hz
+    domain_spacing_2 = (freq_vectors_shg2[1] - freq_vectors_shg2[0]) #* 1e12
+    domain_spacing_3 = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) #* 1e12
 
     factors_freq = {
         "beam_area": 400e-6**2 * np.pi,
@@ -182,12 +182,16 @@ def do_analysis(
     y_pred_trans = scaler.inverse_transform(all_preds[all_preds_idx])[item_idx]
 
     ###
+    a = 12
 
     # Get the transformed value of the real item in the dataset
+    # The first part slices out everythin before the output of the first crystal,
+    # then it jumps at iterations of the size of crystal_length to get the output 
+    # of the next crystal, then it selects one of those outputs in there.
     y_true_trans = y_true[crystal_length - 1 :][::crystal_length][item_idx]
 
-    y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_sep(y_pred_trans)
-    y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_sep(y_true_trans)
+    y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(y_pred_trans)
+    y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_combined(y_true_trans)
 
     (
         sfg_freq_to_time_direct_pred,

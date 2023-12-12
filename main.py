@@ -65,6 +65,13 @@ def get_cmd_args():
     )
 
     parser.add_argument(
+        "--do_analysis",
+        type=int,
+        default=0,
+        help="Whether to do prediction or not.",
+    )
+
+    parser.add_argument(
         "--model_param_path",
         type=str,
         default=None,
@@ -97,6 +104,13 @@ def get_cmd_args():
         "--analysis_example",
         type=int,
         default=15,
+        help="The example of the file to use for analysis",
+    )
+
+    parser.add_argument(
+        "--all_preds_idx",
+        type=int,
+        default=0,
         help="The example of the file to use for analysis",
     )
 

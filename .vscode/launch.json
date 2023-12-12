@@ -154,6 +154,30 @@
         ]
       },
       {
+        "name": "LSTM - Analysis",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/main.py",
+        "console": "integratedTerminal",
+        "justMyCode": false,
+        "args": [
+          "--model",
+          "LSTM",
+          "--data_dir",
+          "${workspaceFolder}",
+          "--output_dir",
+          "${workspaceFolder}",
+          "--do_analysis",
+          "1",
+          "--model_param_path",
+          "${workspaceFolder}/LSTM_100_epoch_66.pth",
+          "--lstm_hidden_size",
+          "2048",
+          "--all_preds_idx",
+          "0"
+        ]
+      },
+      {
         "name": "Python: Remote Attach",
         "type": "python",
         "request": "attach",

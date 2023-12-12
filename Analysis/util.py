@@ -7,9 +7,9 @@ def get_phase(field):
     return np.arctan2(np.imag(field), np.real(field))
 
 
-def resample_method1(input_domain, target_domain, input_vector):
+def intrepolate_vector(input_domain, target_domain, input_vector, method="linear"):
     try:
-        f = interp1d(input_domain, input_vector)
+        f = interp1d(input_domain, input_vector, kind=method)
         resampled_vector = f(target_domain)
         return resampled_vector
     except ValueError:
@@ -49,22 +49,20 @@ def get_intensity(field):
     return np.abs(field) ** 2
 
 
-def energy_match(field, energy):
-    return np.sqrt(
-        energy * get_intensity(field) / np.sum(get_intensity(field))
-    ) * np.exp(1j * get_phase(field))
-
-
-def calc_energy_expanded(field, domain_spacing, spot_area):
+def calc_energy_expanded(
+    field: np.ndarray, domain_spacing: np.ndarray, spot_area: float
+) -> float:
     return np.sum(get_intensity(field)) * domain_spacing * spot_area
 
 
-def energy_match_expanded(field, energy, domain_spacing, spot_area):
-    norm_E = np.sum(get_intensity(field)) * domain_spacing * spot_area
+def normalize_expanded_energy(
+    field: np.ndarray, energy: np.ndarray, domain_spacing: float, spot_area: float
+) -> np.ndarray:
+    norm_E = calc_energy_expanded(field, domain_spacing, spot_area)
     return np.sqrt(energy / norm_E) * field
 
 
-def re_im_sep(fields):
+def re_im_combined(fields):
     shg1 = fields[0:1892] + fields[1892 * 2 + 348 : 1892 * 3 + 348] * 1j
     shg2 = fields[1892 : 1892 * 2] + fields[1892 * 3 + 348 : 1892 * 4 + 348] * 1j
     sfg = (
@@ -75,17 +73,22 @@ def re_im_sep(fields):
     return shg1, shg2, sfg
 
 
+# domain_type is the original one
 def change_domains(domain, field, new_domain, domain_type):
+    # pad the "downsampled" version with zeros so we could do extrapolation
     padded_vector = np.pad(field, (1, 1), mode="constant")
+    # tukey filter smoothes out the wavefunction
+    # TODO: Is doing the window here necessary?
     window = signal.windows.tukey(int(len(padded_vector) // 1))
     padded_vector = window * padded_vector
 
     # Extend old domain to match new domain
-    alt_domain = np.append([new_domain[0]], domain)
-    alt_domain = np.append(alt_domain, [new_domain[-1]])
+    # This is to make sure the domains of the stretched (padded) vector
+    # match what it should be in reality
+    alt_domain = np.concatenate(([new_domain[0]], domain, [new_domain[-1]]))
 
     # Resample padded vector using new domain
-    resampled_vector = resample_method1(alt_domain, new_domain, padded_vector)
+    resampled_vector = intrepolate_vector(alt_domain, new_domain, padded_vector)
 
     if domain_type == "freq":
         out_direct = ifft(field)
@@ -110,11 +113,18 @@ def change_domain_and_adjust_energy(
 ):
     out_direct, out = change_domains(domain, field, new_domain, domain_type)
     domain_spacing_calc = domain[1] - domain[0]
+
+    # Calculate the energy for the original field
     pulse_energy_calc = calc_energy_expanded(field, domain_spacing_calc, beam_area)
-    out_direct = energy_match_expanded(
+
+    # then normalize the energies of the resamplea and non-resampled vectors from the
+    # time domain to the energy of the field because they should be the same
+    out_direct = normalize_expanded_energy(
         out_direct, pulse_energy_calc, domain_spacing, beam_area
     )
-    out = energy_match_expanded(out, pulse_energy_calc, true_domain_spacing, beam_area)
+    out = normalize_expanded_energy(
+        out, pulse_energy_calc, true_domain_spacing, beam_area
+    )
 
     print(
         "direct, and resampled energies: ",
@@ -123,20 +133,3 @@ def change_domain_and_adjust_energy(
     )
 
     return out_direct, out
-
-
-class UNITS:
-    def __init__(self, mScale=0, sScale=0):
-        self.m = 10**mScale
-        self.mm = 10 ** (-3 * self.m)
-        self.um = 10 ** (-6 * self.m)
-        self.nm = 10 ** (-9 * self.m)
-
-        self.s = 10**sScale
-        self.ns = 10 ** (-9 * self.s)
-        self.ps = 10 ** (-12 * self.s)
-        self.fs = 10 ** (-15 * self.s)
-
-        self.J = (self.m**2) / (self.s**2)
-        self.mJ = 10 ** (-3 * self.J)
-        self.uJ = 10 ** (-6 * self.J)

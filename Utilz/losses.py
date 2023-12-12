@@ -12,6 +12,17 @@ domain_spacing_shg = (
 ) * 1e-12  # scaled to be back in Hz
 domain_spacing_sfg = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) * 1e-12
 
+def get_intensity(field: torch.Tensor) -> float:
+    """
+    Returns the intensity of a field
+    """
+    return torch.abs(field) ** 2
+
+
+def calc_energy_expanded(
+    field: torch.Tensor, domain_spacing: torch.Tensor, spot_area: float
+) -> float:
+    return torch.sum(get_intensity(field)) * domain_spacing * spot_area
 
 def area_under_curve_diff(
     real_pred: torch.Tensor,
@@ -94,87 +105,34 @@ def area_under_curve_loss(
     return shg_weight * (shg1_auc + shg2_auc) + sfg_weight * sfg_auc
 
 
-# Function to calculate pseudo-energy for a given set of tensors
-def calculate_pseudo_energy_diff(
-    real_pred: torch.Tensor,
-    complex_pred: torch.Tensor,
-    real_real: torch.Tensor,
-    complex_real: torch.Tensor,
-    spacing: float,
-):
-    pred_magnitude = torch.sum(torch.square(real_pred), dim=-1) + torch.sum(
-        torch.square(complex_pred), dim=-1
-    )
-
-    real_magnitude = torch.sum(torch.square(real_real), dim=-1) + torch.sum(
-        torch.square(complex_real), dim=-1
-    )
-
-    return 0.5 * (pred_magnitude - real_magnitude) ** 2 * spacing
-
-
 # Convert from a + bi to A * exp(i * theta) to get the energy from the amplitude
 def pseudo_energy_loss(
     y_pred: torch.Tensor,
-    y_real: torch.Tensor,
+    y_true: torch.Tensor,
     shg_spacing: float = domain_spacing_shg,
     sfg_spacing: float = domain_spacing_sfg,
     shg_weight: float = 1,
     sfg_weight: float = 1,
     **kwargs,
 ):
-    (
-        shg1_real_pred,
-        shg1_complex_pred,
-        shg2_real_pred,
-        shg2_complex_pred,
-        sfg_real_pred,
-        sfg_complex_pred,
-    ) = re_im_sep_vectors(y_pred)
+    combined_pred_shg1, combined_pred_shg2, combined_pred_sfg = re_im_combined(y_pred)
+    combined_true_shg1, combined_true_shg2, combined_true_sfg = re_im_combined(y_true)
 
-    (
-        shg1_real_real,
-        shg1_complex_real,
-        shg2_real_real,
-        shg2_complex_real,
-        sfg_real_real,
-        sfg_complex_real,
-    ) = re_im_sep_vectors(y_real)
+    pred_shg1_energy = calc_energy_expanded(combined_pred_shg1, shg_spacing, 1)
+    pred_shg2_energy = calc_energy_expanded(combined_pred_shg2, shg_spacing, 1)
+    pred_sfg_energy = calc_energy_expanded(combined_pred_sfg, sfg_spacing, 1)
 
-    # Calculate energies
-    shg1_energy_diff = calculate_pseudo_energy_diff(
-        shg1_real_pred,
-        shg1_complex_pred,
-        shg1_real_real,
-        shg1_complex_real,
-        shg_spacing,
-    )
-    shg2_energy_diff = calculate_pseudo_energy_diff(
-        shg2_real_pred,
-        shg2_complex_pred,
-        shg2_real_real,
-        shg2_complex_real,
-        shg_spacing,
-    )
-    sfg_energy_diff = calculate_pseudo_energy_diff(
-        sfg_real_pred, sfg_complex_pred, sfg_real_real, sfg_complex_real, sfg_spacing
-    )
+    true_shg1_energy = calc_energy_expanded(combined_true_shg1, shg_spacing, 1)
+    true_shg2_energy = calc_energy_expanded(combined_true_shg2, shg_spacing, 1)
+    true_sfg_energy = calc_energy_expanded(combined_true_sfg, sfg_spacing, 1)
 
-    # Calculate the mean of the energy differences in the batches
-    # NOTE: We need tonormalize the energy differences of shg1 and shg2 by dividing by its max value
-    # because sfg energy diff is like 0.61 and shg1 and shg2 are like 61 (!)
-    shg1_energy_diff = shg1_energy_diff / torch.max(shg1_energy_diff)
-    shg2_energy_diff = shg2_energy_diff / torch.max(shg2_energy_diff)
+    shg1_diff = true_shg1_energy - pred_shg1_energy
+    shg2_diff = true_shg2_energy - pred_shg2_energy
+    sfg_diff = true_sfg_energy - pred_sfg_energy
 
-    shg1_energy_diff = torch.mean(shg1_energy_diff)
-    shg2_energy_diff = torch.mean(shg2_energy_diff)
-    sfg_energy_diff = torch.mean(sfg_energy_diff)
+    return shg_weight * (shg1_diff + shg2_diff) + sfg_weight * sfg_diff
 
-    return (
-        shg_weight * (shg1_energy_diff + shg2_energy_diff)
-        + sfg_weight * sfg_energy_diff
-    )
-
+    
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal
@@ -292,7 +250,7 @@ def pearson_corr(
 
 
 # `:,` is there because we want to keep the batch dimension
-def re_im_sep(fields: torch.Tensor, detach=False):
+def re_im_combined(fields: torch.Tensor, detach=False):
     shg1 = fields[:, 0:1892] + fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] * 1j
     shg2 = fields[:, 1892 : 1892 * 2] + fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] * 1j
     sfg = (
