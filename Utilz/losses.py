@@ -221,7 +221,12 @@ def weighted_MSE(
     )
     sfg_loss_mean = torch.mean(sfg_loss, dim=-1)
 
-    return shg_weight * (shg1_loss_mean + shg2_loss_mean) + sfg_weight * sfg_loss_mean
+    loss_val = shg_weight * (shg1_loss_mean + shg2_loss_mean) + sfg_weight * sfg_loss_mean
+
+    if loss_val > 1:
+        print("Loss value is greater than 1:", loss_val)
+    
+    return loss_val
 
 
 def pearson_corr(

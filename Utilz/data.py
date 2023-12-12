@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 from torch.utils import data
+import h5py
 
 from typing import Iterable
 
@@ -56,32 +57,16 @@ class CustomSequence(data.Dataset):
             pass
 
     def shuffled_load_data_point(self, file_idx, sample_idx):
-        # Have to know shape and dtype of the data in advance
-        x_file_shape = (10_000, 10, 8264)
-        y_file_shape = (10_000, 8264)
-        array_dtype = np.float32  # Example data type
+        with h5py.File(os.path.join(self.data_dir, "X_new_data.h5"), "r") as file:
+            dataset = file[f"dataset_{file_idx}"]
+            data = dataset[sample_idx]
+        
+        with h5py.File(os.path.join(self.data_dir, "y_new_data.h5"), "r") as file:
+            dataset = file[f"dataset_{file_idx}"]
+            labels = dataset[sample_idx]
+        
+        return data, labels
 
-        # Replace 'file_path' with the path to your NumPy file
-        x_file_path = os.path.join(self.data_dir, self.Xnames[file_idx])
-        y_file_path = os.path.join(self.data_dir, self.ynames[file_idx])
-
-        # Create a memory-mapped array
-        mapped_x_array = np.memmap(
-            x_file_path, dtype=array_dtype, mode="r", shape=x_file_shape
-        )
-        mapped_y_array = np.memmap(
-            y_file_path, dtype=array_dtype, mode="r", shape=y_file_shape
-        )
-
-        # Get the data point
-        x = mapped_x_array[sample_idx].copy()
-        y = mapped_y_array[sample_idx].copy()
-
-        # Delete the memory-mapped array
-        del mapped_x_array
-        del mapped_y_array
-
-        return x, y
 
     def __len__(self):
         # Assuming every file has the same number of samples, otherwise you need a more dynamic way
@@ -121,5 +106,9 @@ class CustomSequence(data.Dataset):
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             data_tensor = data_tensor.to(device)
             labels_tensor = labels_tensor.to(device)
+
+        if torch.max(data_tensor) > 10.0:
+            print("STOP RIGHT THERE")
+            # data_tensor = data_tensor / torch.max(data_tensor)
 
         return data_tensor, labels_tensor

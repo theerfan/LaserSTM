@@ -1,18 +1,18 @@
-# #
-import numpy as np
-import os
+# # #
+# import numpy as np
+# import os
 
-# direct = "/mnt/oneterra/SFG_reIm_version1_reduced/"
-direct = "/mnt/oneterra/SFG_reIm_version1/"
-# direct = "/mnt/oneterra/outputs/04-12-2023"
+# # direct = "/mnt/oneterra/SFG_reIm_version1_reduced/"
+# direct = "/mnt/oneterra/SFG_reIm_version1/"
+# # direct = "/mnt/oneterra/outputs/04-12-2023"
 
-def get_npy_shape(npy_file_path):
-    with open(npy_file_path, 'rb') as f:
-        version = np.lib.format.read_magic(f)
-        shape, fortran_order, dtype = np.lib.format._read_array_header(f, version)
-        return shape, dtype 
+# def get_npy_shape(npy_file_path):
+#     with open(npy_file_path, 'rb') as f:
+#         version = np.lib.format.read_magic(f)
+#         shape, fortran_order, dtype = np.lib.format._read_array_header(f, version)
+#         return shape, dtype 
 
-print(get_npy_shape(os.path.join(direct, "X_new_0.npy")))
+# print(get_npy_shape(os.path.join(direct, "X_new_72.npy")))
 
 # for i in range(0, 10):
 #     fname = os.path.join(direct, f"y_new_{i}.npy")
@@ -61,3 +61,33 @@ print(get_npy_shape(os.path.join(direct, "X_new_0.npy")))
 # # Specify the directory to operate on
 # directory = '/mnt/oneterra/SFG_reIm_version1'
 # delete_specific_files(directory)
+
+
+
+import numpy as np
+import h5py
+import os
+
+# Directory containing the .npy files
+npy_dir = '/mnt/oneterra/SFG_reIm_version1/'
+
+# Path for the new HDF5 file
+hdf5_path = '/mnt/oneterra/SFG_reIm_h5/X_new_data.h5'
+
+# Create the directory for the HDF5 file if it doesn't exist
+os.makedirs(os.path.dirname(hdf5_path), exist_ok=True)
+
+# Open an HDF5 file in write mode
+with h5py.File(hdf5_path, 'w') as hdf5_file:
+    # Loop through the file numbers
+    for i in range(100):  # 0 to 99
+        # Construct the .npy file path
+        npy_file_path = os.path.join(npy_dir, f'X_new_{i}.npy')
+
+        # Load the .npy file
+        data = np.load(npy_file_path)
+
+        # Save the data to the HDF5 file, indexed by file number
+        hdf5_file.create_dataset(f'dataset_{i}', data=data)
+
+print(f'All .npy files have been saved to {hdf5_path}')
