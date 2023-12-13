@@ -133,6 +133,7 @@ def do_analysis(
     crystal_length: int = 100,  # length of the crystal
     y_pred_trans_item: np.ndarray = None,
     y_true_trans_item: np.ndarray = None,
+    file_save_name: str = None,
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -422,4 +423,6 @@ def do_analysis(
     new_fig.tight_layout()
     plt.show()
 
-    save_figure(model_save_name + "_All.jpg", "jpg", fig_save_dir)
+    file_save_name = file_save_name or model_save_name + "_All.jpg"
+
+    save_figure(file_save_name, "jpg", fig_save_dir)

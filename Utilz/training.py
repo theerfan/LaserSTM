@@ -270,7 +270,7 @@ def predict(
     start_time = time.time()
 
     with torch.no_grad():
-        for j, (X_batch, _) in enumerate(test_dataloader):
+        for j, (X_batch, y_batch) in enumerate(test_dataloader):
             X_batch = X_batch.to(device)
             if verbose:
                 print(f"On batch {j} out of {len(test_dataloader)}")

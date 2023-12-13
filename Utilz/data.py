@@ -39,8 +39,6 @@ class CustomSequence(data.Dataset):
         # Assuming every file has the same number of samples, otherwise you need a more dynamic way
         return len(self.file_indexes) * self._num_samples_per_file
 
-    # NOTE: We assume that the suffling only happens when we load the data
-    # in a non-test mode.
     def __getitem__(self, idx):
         # Compute file index and sample index within that file
         # shift the file index to make sure we're starting from the specified file index
