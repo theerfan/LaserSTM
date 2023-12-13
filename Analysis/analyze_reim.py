@@ -44,7 +44,7 @@ def intensity_phase_plot(
     save_dir="",
     save=False,
     axs=None,
-    fig=None
+    fig=None,
 ):
     """
     Plot intensity and phase of a field
@@ -130,6 +130,8 @@ def do_analysis(
     item_idx: int,  # which example of the file to do analysis
     fig_save_dir: str = None,  # where to save the figures
     crystal_length: int = 100,  # length of the crystal
+    y_pred_trans_item: np.ndarray = None,
+    y_true_trans_item: np.ndarray = None,
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -148,9 +150,9 @@ def do_analysis(
 
     domain_spacing_1 = (
         freq_vectors_shg1[1] - freq_vectors_shg1[0]
-    ) #* 1e12  # scaled to be back in Hz
-    domain_spacing_2 = (freq_vectors_shg2[1] - freq_vectors_shg2[0]) #* 1e12
-    domain_spacing_3 = (freq_vectors_sfg[1] - freq_vectors_sfg[0]) #* 1e12
+    )  # * 1e12  # scaled to be back in Hz
+    domain_spacing_2 = freq_vectors_shg2[1] - freq_vectors_shg2[0]  # * 1e12
+    domain_spacing_3 = freq_vectors_sfg[1] - freq_vectors_sfg[0]  # * 1e12
 
     factors_freq = {
         "beam_area": 400e-6**2 * np.pi,
@@ -175,23 +177,32 @@ def do_analysis(
 
     # the output file from the "predict" function
     # this has a shape of (files, predictions, channels)
-    all_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
+    y_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
+    y_preds_that_file = y_preds[all_preds_idx]
+    y_preds_trans = scaler.inverse_transform(y_preds_that_file)
 
     # Transform this using the scaler, then get which file
     # and then get the example using its index
-    y_pred_trans = scaler.inverse_transform(all_preds[all_preds_idx])[item_idx]
+    y_pred_trans_item = y_pred_trans_item or y_preds_trans[item_idx]
 
     ###
     a = 12
 
     # Get the transformed value of the real item in the dataset
-    # The first part slices out everythin before the output of the first crystal,
-    # then it jumps at iterations of the size of crystal_length to get the output 
+    # The first part slices out everything before the output of the first crystal,
+    # then it jumps at iterations of the size of crystal_length to get the output
     # of the next crystal, then it selects one of those outputs in there.
-    y_true_trans = y_true[crystal_length - 1 :][::crystal_length][item_idx]
+    y_true_trans_all = y_true[crystal_length - 1 :][::crystal_length]
+    y_true_trans_item = y_true_trans_item or y_true_trans_all[item_idx]
 
-    y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(y_pred_trans)
-    y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_combined(y_true_trans)
+
+    # combine the vectors into a complex vector
+    y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(
+        y_pred_trans_item
+    )
+    y_true_trans_shg1, y_true_trans_shg2, y_true_trans_sfg = re_im_combined(
+        y_true_trans_item
+    )
 
     (
         sfg_freq_to_time_direct_pred,
