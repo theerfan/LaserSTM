@@ -240,7 +240,6 @@ def predict(
     is_slice: bool = True,
     crystal_length: int = 100,
     load_model: bool = True,
-    data_dir: str = ".",
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -292,7 +291,11 @@ def predict(
                     # plt.close()
 
                     # # TODO: remove this later, just for debug purposes
-                    # do_analysis(".", data_dir, model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-{i}.jpg")
+                    # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
+                    # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, X_batch[-1].cpu().numpy(), X_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
+
+                    if i == 9:
+                        a = 12
 
                     X_batch = X_batch[:, 1:, :]  # pop first
 

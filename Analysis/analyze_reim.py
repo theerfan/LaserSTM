@@ -182,7 +182,9 @@ def do_analysis(
         y_true_trans_all = y_true[crystal_length - 1 :][::crystal_length]
         y_true_trans_item = y_true_trans_all[item_idx]
     else:
-        pass
+        y_true_trans_item = y_true_trans_item[None, :]
+        y_true_trans_item = scaler.inverse_transform(y_true_trans_item)
+        y_true_trans_item = y_true_trans_item.squeeze()
 
     sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
     sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
@@ -201,7 +203,9 @@ def do_analysis(
         # and then get the example using its index
         y_pred_trans_item = y_preds_trans[item_idx]
     else:
-        pass
+        y_pred_trans_item = y_pred_trans_item[None, :]
+        y_pred_trans_item = scaler.inverse_transform(y_pred_trans_item)
+        y_pred_trans_item = y_pred_trans_item.squeeze()
 
     # combine the vectors into a complex vector
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(

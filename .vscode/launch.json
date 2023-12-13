@@ -151,8 +151,10 @@
           "/mnt/oneterra/outputs/11-12-2023/LSTM_dropout_epoch_10.pth",
           "--lstm_num_layers",
           "2",
-          // "--test_test_mode",
-          // "0"
+          "--test_test_mode",
+          "0",
+          "--batch_size",
+          "1000"
           // "--lstm_hidden_size",
           // "2048"
         ]
