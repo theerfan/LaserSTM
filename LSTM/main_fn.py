@@ -1,4 +1,4 @@
-from LSTM.model import LSTMModel
+from LSTM.model import LSTMModel, TridentLSTM
 from Utilz.loads import get_datasets
 from Utilz.main_fn import main_function
 
@@ -16,9 +16,16 @@ def main_lstm(
         "fc_dropout": args.fc_dropout,
     }
 
-    model = LSTMModel(
-        **model_dict,
-    )
+    if args.model == "LSTM":
+        model = LSTMModel(
+            **model_dict,
+        )
+    elif args.model == "TridentLSTM":
+        model = TridentLSTM(
+            **model_dict,
+        )
+    else:
+        raise NotImplementedError
     train_dataset, val_dataset, test_dataset = get_datasets(args)
 
     main_function(
