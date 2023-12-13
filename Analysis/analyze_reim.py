@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import os
+import h5py
 
 import matplotlib.pyplot as plt
 from Analysis.util import (
@@ -163,9 +164,11 @@ def do_analysis(
     }  # beam radius 400 um (and circular beam)
 
     # Loading the single file out of the test dataset
-    y_true = np.load(
-        os.path.join(data_directory, f"y_new_{file_idx}.npy")
-    )  # these are used to compare to the predictions
+    # these are used to compare to the predictions
+
+    with h5py.File(os.path.join(data_directory, "y_new_data.h5"), "r") as file:
+        dataset = file[f"dataset_{file_idx}"]
+        y_true = dataset[item_idx]
 
     y_true = scaler.inverse_transform(y_true)
 
@@ -194,7 +197,6 @@ def do_analysis(
     # of the next crystal, then it selects one of those outputs in there.
     y_true_trans_all = y_true[crystal_length - 1 :][::crystal_length]
     y_true_trans_item = y_true_trans_item or y_true_trans_all[item_idx]
-
 
     # combine the vectors into a complex vector
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(
