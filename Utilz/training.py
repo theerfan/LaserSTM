@@ -14,6 +14,7 @@ import logging
 
 import time
 import copy
+import matplotlib.pyplot as plt
 
 from functools import partial
 
@@ -239,6 +240,7 @@ def predict(
     is_slice: bool = True,
     crystal_length: int = 100,
     load_model: bool = True,
+    data_dir: str = ".",
 ) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -253,9 +255,9 @@ def predict(
 
     # We do this to have the same length for both dataloader and dataset
     # for "analysis" purposes
-    batch_size = batch_size or test_dataset.get_num_samples_per_file()
+    batch_size = batch_size or test_dataset._num_samples_per_file
     # If #samples_per_file is not divisible by batch_size, find the nearest smaller batch size that is
-    while test_dataset.get_num_samples_per_file() % batch_size != 0:
+    while test_dataset._num_samples_per_file % batch_size != 0:
         batch_size -= 1
     print(f"To confirm - Batch size: {batch_size}")
 
@@ -279,8 +281,19 @@ def predict(
                 final_shape = X_batch.shape[-1]
 
             if is_slice:
-                for _ in range(crystal_length):  # need to predict 100 times
+                for i in range(crystal_length):  # need to predict 100 times
                     pred = model(X_batch)
+
+                    # plt.figure()
+                    # plt.plot(pred[-1].cpu().numpy(), label="pred", alpha=0.5)
+                    # plt.plot(y_batch[-1].cpu().numpy(), label="y", alpha=0.5)
+                    # plt.legend()
+                    # plt.savefig(f"bare-item-{i}.jpg")
+                    # plt.close()
+
+                    # # TODO: remove this later, just for debug purposes
+                    # do_analysis(".", data_dir, model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-{i}.jpg")
+
                     X_batch = X_batch[:, 1:, :]  # pop first
 
                     # add to last
@@ -294,7 +307,7 @@ def predict(
 
             if (
                 len(current_preds) * batch_size
-                == test_dataset.get_num_samples_per_file()
+                == test_dataset._num_samples_per_file
             ):
                 print("adding something to all_preds!!")
                 all_preds.append(np.concatenate(current_preds, axis=0))

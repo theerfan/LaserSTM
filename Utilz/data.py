@@ -42,14 +42,16 @@ class CustomSequence(data.Dataset):
     def __getitem__(self, idx):
         # Compute file index and sample index within that file
         # shift the file index to make sure we're starting from the specified file index
-        idx = idx + self._num_samples_per_file * self.file_indexes[0]
-        file_idx = idx // self._num_samples_per_file
-        sample_idx = idx % self._num_samples_per_file
+        shifted_idx = idx + self._num_samples_per_file * self.file_indexes[0]
+        file_idx = shifted_idx // self._num_samples_per_file
+        sample_idx = shifted_idx % self._num_samples_per_file
+
+        # print(f"Loading file {file_idx} and sample {sample_idx}")
 
         data, labels = self.load_data_point(file_idx, sample_idx)
         if self.test_mode:
             data = data[:: self.crystal_length]
-            labels = labels[self.crystal_length - 1 : :][:: self.crystal_length]
+            labels = labels[self.crystal_length - 1 :][:: self.crystal_length]
 
         data_tensor = torch.tensor(data, dtype=torch.float32)
         labels_tensor = torch.tensor(labels, dtype=torch.float32)

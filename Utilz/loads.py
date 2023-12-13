@@ -47,25 +47,22 @@ def get_custom_loss(args: Namespace) -> Callable:
 
 def get_datasets(
     args: Namespace,
-    train_test_mode: bool = False,
-    val_test_mode: bool = False,
-    test_test_mode: bool = True,
 ):
     train_dataset = CustomSequence(
         args.data_dir,
         range(0, 90),
-        test_mode=train_test_mode,
+        test_mode=args.train_test_mode,
         crystal_length=args.crystal_length,
     )
 
     val_dataset = CustomSequence(
-        args.data_dir, [90], test_mode=val_test_mode, crystal_length=args.crystal_length
+        args.data_dir, [90], test_mode=args.val_test_mode, crystal_length=args.crystal_length
     )
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 100),
-        test_mode=test_test_mode,
+        test_mode=args.test_test_mode,
         crystal_length=args.crystal_length,
     )
 

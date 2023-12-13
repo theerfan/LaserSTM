@@ -167,14 +167,35 @@ def get_cmd_args():
         "--lstm_dropout",
         type=float,
         default=0.3,
-        help="Learning rate for the model.",
+        help="Dropout rate for the LSTM model.",
     )
 
     parser.add_argument(
         "--fc_dropout",
         type=float,
         default=0.3,
-        help="Learning rate for the model.",
+        help="Dropout rate for the fully connected layers.",
+    )
+
+    parser.add_argument(
+        "--train_test_mode",
+        type=int,
+        default=0,
+        help="Load the train dataset in test mode.",
+    )
+
+    parser.add_argument(
+        "--val_test_mode",
+        type=int,
+        default=0,
+        help="Load the val dataset in test mode.",
+    )
+
+    parser.add_argument(
+        "--test_test_mode",
+        type=int,
+        default=1,
+        help="Load the test dataset in test mode.",
     )
 
     return parser.parse_args()

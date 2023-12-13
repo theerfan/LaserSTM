@@ -105,7 +105,7 @@ def intensity_phase_plot(
     axs.set_ylabel(y_label_1, color="black")
     axs2 = axs.twinx()
 
-    for i in range(len(intensities)):
+    for i in range(len(phases)):
         axs2.plot(
             factored_domains[i],
             phases[i],
@@ -167,11 +167,22 @@ def do_analysis(
     # Loading the single file out of the test dataset
     # these are used to compare to the predictions
 
-    with h5py.File(os.path.join(data_directory, "y_new_data.h5"), "r") as file:
-        dataset = file[f"dataset_{file_idx}"]
-        y_true = dataset[item_idx]
-
-    y_true = scaler.inverse_transform(y_true)
+    if y_true_trans_item is None:
+        with h5py.File(os.path.join(data_directory, "y_new_data.h5"), "r") as file:
+            dataset = file[f"dataset_{file_idx}"]
+            # get all the data from the file
+            y_true = dataset[:]
+            # then scale it back to the original values
+            y_true = scaler.inverse_transform(y_true)
+        
+        # Get the transformed value of the real item in the dataset
+        # The first part slices out everything before the output of the first crystal,
+        # then it jumps at iterations of the size of crystal_length to get the output
+        # of the next crystal, then it selects one of those outputs in there.
+        y_true_trans_all = y_true[crystal_length - 1 :][::crystal_length]
+        y_true_trans_item = y_true_trans_all[item_idx]
+    else:
+        pass
 
     sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
     sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
@@ -179,25 +190,18 @@ def do_analysis(
 
     ### The part where we load the predictions
 
-    # the output file from the "predict" function
-    # this has a shape of (files, predictions, channels)
-    y_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
-    y_preds_that_file = y_preds[all_preds_idx]
-    y_preds_trans = scaler.inverse_transform(y_preds_that_file)
+    if y_pred_trans_item is None:
+        # the output file from the "predict" function
+        # this has a shape of (files, predictions, channels)
+        y_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
+        y_preds_that_file = y_preds[all_preds_idx]
+        y_preds_trans = scaler.inverse_transform(y_preds_that_file)
 
-    # Transform this using the scaler, then get which file
-    # and then get the example using its index
-    y_pred_trans_item = y_pred_trans_item or y_preds_trans[item_idx]
-
-    ###
-    a = 12
-
-    # Get the transformed value of the real item in the dataset
-    # The first part slices out everything before the output of the first crystal,
-    # then it jumps at iterations of the size of crystal_length to get the output
-    # of the next crystal, then it selects one of those outputs in there.
-    y_true_trans_all = y_true[crystal_length - 1 :][::crystal_length]
-    y_true_trans_item = y_true_trans_item or y_true_trans_all[item_idx]
+        # Transform this using the scaler, then get which file
+        # and then get the example using its index
+        y_pred_trans_item = y_preds_trans[item_idx]
+    else:
+        pass
 
     # combine the vectors into a complex vector
     y_pred_trans_shg1, y_pred_trans_shg2, y_pred_trans_sfg = re_im_combined(

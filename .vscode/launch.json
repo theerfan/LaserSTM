@@ -132,7 +132,7 @@
         ]
       },
       {
-        "name": "LSTM - Prediction",
+        "name": "LSTM - Funky Prediction",
         "type": "python",
         "request": "launch",
         "program": "${workspaceFolder}/main.py",
@@ -142,15 +142,19 @@
           "--model",
           "LSTM",
           "--data_dir",
-          "/mnt/oneterra/SFG_reIm_version1/",
+          "/mnt/oneterra/SFG_reIm_h5/",
           "--output_dir",
-          "/mnt/oneterra/outputs/04-12-2023",
+          "/mnt/oneterra/outputs/11-12-2023",
           "--do_prediction",
           "1",
           "--model_param_path",
-          "/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25.pth",
-          "--lstm_hidden_size",
-          "2048"
+          "/mnt/oneterra/outputs/11-12-2023/LSTM_dropout_epoch_10.pth",
+          "--lstm_num_layers",
+          "2",
+          // "--test_test_mode",
+          // "0"
+          // "--lstm_hidden_size",
+          // "2048"
         ]
       },
       {

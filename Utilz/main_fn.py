@@ -52,6 +52,7 @@ def main_function(
             output_dir=args.output_dir,
             output_name=model_save_name + "_all_preds.npy",
             verbose=args.verbose,
+            data_dir=args.data_dir,
         )
 
         testset_starting_point = test_dataset.file_indexes[0]
