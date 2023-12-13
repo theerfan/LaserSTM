@@ -37,7 +37,7 @@ class CustomSequence(data.Dataset):
 
     def __len__(self):
         # Assuming every file has the same number of samples, otherwise you need a more dynamic way
-        return len(self.Xnames) * self._num_samples_per_file
+        return len(self.file_indexes) * self._num_samples_per_file
 
     # NOTE: We assume that the suffling only happens when we load the data
     # in a non-test mode.
