@@ -53,7 +53,6 @@ def main_function(
             verbose=args.verbose,
         )
 
-        testset_starting_point = test_dataset.file_indexes[0]
 
         do_analysis(
             args.output_dir,
