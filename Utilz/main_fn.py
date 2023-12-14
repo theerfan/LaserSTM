@@ -1,10 +1,6 @@
 from Utilz.training import predict, train_and_test, tune_and_train, funky_predict
 from Utilz.loads import get_custom_loss
-from Utilz.data import (
-    CustomSequence,
-    X_Dataset,
-    Y_Dataset
-)
+from Utilz.data import CustomSequence, X_Dataset, Y_Dataset
 import logging
 import torch.nn as nn
 import os
@@ -30,9 +26,13 @@ def main_function(
         logging.info(log_str)
         model_save_name = os.path.basename(args.model_param_path).split(".")[0]
 
-        x_test_set = X_Dataset(args.data_dir, file_indexes=range(91, 100))
-        y_test_set = Y_Dataset(args.data_dir, file_indexes=range(91, 100))
-        
+        x_test_set = X_Dataset(
+            args.data_dir, file_indexes=[args.analysis_file], load_mode=2
+        )
+        y_test_set = Y_Dataset(
+            args.data_dir, file_indexes=[args.analysis_file], load_mode=2
+        )
+
         funky_predict(
             model,
             model_param_path=args.model_param_path,
@@ -43,6 +43,8 @@ def main_function(
             y_batch_size=100,
             model_save_name=model_save_name,
             verbose=args.verbose,
+            analysis_file_idx=args.analysis_file,
+            analysis_item_idx=args.analysis_example,
         )
 
     elif args.do_analysis == 1:

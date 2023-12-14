@@ -95,7 +95,7 @@ class X_Dataset(Dataset):
         file_indexes: Iterable,
         load_mode: bool = False,
         crystal_length: int = 100,
-        load_in_gpu: bool = True,
+        load_in_gpu: bool = False,
     ):
         self.file_indexes = file_indexes
         self.load_mode = load_mode

@@ -27,10 +27,10 @@ class LSTMModel(nn.Module):
         self.linear = nn.Sequential(
             nn.Linear(lstm_hidden_size, linear_layer_size),
             nn.ReLU(),
-            nn.Dropout(fc_dropout),
+            # nn.Dropout(fc_dropout),
             nn.Linear(linear_layer_size, linear_layer_size),
             nn.Tanh(),
-            nn.Dropout(fc_dropout),
+            # nn.Dropout(fc_dropout),
             nn.Linear(linear_layer_size, input_size),
             nn.Sigmoid(),
         )

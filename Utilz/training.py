@@ -234,7 +234,7 @@ def load_model_params(
                 raise ValueError(
                     "The model parameter path provided does not contain a valid model!"
                 )
-            
+
             if "optimizer_state_dict" in params:
                 optimizer_state = params["optimizer_state_dict"]
 
@@ -355,8 +355,9 @@ def funky_predict(
     is_slice: bool = True,
     crystal_length: int = 100,
     load_model: bool = True,
+    analysis_file_idx: int = 90,
+    analysis_item_idx: int = 15,
 ) -> np.ndarray:
-    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if load_model:
@@ -366,6 +367,8 @@ def funky_predict(
 
     x_dataloader = DataLoader(x_dataset, batch_size=x_batch_size)
     y_dataloader = DataLoader(y_dataset, batch_size=y_batch_size)
+
+    testset_starting_point = x_dataset.file_indexes[0]
 
     model.to(device)
     model.eval()
@@ -378,45 +381,52 @@ def funky_predict(
 
     start_time = time.time()
 
+    our_idx = (
+        analysis_file_idx - testset_starting_point
+    ) * x_dataset._num_samples_per_file + analysis_item_idx
+
     with torch.no_grad():
         for j, (X_batch, y_batch) in enumerate(zip(x_dataloader, y_dataloader)):
-            X_batch = X_batch.to(device)
             if verbose:
                 print(f"On batch {j} out of {len(y_dataloader)}")
+            # since batch size is 1 here.
+            if j == our_idx:
+                X_batch = X_batch.to(device)
 
-            if final_shape is None:
-                final_shape = X_batch.shape[-1]
+                if final_shape is None:
+                    final_shape = X_batch.shape[-1]
 
-            if is_slice:
-                for i in range(crystal_length):  # need to predict 100 times
+                if is_slice:
+                    for i in range(crystal_length):  # need to predict 100 times
+                        pred = model(X_batch)
+
+                        if i == 0 or i == 1 or i == 50 or i == 99:
+                            do_analysis(
+                                ".",
+                                "/mnt/oneterra/SFG_reIm_h5/",
+                                model_save_name,
+                                0,
+                                0,
+                                ".",
+                                100,
+                                pred[-1].cpu().numpy(),
+                                y_batch[i].cpu().numpy(),
+                                f"analysis-scaled-file{analysis_file_idx}-item-{analysis_item_idx}-slice-{i}.jpg",
+                            )
+                            a = 12
+
+                        X_batch = X_batch[:, 1:, :]  # pop first
+
+                        # add to last
+                        X_batch = torch.cat(
+                            (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                        )
+                else:
                     pred = model(X_batch)
+                current_preds.append(pred.squeeze().cpu().numpy())
 
-                    do_analysis(
-                        ".",
-                        "/mnt/oneterra/SFG_reIm_h5/",
-                        model_save_name,
-                        0,
-                        0,
-                        ".",
-                        100,
-                        pred[-1].cpu().numpy(),
-                        y_batch[i].cpu().numpy(),
-                        f"analysis-scaled-file-{j}-item-{i}.jpg",
-                    )
-
-                    if i == 9:
-                        a = 12
-
-                    X_batch = X_batch[:, 1:, :]  # pop first
-
-                    # add to last
-                    X_batch = torch.cat(
-                        (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
-                    )
             else:
-                pred = model(X_batch)
-
-            current_preds.append(pred.squeeze().cpu().numpy())
+                pass
 
     end_time = time.time()
 
