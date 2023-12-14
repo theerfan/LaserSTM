@@ -72,23 +72,25 @@ def intensity_phase_plot(
     if axs is None:
         fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(6, 4), clear=False)
 
+    if normalize:
+        y_label_1 = "Norm. Intensity (a.u.)"
+        intensities = [intensity / np.max(intensity) for intensity in intensities]
+    else:
+        y_label_1 = "Fluence (J/m^2)"
+
     axs.set_xlabel(x_label)
 
     for i in range(len(intensities)):
-        if normalize:
-            intensity = intensities[i] / np.max(intensities[i])
-            y_label_1 = "Norm. Intensity (a.u.)"
-        else:
-            y_label_1 = "Fluence (J/m^2)"
-            # warnings.warn("Using default intensity units (J/m^2)")
-            intensity = intensities[i]
+        intensity = intensities[i]
 
         if y_label is None:
             y_label_1 = y_label_1
         else:
             y_label_1 = y_label
+
         if offsets is not None:
             offset = offsets[i]
+            
         axs.plot(
             factored_domains[i],
             intensity + offset,
@@ -97,7 +99,7 @@ def intensity_phase_plot(
             alpha=0.6,
         )
 
-    plt.legend()
+    axs.legend()
 
     if xlims is not None:
         axs.set_xlim(xlims[0], xlims[1])
@@ -260,8 +262,6 @@ def plot_a_bunch_of_fields(
         save_dir=fig_save_dir,
         axs=new_axs[5],
     )
-
-    print("------- Frequency Domain --------")
 
     new_fig.tight_layout()
     plt.show()
@@ -465,27 +465,27 @@ def do_analysis(
     colors_list = ["red", "black"]
     labels_list = ["true", "pred"]
 
-    # # Draw normalized plots
-    # plot_a_bunch_of_fields(
-    #     freq_vectors_sfg_list,
-    #     fields_sfg_list,
-    #     freq_vectors_shg1_list,
-    #     fields_shg1_list,
-    #     freq_vectors_shg2_list,
-    #     fields_shg2_list,
-    #     sfg_time_vector_list,
-    #     sfg_freq_to_time_list,
-    #     shg1_time_vector_list,
-    #     shg1_freq_to_time_list,
-    #     shg2_time_vector_list,
-    #     shg2_freq_to_time_list,
-    #     labels_list,
-    #     colors_list,
-    #     model_save_name,
-    #     fig_save_dir,
-    #     file_save_name=file_save_name,
-    #     normalize=True,
-    # )
+    # Draw normalized plots
+    plot_a_bunch_of_fields(
+        freq_vectors_sfg_list,
+        fields_sfg_list,
+        freq_vectors_shg1_list,
+        fields_shg1_list,
+        freq_vectors_shg2_list,
+        fields_shg2_list,
+        sfg_time_vector_list,
+        sfg_freq_to_time_list,
+        shg1_time_vector_list,
+        shg1_freq_to_time_list,
+        shg2_time_vector_list,
+        shg2_freq_to_time_list,
+        labels_list,
+        colors_list,
+        model_save_name,
+        fig_save_dir,
+        file_save_name=file_save_name,
+        normalize=True,
+    )
 
     # Draw non-normalized plots
     plot_a_bunch_of_fields(
