@@ -117,7 +117,7 @@ def change_domain_and_adjust_energy(
     # Calculate the energy for the original field
     pulse_energy_calc = calc_energy_expanded(field, domain_spacing_calc, beam_area)
 
-    # then normalize the energies of the resamplea and non-resampled vectors from the
+    # then normalize the energies of the resampled and non-resampled vectors from the
     # time domain to the energy of the field because they should be the same
     out_direct = normalize_expanded_energy(
         out_direct, pulse_energy_calc, domain_spacing, beam_area

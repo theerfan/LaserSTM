@@ -122,6 +122,158 @@ def intensity_phase_plot(
     return fig
 
 
+def plot_a_bunch_of_fields(
+    freq_vectors_sfg_list,
+    fields_sfg_list,
+    freq_vectors_shg1_list,
+    fields_shg1_list,
+    freq_vectors_shg2_list,
+    fields_shg2_list,
+    sfg_time_vector_list,
+    sfg_freq_to_time_list,
+    shg1_time_vector_list,
+    shg1_freq_to_time_list,
+    shg2_time_vector_list,
+    shg2_freq_to_time_list,
+    labels_list,
+    colors_list,
+    model_save_name,
+    fig_save_dir,
+    file_save_name=None,
+    normalize=False,
+):
+    nrows = 2
+    ncols = 3
+
+    plt.figure()
+
+    new_fig, new_axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(30, 15))
+
+    # Flatten the array of axes if it's 2D
+    if nrows > 1 and ncols > 1:
+        new_axs = new_axs.flatten()
+    else:  # 1D array of axes
+        new_axs = new_axs.reshape(-1)
+
+    print("------- True vs Prediction Frequency Domain --------")
+    print("*** SFG ***")
+    fig_pfg4 = intensity_phase_plot(
+        freq_vectors_sfg_list,
+        fields_sfg_list,
+        labels_list,
+        colors_list,
+        "freq",
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_pfg4.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[0],
+    )
+
+    print("*** SHG1 ***")
+    fig_pfg5 = intensity_phase_plot(
+        freq_vectors_shg1_list,
+        fields_shg1_list,
+        labels_list,
+        colors_list,
+        "freq",
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_pfg5.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[1],
+    )
+
+    print("*** SHG2 ***")
+    fig_pfg6 = intensity_phase_plot(
+        freq_vectors_shg2_list,
+        fields_shg2_list,
+        labels_list,
+        colors_list,
+        "freq",
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_pfg6.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[2],
+    )
+
+    print("------- True vs Prediction Time Domain --------")
+
+    print("*** SFG ***")
+    fig_ptd4 = intensity_phase_plot(
+        sfg_time_vector_list,
+        sfg_freq_to_time_list,
+        labels_list,
+        colors_list,
+        "time",
+        xlims=[-15, 15],
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_ptd4.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[3],
+    )
+
+    print("*** SHG1 ***")
+    fig_ptd5 = intensity_phase_plot(
+        shg1_time_vector_list,
+        shg1_freq_to_time_list,
+        labels_list,
+        colors_list,
+        "time",
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_ptd5.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[4],
+    )
+
+    print("*** SHG2 ***")
+    fig_ptd6 = intensity_phase_plot(
+        shg2_time_vector_list,
+        shg2_freq_to_time_list,
+        labels_list,
+        colors_list,
+        "time",
+        normalize=normalize,
+        offsets=[0, 0],
+        save_format="jpg",
+        save_name=model_save_name + "_ptd6.jpg",
+        plot_show=True,
+        plot_hold=False,
+        save_dir=fig_save_dir,
+        axs=new_axs[5],
+    )
+
+    print("------- Frequency Domain --------")
+
+    new_fig.tight_layout()
+    plt.show()
+
+    file_save_name = (
+        file_save_name
+        or model_save_name + f"_All_{'normalized' if normalize else 'orig'}.jpg"
+    )
+
+    save_figure(file_save_name, "jpg", fig_save_dir)
+
+
 def do_analysis(
     output_dir: str,  # directory from model training
     data_directory: str,  # directory from preprocessing
@@ -133,7 +285,6 @@ def do_analysis(
     y_pred_trans_item: np.ndarray = None,
     y_true_trans_item: np.ndarray = None,
     file_save_name: str = None,
-    normalize: bool = True,
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -174,7 +325,7 @@ def do_analysis(
             y_true = dataset[:]
             # then scale it back to the original values
             y_true = scaler.inverse_transform(y_true)
-        
+
         # Get the transformed value of the real item in the dataset
         # The first part slices out everything before the output of the first crystal,
         # then it jumps at iterations of the size of crystal_length to get the output
@@ -195,7 +346,9 @@ def do_analysis(
     if y_pred_trans_item is None:
         # the output file from the "predict" function
         # this has a shape of (files, predictions, channels)
-        with h5py.File(os.path.join(output_dir, f"{model_save_name}_all_preds.h5"), "r") as file:
+        with h5py.File(
+            os.path.join(output_dir, f"{model_save_name}_all_preds.h5"), "r"
+        ) as file:
             y_preds = file[f"dataset_{file_idx}"]
             y_preds_loaded = y_preds[:]
         y_preds_trans = scaler.inverse_transform(y_preds_loaded)
@@ -291,6 +444,7 @@ def do_analysis(
         true_domain_spacing=sfg_original_time_ds,
     )
 
+    # required lists for plotting the frequency domain
     freq_vectors_sfg_list = [freq_vectors_sfg, freq_vectors_sfg]
     freq_vectors_shg1_list = [freq_vectors_shg1, freq_vectors_shg1]
     freq_vectors_shg2_list = [freq_vectors_shg2, freq_vectors_shg2]
@@ -299,72 +453,7 @@ def do_analysis(
     fields_shg1_list = [y_true_trans_shg1, y_pred_trans_shg1]
     fields_shg2_list = [y_true_trans_shg2, y_pred_trans_shg2]
 
-    colors_list = ["red", "black"]
-    labels_list = ["true", "pred"]
-
-    nrows = 2
-    ncols = 3
-
-    new_fig, new_axs = plt.subplots(nrows=nrows, ncols=ncols, figsize=(30, 15))
-
-    # Flatten the array of axes if it's 2D
-    if nrows > 1 and ncols > 1:
-        new_axs = new_axs.flatten()
-    else:  # 1D array of axes
-        new_axs = new_axs.reshape(-1)
-
-    print("------- Non-normalized True vs Prediction Frequency Domain --------")
-    print("*** SFG ***")
-    fig_pfg4 = intensity_phase_plot(
-        freq_vectors_sfg_list,
-        fields_sfg_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg4.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[0],
-    )
-
-    print("*** SHG1 ***")
-    fig_pfg5 = intensity_phase_plot(
-        freq_vectors_shg1_list,
-        fields_shg1_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg5.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[1],
-    )
-
-    print("*** SHG2 ***")
-    fig_pfg6 = intensity_phase_plot(
-        freq_vectors_shg2_list,
-        fields_shg2_list,
-        labels_list,
-        colors_list,
-        "freq",
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_pfg6.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[2],
-    )
-
+    # required lists for plotting the time domain
     sfg_time_vector_list = [sfg_original_time, sfg_original_time]
     shg1_time_vector_list = [sfg_original_time, sfg_original_time]
     shg2_time_vector_list = [sfg_original_time, sfg_original_time]
@@ -373,65 +462,49 @@ def do_analysis(
     shg1_freq_to_time_list = [shg1_freq_to_time_true, shg1_freq_to_time_pred]
     shg2_freq_to_time_list = [shg2_freq_to_time_true, shg2_freq_to_time_pred]
 
-    print("------- Non-normalized True vs Prediction Frequency Domain --------")
+    colors_list = ["red", "black"]
+    labels_list = ["true", "pred"]
 
-    print("*** SFG ***")
-    fig_ptd4 = intensity_phase_plot(
+    # # Draw normalized plots
+    # plot_a_bunch_of_fields(
+    #     freq_vectors_sfg_list,
+    #     fields_sfg_list,
+    #     freq_vectors_shg1_list,
+    #     fields_shg1_list,
+    #     freq_vectors_shg2_list,
+    #     fields_shg2_list,
+    #     sfg_time_vector_list,
+    #     sfg_freq_to_time_list,
+    #     shg1_time_vector_list,
+    #     shg1_freq_to_time_list,
+    #     shg2_time_vector_list,
+    #     shg2_freq_to_time_list,
+    #     labels_list,
+    #     colors_list,
+    #     model_save_name,
+    #     fig_save_dir,
+    #     file_save_name=file_save_name,
+    #     normalize=True,
+    # )
+
+    # Draw non-normalized plots
+    plot_a_bunch_of_fields(
+        freq_vectors_sfg_list,
+        fields_sfg_list,
+        freq_vectors_shg1_list,
+        fields_shg1_list,
+        freq_vectors_shg2_list,
+        fields_shg2_list,
         sfg_time_vector_list,
         sfg_freq_to_time_list,
-        labels_list,
-        colors_list,
-        "time",
-        xlims=[-15, 15],
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd4.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[3],
-    )
-
-    print("*** SHG1 ***")
-    fig_ptd5 = intensity_phase_plot(
         shg1_time_vector_list,
         shg1_freq_to_time_list,
-        labels_list,
-        colors_list,
-        "time",
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd5.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[4],
-    )
-
-    print("*** SHG2 ***")
-    fig_ptd6 = intensity_phase_plot(
         shg2_time_vector_list,
         shg2_freq_to_time_list,
         labels_list,
         colors_list,
-        "time",
-        normalize=normalize,
-        offsets=[0, 0],
-        save_format="jpg",
-        save_name=model_save_name + "_ptd6.jpg",
-        plot_show=True,
-        plot_hold=False,
-        save_dir=fig_save_dir,
-        axs=new_axs[5],
+        model_save_name,
+        fig_save_dir,
+        file_save_name=file_save_name,
+        normalize=False,
     )
-
-    print("------- Frequency Domain --------")
-
-    new_fig.tight_layout()
-    plt.show()
-
-    file_save_name = file_save_name or model_save_name + "_All.jpg"
-
-    save_figure(file_save_name, "jpg", fig_save_dir)
