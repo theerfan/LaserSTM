@@ -22,53 +22,43 @@ class CustomSequence(data.Dataset):
         self.crystal_length = crystal_length
         self.load_in_gpu = load_in_gpu
         self._num_samples_per_file = 10_000
-        self.current_file_idx = None
-        self.current_x_dataset = None
-        self.current_y_dataset = None
-        
+
         # If not training, we're only getting one sample per crystal passage
         # So we need to divide the number of samples per file by the crystal length
         if self.load_mode != 0:
-            self._num_samples_per_file = self._num_samples_per_file // self.crystal_length
+            self._num_samples_per_file = (
+                self._num_samples_per_file // self.crystal_length
+            )
+        else:
+            pass
 
     def load_data_point(self, file_idx, sample_idx):
         # Make sure they're new values
         data, labels = None, None
 
-        if self.current_file_idx != file_idx:
-            # Update the current file index 
-            self.current_file_idx = file_idx
+        # Load the new files
+        with h5py.File(os.path.join(self.data_dir, "X_new_data.h5"), "r") as file:
+            x_dataset = file[f"dataset_{file_idx}"]
 
-            # Load the new files
-            with h5py.File(os.path.join(self.data_dir, "X_new_data.h5"), "r") as file:
-                self.current_x_dataset = file[f"dataset_{file_idx}"]
+            # If training, we want to load the entire dataset
+            if self.load_mode == 0:
+                pass
+            # If test or funky analysis, we want to only get the first sample in each crystal passage
+            elif self.load_mode == 1 or self.load_mode == 2:
+                x_dataset = x_dataset[:: self.crystal_length]
 
-                # If training, we want to load the entire dataset
-                if self.load_mode == 0:
-                    pass
-                # If test or funky analysis, we want to only get the first sample in each crystal passage
-                elif self.load_mode == 1 or self.load_mode == 2:
-                    self.current_x_dataset = self.current_x_dataset[
-                        :: self.crystal_length
-                    ]
+            data = x_dataset[sample_idx]
 
-                data = self.current_x_dataset[sample_idx]
+        with h5py.File(os.path.join(self.data_dir, "y_new_data.h5"), "r") as file:
+            y_dataset = file[f"dataset_{file_idx}"]
+            # If training or funky analysis, we want to load the entire dataset
+            if self.load_mode == 0 or self.load_mode == 2:
+                pass
+            # If test, we want to only get the last sample in each crystal passage
+            elif self.load_mode == 1:
+                y_dataset = y_dataset[self.crystal_length - 1 :][:: self.crystal_length]
 
-            with h5py.File(os.path.join(self.data_dir, "y_new_data.h5"), "r") as file:
-                self.current_y_dataset = file[f"dataset_{file_idx}"]
-                # If training or funky analysis, we want to load the entire dataset
-                if self.load_mode == 0 or self.load_mode == 2:
-                    pass
-                # If test, we want to only get the last sample in each crystal passage
-                elif self.load_mode == 1:
-                    self.current_y_dataset = self.current_y_dataset[
-                        self.crystal_length - 1 :
-                    ][:: self.crystal_length]
-                
-                labels = self.current_y_dataset[sample_idx]
-        else:
-            data = self.current_x_dataset[sample_idx]
-            labels = self.current_y_dataset[sample_idx]
+            labels = y_dataset[sample_idx]
 
         return data, labels
 
