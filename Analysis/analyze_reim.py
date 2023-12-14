@@ -127,7 +127,6 @@ def do_analysis(
     data_directory: str,  # directory from preprocessing
     model_save_name: str,  # model name from training
     file_idx: int,  # on which file to do analysis
-    all_preds_idx: int,  # which prediction to use
     item_idx: int,  # which example of the file to do analysis
     fig_save_dir: str = None,  # where to save the figures
     crystal_length: int = 100,  # length of the crystal
@@ -196,8 +195,9 @@ def do_analysis(
     if y_pred_trans_item is None:
         # the output file from the "predict" function
         # this has a shape of (files, predictions, channels)
-        y_preds = np.load(os.path.join(output_dir, f"{model_save_name}_all_preds.npy"))
-        y_preds_that_file = y_preds[all_preds_idx]
+        with h5py.File(os.path.join(output_dir, f"{model_save_name}_all_preds.h5"), "r") as file:
+            y_preds = file["all_preds"]
+            y_preds_that_file = y_preds[file_idx]
         y_preds_trans = scaler.inverse_transform(y_preds_that_file)
 
         # Transform this using the scaler, then get which file

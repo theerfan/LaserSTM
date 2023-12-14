@@ -13,10 +13,11 @@ from Analysis.analyze_reim import do_analysis
 import logging
 
 import time
-import copy
 import matplotlib.pyplot as plt
 
 from functools import partial
+
+import h5py
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
@@ -233,7 +234,7 @@ def predict(
     model_param_path: str = None,
     test_dataset: CustomSequence = None,
     output_dir: str = ".",
-    output_name: str = "all_preds.npy",
+    output_name: str = "all_preds.h5",
     verbose: bool = True,
     model_save_name: str = "",
     batch_size: int = None,
@@ -260,76 +261,74 @@ def predict(
         batch_size -= 1
     print(f"To confirm - Batch size: {batch_size}")
 
+    testset_starting_point = test_dataset.file_indexes[0]
+
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
 
     model.to(device)
     model.eval()
     current_preds = []
-    all_preds = []
     final_shape = None
+
+    if model_save_name != "":
+        model_save_name = f"{model_save_name}_"
+    file_save_name = f"{model_save_name}{output_name}"
 
     start_time = time.time()
 
-    with torch.no_grad():
-        for j, (X_batch, y_batch) in enumerate(test_dataloader):
-            X_batch = X_batch.to(device)
-            if verbose:
-                print(f"On batch {j} out of {len(test_dataloader)}")
+    with h5py.File(os.path.join(output_dir, file_save_name), "w") as h5_file:
+        with torch.no_grad():
+            for j, (X_batch, y_batch) in enumerate(test_dataloader):
+                X_batch = X_batch.to(device)
+                if verbose:
+                    print(f"On batch {j} out of {len(test_dataloader)}")
 
-            if final_shape is None:
-                final_shape = X_batch.shape[-1]
+                if final_shape is None:
+                    final_shape = X_batch.shape[-1]
 
-            if is_slice:
-                for i in range(crystal_length):  # need to predict 100 times
+                if is_slice:
+                    for i in range(crystal_length):  # need to predict 100 times
+                        pred = model(X_batch)
+
+                        # plt.figure()
+                        # plt.plot(pred[-1].cpu().numpy(), label="pred", alpha=0.5)
+                        # plt.plot(y_batch[-1].cpu().numpy(), label="y", alpha=0.5)
+                        # plt.legend()
+                        # plt.savefig(f"bare-item-{i}.jpg")
+                        # plt.close()
+
+                        # # TODO: remove this later, just for debug purposes
+                        # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
+                        # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, X_batch[-1].cpu().numpy(), X_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
+                        if i == 9:
+                            a = 12
+
+                        X_batch = X_batch[:, 1:, :]  # pop first
+
+                        # add to last
+                        X_batch = torch.cat(
+                            (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                        )
+                else:
                     pred = model(X_batch)
 
-                    # plt.figure()
-                    # plt.plot(pred[-1].cpu().numpy(), label="pred", alpha=0.5)
-                    # plt.plot(y_batch[-1].cpu().numpy(), label="y", alpha=0.5)
-                    # plt.legend()
-                    # plt.savefig(f"bare-item-{i}.jpg")
-                    # plt.close()
+                current_preds.append(pred.squeeze().cpu().numpy())
 
-                    # # TODO: remove this later, just for debug purposes
-                    # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
-                    # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, X_batch[-1].cpu().numpy(), X_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
-
-                    if i == 9:
-                        a = 12
-
-                    X_batch = X_batch[:, 1:, :]  # pop first
-
-                    # add to last
-                    X_batch = torch.cat(
-                        (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                if len(current_preds) * batch_size == test_dataset._num_samples_per_file:
+                    print("adding something to all_preds!!")
+                    h5_file.create_dataset(
+                        f"dataset_{testset_starting_point + j}",
+                        data=np.concatenate(current_preds, axis=0),
                     )
-            else:
-                pred = model(X_batch)
-
-            current_preds.append(pred.squeeze().cpu().numpy())
-
-            if (
-                len(current_preds) * batch_size
-                == test_dataset._num_samples_per_file
-            ):
-                print("adding something to all_preds!!")
-                all_preds.append(np.concatenate(current_preds, axis=0))
-                current_preds = []
+                    current_preds = []
 
     end_time = time.time()
 
-    # TODO: This is a way of trying to stop the process from getting killed for some unknown reason!
+    # TODO: This could be a way of trying to stop the process from getting killed for some unknown reason!
     # del model
 
     # print elapsed time in seconds
     print(f"Elapsed time: {end_time - start_time} seconds")
-
-    # And then we do the concatenation here and send it back to CPU
-    all_preds = np.array(all_preds)
-    if model_save_name != "":
-        model_save_name = f"{model_save_name}_"
-    np.save(os.path.join(output_dir, f"{model_save_name}{output_name}"), all_preds)
-    return all_preds
 
 
 def tune_and_train(
@@ -409,14 +408,13 @@ def tune_and_train(
 
         results[combo] = val_losses.flatten().mean()
 
-        all_test_preds = predict(
+        predict(
             model,
             model_param_path=os.path.join(
                 output_dir, f"{model_save_name}_epoch_{num_epochs}.pth"
             ),
             test_dataset=test_dataset,
             output_dir=output_dir,
-            output_name="all_preds.npy",
             verbose=verbose,
             model_save_name=model_save_name + f"_epoch_{num_epochs}",
             is_slice=is_slice,
@@ -509,12 +507,11 @@ def train_and_test(
 
     # In predict we use the path of the model that was trained the latest
 
-    all_test_preds = predict(
+    predict(
         model,
         model_param_path=os.path.join(output_dir, last_model_name + ".pth"),
         test_dataset=test_dataset,
         output_dir=output_dir,
-        output_name="all_preds.npy",
         verbose=verbose,
         model_save_name=last_model_name,
         crystal_length=crystal_length,
@@ -523,21 +520,16 @@ def train_and_test(
         load_model=False,
     )
 
-    ## automatically analyze the results
-    # adjust the "relative" position of the file,
-    # since we get the "absolute" index of the file as input
-    testset_starting_point = test_dataset.file_indexes[0]
 
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
         model_save_name=model_save_name + f"_epoch_{num_epochs}",
         file_idx=analysis_file_idx,
-        all_preds_idx=testset_starting_point - analysis_file_idx,
         item_idx=analysis_item_idx,
     )
 
-    return trained_model, train_losses, val_losses, all_test_preds
+    return trained_model, train_losses, val_losses
 
 
 # Erfan-Jack Meeting:
