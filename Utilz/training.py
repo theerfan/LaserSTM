@@ -442,17 +442,12 @@ def tune_and_train(
     print(log_str)
     logging.info(log_str)
 
-    ## do analysis on the best hyperparameters
-    # adjust the "relative" position of the file,
-    # since we get the "absolute" index of the file as input
-    testset_starting_point = test_dataset.file_indexes[0]
 
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
         model_save_name=model_save_name + f"_epoch_{num_epochs}",
         file_idx=analysis_file_idx,
-        all_preds_idx=testset_starting_point - analysis_file_idx,
         item_idx=analysis_item_idx,
     )
 

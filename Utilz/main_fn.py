@@ -36,7 +36,6 @@ def main_function(
             args.data_dir,
             model_save_name,
             file_idx=args.analysis_file,
-            all_preds_idx=args.all_preds_idx,
             item_idx=args.analysis_example,
         )
 
@@ -61,7 +60,6 @@ def main_function(
             args.data_dir,
             model_save_name,
             file_idx=args.analysis_file,
-            all_preds_idx=testset_starting_point - args.analysis_file,
             item_idx=args.analysis_example,
         )
     else:

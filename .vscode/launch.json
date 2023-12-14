@@ -179,8 +179,6 @@
           "${workspaceFolder}/LSTM_100_epoch_66.pth",
           "--lstm_hidden_size",
           "2048",
-          "--all_preds_idx",
-          "0"
         ]
       },
       {

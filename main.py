@@ -108,13 +108,6 @@ def get_cmd_args():
     )
 
     parser.add_argument(
-        "--all_preds_idx",
-        type=int,
-        default=0,
-        help="The example of the file to use for analysis",
-    )
-
-    parser.add_argument(
         "--crystal_length",
         type=int,
         default=100,
