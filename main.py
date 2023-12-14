@@ -72,6 +72,13 @@ def get_cmd_args():
     )
 
     parser.add_argument(
+        "--do_funky",
+        type=int,
+        default=0,
+        help="Whether to do funky prediction or not.",
+    )
+
+    parser.add_argument(
         "--model_param_path",
         type=str,
         default=None,

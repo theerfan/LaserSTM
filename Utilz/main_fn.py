@@ -1,11 +1,9 @@
-from Utilz.training import (
-    predict,
-    train_and_test,
-    tune_and_train,
-)
+from Utilz.training import predict, train_and_test, tune_and_train, funky_predict
 from Utilz.loads import get_custom_loss
 from Utilz.data import (
     CustomSequence,
+    X_Dataset,
+    Y_Dataset
 )
 import logging
 import torch.nn as nn
@@ -26,8 +24,29 @@ def main_function(
 ):
     custom_loss = get_custom_loss(args)
 
-    if args.do_analysis == 1:
-        log_str = f"Prediction only mode for model {args.model}"
+    if args.do_funky == 1:
+        log_str = f"Funky prediction mode for model {args.model}"
+        print(log_str)
+        logging.info(log_str)
+        model_save_name = os.path.basename(args.model_param_path).split(".")[0]
+
+        x_test_set = X_Dataset(args.data_dir, file_indexes=range(91, 100))
+        y_test_set = Y_Dataset(args.data_dir, file_indexes=range(91, 100))
+        
+        funky_predict(
+            model,
+            model_param_path=args.model_param_path,
+            x_dataset=x_test_set,
+            y_dataset=y_test_set,
+            output_dir=args.output_dir,
+            x_batch_size=1,
+            y_batch_size=100,
+            model_save_name=model_save_name,
+            verbose=args.verbose,
+        )
+
+    elif args.do_analysis == 1:
+        log_str = f"Analysis only mode for model {args.model}"
         print(log_str)
         logging.info(log_str)
         model_save_name = os.path.basename(args.model_param_path).split(".")[0]
@@ -53,7 +72,6 @@ def main_function(
             verbose=args.verbose,
         )
 
-
         do_analysis(
             args.output_dir,
             args.data_dir,
@@ -61,6 +79,7 @@ def main_function(
             file_idx=args.analysis_file,
             item_idx=args.analysis_example,
         )
+
     else:
         # This assumes that `tune_train` and `train_model` have the same signature
         # (as in required arguments)

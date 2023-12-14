@@ -197,7 +197,9 @@
         "--test_load_mode",
         "2",
         "--batch_size",
-        "1000"
+        "1000",
+        "--do_funky",
+        "1"
         // "--lstm_hidden_size",
         // "2048"
       ]
@@ -326,6 +328,8 @@
         "2",
         "--lstm_linear_layer_size",
         "2048",
+        "--do_funky",
+        "1",
       ]
     },
     {
@@ -360,6 +364,10 @@
         "512",
         "--do_analysis",
         "1",
+        "--analysis_file",
+        "92",
+        "--analysis_example",
+        "15"
       ]
     },
   ]

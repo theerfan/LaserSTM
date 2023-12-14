@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from Utilz.data import CustomSequence
+from Utilz.data import CustomSequence, X_Dataset, Y_Dataset
 from torch.utils.data import DataLoader
 
 from Analysis.analyze_reim import do_analysis
@@ -289,24 +289,11 @@ def predict(
 
                 if is_slice:
                     for i in range(crystal_length):  # need to predict 100 times
+                        # run an inference
                         pred = model(X_batch)
-
-                        # plt.figure()
-                        # plt.plot(pred[-1].cpu().numpy(), label="pred", alpha=0.5)
-                        # plt.plot(y_batch[-1].cpu().numpy(), label="y", alpha=0.5)
-                        # plt.legend()
-                        # plt.savefig(f"bare-item-{i}.jpg")
-                        # plt.close()
-
-                        # # TODO: remove this later, just for debug purposes
-                        # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, pred[-1].cpu().numpy(), y_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
-                        # do_analysis(".", ".", model_save_name, 0, 0, 0, ".", 100, X_batch[-1].cpu().numpy(), X_batch[-1].cpu().numpy(), f"analysis-scaled-{i}.jpg")
-                        if i == 9:
-                            a = 12
-
-                        X_batch = X_batch[:, 1:, :]  # pop first
-
-                        # add to last
+                        # pop the first element of every x in the batch
+                        X_batch = X_batch[:, 1:, :] 
+                        # add the inferences to the end of every x in the batch
                         X_batch = torch.cat(
                             (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
                         )
@@ -315,13 +302,101 @@ def predict(
 
                 current_preds.append(pred.squeeze().cpu().numpy())
 
-                if len(current_preds) * batch_size == test_dataset._num_samples_per_file:
+                if (
+                    len(current_preds) * batch_size
+                    == test_dataset._num_samples_per_file
+                ):
                     print("adding something to all_preds!!")
                     h5_file.create_dataset(
                         f"dataset_{testset_starting_point + j}",
                         data=np.concatenate(current_preds, axis=0),
                     )
                     current_preds = []
+
+    end_time = time.time()
+
+    # TODO: This could be a way of trying to stop the process from getting killed for some unknown reason!
+    # del model
+
+    # print elapsed time in seconds
+    print(f"Elapsed time: {end_time - start_time} seconds")
+
+
+def funky_predict(
+    model: nn.Module,
+    model_param_path: str = None,
+    x_dataset: X_Dataset = None,
+    y_dataset: Y_Dataset = None,
+    output_dir: str = ".",
+    output_name: str = "all_preds.h5",
+    verbose: bool = True,
+    model_save_name: str = "",
+    x_batch_size: int = None,
+    y_batch_size: int = None,
+    is_slice: bool = True,
+    crystal_length: int = 100,
+    load_model: bool = True,
+) -> np.ndarray:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if load_model:
+        model = load_model_params(model, model_param_path, device)
+    else:
+        model = model.to(device)
+
+    x_dataloader = DataLoader(x_dataset, batch_size=x_batch_size)
+    y_dataloader = DataLoader(y_dataset, batch_size=y_batch_size)
+
+    model.to(device)
+    model.eval()
+    current_preds = []
+    final_shape = None
+
+    if model_save_name != "":
+        model_save_name = f"{model_save_name}_"
+    file_save_name = f"{model_save_name}{output_name}"
+
+    start_time = time.time()
+
+    with torch.no_grad():
+        for j, (X_batch, y_batch) in enumerate(zip(x_dataloader, y_dataloader)):
+            X_batch = X_batch.to(device)
+            if verbose:
+                print(f"On batch {j} out of {len(y_dataloader)}")
+
+            if final_shape is None:
+                final_shape = X_batch.shape[-1]
+
+            if is_slice:
+                for i in range(crystal_length):  # need to predict 100 times
+                    pred = model(X_batch)
+
+                    do_analysis(
+                        ".",
+                        "/mnt/oneterra/SFG_reIm_h5/",
+                        model_save_name,
+                        0,
+                        0,
+                        ".",
+                        100,
+                        pred[-1].cpu().numpy(),
+                        y_batch[i].cpu().numpy(),
+                        f"analysis-scaled-file-{j}-item-{i}.jpg",
+                    )
+
+                    if i == 9:
+                        a = 12
+
+                    X_batch = X_batch[:, 1:, :]  # pop first
+
+                    # add to last
+                    X_batch = torch.cat(
+                        (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                    )
+            else:
+                pred = model(X_batch)
+
+            current_preds.append(pred.squeeze().cpu().numpy())
 
     end_time = time.time()
 
@@ -443,7 +518,6 @@ def tune_and_train(
     print(log_str)
     logging.info(log_str)
 
-
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
@@ -515,7 +589,6 @@ def train_and_test(
         # If it's a slice, it will need smaller batch size
         load_model=False,
     )
-
 
     do_analysis(
         output_dir=output_dir,
