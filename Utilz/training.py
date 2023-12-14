@@ -213,6 +213,7 @@ def load_model_params(
 ) -> nn.Module:
     # Load model parameters if path is provided
     if model_param_path is not None:
+        print(f"Loading pre-trained model parameters from {model_param_path}")
         params = torch.load(model_param_path, map_location=device)
         # remove the 'module.' prefix from the keys
         params = {k.replace("module.", ""): v for k, v in params.items()}
