@@ -51,18 +51,18 @@ def get_datasets(
     train_dataset = CustomSequence(
         args.data_dir,
         range(0, 90),
-        test_mode=args.train_test_mode,
+        load_mode=args.train_load_mode,
         crystal_length=args.crystal_length,
     )
 
     val_dataset = CustomSequence(
-        args.data_dir, [90], test_mode=args.val_test_mode, crystal_length=args.crystal_length
+        args.data_dir, [90], load_mode=args.val_load_mode, crystal_length=args.crystal_length
     )
 
     test_dataset = CustomSequence(
         args.data_dir,
         range(91, 100),
-        test_mode=args.test_test_mode,
+        load_mode=args.test_load_mode,
         crystal_length=args.crystal_length,
     )
 

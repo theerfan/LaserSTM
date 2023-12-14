@@ -177,22 +177,25 @@ def get_cmd_args():
         help="Dropout rate for the fully connected layers.",
     )
 
+    # 0 for training mode, 1 for test mode
+    # and 2 for "step-wise analysis" mode
+
     parser.add_argument(
-        "--train_test_mode",
+        "--train_load_mode",
         type=int,
         default=0,
         help="Load the train dataset in test mode.",
     )
 
     parser.add_argument(
-        "--val_test_mode",
+        "--val_load_mode",
         type=int,
         default=0,
         help="Load the val dataset in test mode.",
     )
 
     parser.add_argument(
-        "--test_test_mode",
+        "--test_load_mode",
         type=int,
         default=1,
         help="Load the test dataset in test mode.",
