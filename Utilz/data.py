@@ -22,11 +22,19 @@ class CustomSequence(data.Dataset):
         self.crystal_length = crystal_length
         self.load_in_gpu = load_in_gpu
         self._num_samples_per_file = 10_000
-        self.current_file_idx = 0
+        self.current_file_idx = None
         self.current_x_dataset = None
         self.current_y_dataset = None
+        
+        # If not training, we're only getting one sample per crystal passage
+        # So we need to divide the number of samples per file by the crystal length
+        if self.load_mode != 0:
+            self._num_samples_per_file = self._num_samples_per_file // self.crystal_length
 
     def load_data_point(self, file_idx, sample_idx):
+        # Make sure they're new values
+        data, labels = None, None
+
         if self.current_file_idx != file_idx:
             # Update the current file index 
             self.current_file_idx = file_idx
@@ -59,7 +67,8 @@ class CustomSequence(data.Dataset):
                 
                 labels = self.current_y_dataset[sample_idx]
         else:
-            pass
+            data = self.current_x_dataset[sample_idx]
+            labels = self.current_y_dataset[sample_idx]
 
         return data, labels
 

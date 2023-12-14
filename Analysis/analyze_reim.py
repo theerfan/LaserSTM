@@ -196,9 +196,9 @@ def do_analysis(
         # the output file from the "predict" function
         # this has a shape of (files, predictions, channels)
         with h5py.File(os.path.join(output_dir, f"{model_save_name}_all_preds.h5"), "r") as file:
-            y_preds = file["all_preds"]
-            y_preds_that_file = y_preds[file_idx]
-        y_preds_trans = scaler.inverse_transform(y_preds_that_file)
+            y_preds = file[f"dataset_{file_idx}"]
+            y_preds_loaded = y_preds[:]
+        y_preds_trans = scaler.inverse_transform(y_preds_loaded)
 
         # Transform this using the scaler, then get which file
         # and then get the example using its index
