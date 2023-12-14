@@ -201,6 +201,13 @@ def get_cmd_args():
         help="Load the test dataset in test mode.",
     )
 
+    parser.add_argument(
+        "--shuffle",
+        type=int,
+        default=1,
+        help="Whether to shuffle the training dataset or not.",
+    )
+
     return parser.parse_args()
 
 

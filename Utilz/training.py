@@ -119,6 +119,7 @@ def train(
 
     single_pass_fn = custom_single_pass or default_single_pass
 
+    shuffle = True if shuffle == 1 else False
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
@@ -447,6 +448,7 @@ def tune_and_train(
     is_slice: bool = True,
     model_dict: dict = None,
     learning_rate: float = 1e-4,
+    shuffle: int = 1,
 ):
     # Generate possible values for each hyperparameter with a step size of 0.2
     possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
@@ -499,6 +501,7 @@ def tune_and_train(
             batch_size=batch_size,
             model_param_path=model_param_path,
             learning_rate=learning_rate,
+            shuffle=shuffle,
         )
 
         results[combo] = val_losses.flatten().mean()
@@ -573,6 +576,7 @@ def train_and_test(
     is_slice: bool = True,
     model_dict: dict = None,
     learning_rate: float = 1e-4,
+    shuffle: int = 1,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
@@ -590,6 +594,7 @@ def train_and_test(
         batch_size=batch_size,
         model_param_path=model_param_path,
         learning_rate=learning_rate,
+        shuffle=shuffle,
     )
 
     last_model_name = f"{model_save_name}_epoch_{num_epochs}"

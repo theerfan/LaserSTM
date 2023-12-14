@@ -111,4 +111,5 @@ def main_function(
             model_param_path=args.model_param_path,
             model_dict=model_dict,
             learning_rate=args.lr,
+            shuffle=args.shuffle,
         )
