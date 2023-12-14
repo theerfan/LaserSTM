@@ -161,7 +161,7 @@
         "--do_prediction",
         "1",
         "--model_param_path",
-        "/mnt/oneterra/outputs/20-11-2023/LSTM_hyper_scheduler_shg_0.3_sfg_0.7_epoch_10.pth",
+        "/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25.pth",
         "--lstm_num_layers",
         "1",
         "--test_load_mode",
@@ -172,6 +172,10 @@
         "2048",
         "--lstm_linear_layer_size",
         "2048",
+        "--analysis_file",
+        "92",
+        "--analysis_example",
+        "15"
       ]
     },
     {
@@ -215,15 +219,19 @@
         "--model",
         "LSTM",
         "--data_dir",
-        "${workspaceFolder}",
+        "/mnt/oneterra/SFG_reIm_h5/",
         "--output_dir",
-        "${workspaceFolder}",
+        "/mnt/oneterra/outputs/04-12-2023/",
         "--do_analysis",
         "1",
         "--model_param_path",
-        "${workspaceFolder}/LSTM_100_epoch_66.pth",
+        "/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25.pth",
         "--lstm_hidden_size",
         "2048",
+        "--analysis_file",
+        "95",
+        "--analysis_example",
+        "15"
       ]
     },
     {

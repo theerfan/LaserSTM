@@ -83,7 +83,7 @@ def train(
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = load_model_params(model, model_param_path, device)
+    model, optimizer_params = load_model_params(model, model_param_path, device)
 
     if device == "cpu":
         Warning("GPU not available, using CPU instead.")
@@ -105,6 +105,9 @@ def train(
     criterion = custom_loss or nn.MSELoss()
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    if optimizer_params is not None:
+        optimizer.load_state_dict(optimizer_params)
+
     scheduler_plateau = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.75, patience=2, verbose=True
     )
@@ -157,7 +160,10 @@ def train(
             torch.save(
                 {
                     "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
+                    # save model architecture
+                    "model": model,
+                    # this was for older versions of saving
+                    # "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "loss": last_train_loss,
                 },
@@ -210,24 +216,36 @@ def train(
 
 def load_model_params(
     model: nn.Module, model_param_path: str, device: torch.device
-) -> nn.Module:
+) -> (nn.Module, dict):
+    optimizer_state = None
     # Load model parameters if path is provided
     if model_param_path is not None:
         print(f"Loading pre-trained model parameters from {model_param_path}")
+        # replace the .pth extension with .pt to load the "clean" model
         params = torch.load(model_param_path, map_location=device)
-        # remove the 'module.' prefix from the keys
-        params = {k.replace("module.", ""): v for k, v in params.items()}
-        if isinstance(params, dict) and "model_state_dict" in params:
-            params = params["model_state_dict"]
+
         try:
-            model.load_state_dict(params)
-        except:
+            if "model" in params:
+                model = params["model"]
+            elif "model_state_dict" in params:
+                model.load_state_dict(params["model_state_dict"])
+            else:
+                raise ValueError(
+                    "The model parameter path provided does not contain a valid model!"
+                )
+            
+            if "optimizer_state_dict" in params:
+                optimizer_state = params["optimizer_state_dict"]
+
+        except RuntimeError:
+            # remove the 'module.' prefix from the keys if it's a DataParallel model
+            params = {k.replace("module.", ""): v for k, v in params.items()}
             model = torch.nn.DataParallel(model)
             model.load_state_dict(params)
     else:
         pass
 
-    return model
+    return model, optimizer_state
 
 
 def predict(
@@ -246,7 +264,7 @@ def predict(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if load_model:
-        model = load_model_params(model, model_param_path, device)
+        model, _ = load_model_params(model, model_param_path, device)
 
     if device == "gpu":
         if torch.cuda.device_count() > 1:
@@ -292,7 +310,7 @@ def predict(
                         # run an inference
                         pred = model(X_batch)
                         # pop the first element of every x in the batch
-                        X_batch = X_batch[:, 1:, :] 
+                        X_batch = X_batch[:, 1:, :]
                         # add the inferences to the end of every x in the batch
                         X_batch = torch.cat(
                             (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
@@ -337,10 +355,11 @@ def funky_predict(
     crystal_length: int = 100,
     load_model: bool = True,
 ) -> np.ndarray:
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if load_model:
-        model = load_model_params(model, model_param_path, device)
+        model, _ = load_model_params(model, model_param_path, device)
     else:
         model = model.to(device)
 
