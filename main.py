@@ -208,6 +208,13 @@ def get_cmd_args():
         help="Whether to shuffle the training dataset or not.",
     )
 
+    parser.add_argument(
+        "--has_fc_dropout",
+        type=int,
+        default=1,
+        help="Whether to have the dropout layers in the post-LSTM linear layers.",
+    )
+
     return parser.parse_args()
 
 
