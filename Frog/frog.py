@@ -4,6 +4,7 @@ import numpy as np
 import pypret
 import matplotlib.pyplot as plt
 from scipy.constants import c
+import h5py
 
 # `:,` is there because we want to keep the batch dimension
 def re_im_sep(fields: np.array, detach=False):
@@ -22,12 +23,13 @@ def re_im_sep(fields: np.array, detach=False):
         pass
     return shg1, shg2, sfg
 
-data_dir = "/mnt/oneterra/SFG_reIm_version1"
+data_dir = "/mnt/oneterra/SFG_reIm_h5"
 
-file_dir = os.path.join(data_dir, "X_new_0.npy")
+file_dir = os.path.join(data_dir, "X_new_data.h5")
 
-X = np.load(file_dir)
-X_0 = X[0]
+with h5py.File(file_dir, 'r') as f:
+    x_dataset = f['dataset_0']
+    X_0 = x_dataset[0]
 shg1, shg2, sfg = re_im_sep(X_0)
 shg1_0, shg2_0, sfg_0 = shg1[0], shg2[0], sfg[0]
 
@@ -54,6 +56,11 @@ pnps = pypret.PNPS(pulse, "frog", "shg")
 # calculate the measurement trace
 pnps.calculate(pulse.spectrum, delay)
 original_spectrum = pulse.spectrum
-# and plot it
-pypret.MeshDataPlot(pnps.trace)
-plt.savefig("frog2.jpg")
+
+# and plot it without axis and colorbar
+plt.figure()
+pypret.MeshDataPlot(pnps.trace, has_colorbar=False)
+# plt.imshow(pnps.trace.wrapped_phase, aspect='auto', extent=[delay.min(), delay.max(), ft.frequency.min(), ft.frequency.max()])
+plt.axis('off')  # This will remove the axis
+plt.savefig("frog2.jpg", bbox_inches='tight', pad_inches=0)
+
