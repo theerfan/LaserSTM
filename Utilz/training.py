@@ -120,8 +120,13 @@ def train(
     single_pass_fn = custom_single_pass or default_single_pass
 
     shuffle = True if shuffle == 1 else False
+    if shuffle:
+        print("Everyday I'm shuffling!")
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
+
+    initiation_time = time.time()
+    epoch_start_time = time.time()
 
     # Train
     for epoch in range(num_epochs):
@@ -196,8 +201,18 @@ def train(
             log_str = f"Epoch {epoch + 1}: Train Loss={train_loss:.18f}"
             if val_loss is not None:
                 log_str += f"Val Loss={val_loss:.18f}"
+
+            this_epoch_time = time.time() - epoch_start_time
+            log_str = f"Epoch time: {this_epoch_time} seconds"
+            # Calculate the remaining time to finish training all epochs
+            eta = (num_epochs - epoch - 1) * (this_epoch_time)   
+            # turn it into a specific date and time
+            eta = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime(eta + initiation_time))
+            log_str += f"\nEstimated time to finish: {eta}"
             print(log_str)
             logging.info(log_str)
+            # reset start time
+            epoch_start_time = time.time()
         else:
             pass
 
@@ -307,7 +322,9 @@ def predict(
                     final_shape = X_batch.shape[-1]
 
                 if is_slice:
+                    expected_size = (batch_size, 10, 8264)
                     for i in range(crystal_length):  # need to predict 100 times
+                        assert X_batch.size() == expected_size, f"Tensor size should be {expected_size}, but got {X_batch.size()}"
                         # run an inference
                         pred = model(X_batch)
                         # pop the first element of every x in the batch
@@ -607,7 +624,9 @@ def train_and_test(
         shuffle=shuffle,
     )
 
-    last_model_name = f"{model_save_name}_epoch_{num_epochs}"
+    # select model with the lowest validation loss
+    best_val_loss_idx = np.argmin(val_losses)    
+    last_model_name = f"{model_save_name}_epoch_{best_val_loss_idx}"
 
     # In predict we use the path of the model that was trained the latest
 
@@ -627,7 +646,7 @@ def train_and_test(
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
-        model_save_name=model_save_name + f"_epoch_{num_epochs}",
+        model_save_name=model_save_name + f"_epoch_{best_val_loss_idx}",
         file_idx=analysis_file_idx,
         item_idx=analysis_item_idx,
     )

@@ -93,24 +93,36 @@
 # print(f'All .npy files have been saved to {hdf5_path}')
 
 
-import numpy as np
-import matplotlib.pyplot as plt
+# import numpy as np
+# import matplotlib.pyplot as plt
 
-first_train_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_epoch_55_train_losses.npy")
-first_val_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_epoch_55_val_losses.npy")
+# first_train_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_epoch_55_train_losses.npy")
+# first_val_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_epoch_55_val_losses.npy")
 
-train_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25_train_losses.npy")
-val_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25_val_losses.npy")
+# train_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25_train_losses.npy")
+# val_losses = np.load("/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25_val_losses.npy")
 
-# put the first train losses at the beginning of the train losses
-train_losses = np.concatenate((first_train_losses, train_losses))
-val_losses = np.concatenate((first_val_losses, val_losses))
+# # put the first train losses at the beginning of the train losses
+# train_losses = np.concatenate((first_train_losses, train_losses))
+# val_losses = np.concatenate((first_val_losses, val_losses))
 
-train_losses = train_losses[10:]
-val_losses = val_losses[10:]
+# train_losses = train_losses[10:]
+# val_losses = val_losses[10:]
 
-plt.plot(train_losses, label="Train Loss")
-plt.plot(val_losses, label="Val Loss")
-plt.legend()
-plt.show()
-plt.savefig("losses.png")
+# plt.plot(train_losses, label="Train Loss")
+# plt.plot(val_losses, label="Val Loss")
+# plt.legend()
+# plt.show()
+# plt.savefig("losses.png")
+
+import pickle
+
+# Replace 'your_file.pkl' with the path to your pickle file
+file_path = 'your_file.pkl'
+
+with open(file_path, 'rb') as file:
+    # Load (unpickle) the contents of the file
+    data = pickle.load(file)
+
+# Now, you can print or inspect 'data' to see what's inside the pickle file
+print(data)
