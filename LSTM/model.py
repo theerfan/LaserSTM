@@ -13,6 +13,7 @@ class LSTMModel(nn.Module):
         num_layers: int = 1,
         LSTM_dropout: float = 0.0,
         fc_dropout: float = 0.0,
+        has_fc_dropout: bool = True,
         **kwargs,
     ):
         super().__init__()
@@ -26,16 +27,27 @@ class LSTMModel(nn.Module):
             dropout=LSTM_dropout,
             num_layers=num_layers,
         )
-        self.linear = nn.Sequential(
-            nn.Linear(lstm_hidden_size, linear_layer_size),
-            nn.ReLU(),
-            nn.Dropout(fc_dropout),
-            nn.Linear(linear_layer_size, linear_layer_size),
-            nn.Tanh(),
-            nn.Dropout(fc_dropout),
-            nn.Linear(linear_layer_size, input_size),
-            nn.Sigmoid(),
-        )
+        if has_fc_dropout:
+            self.linear = nn.Sequential(
+                nn.Linear(lstm_hidden_size, linear_layer_size),
+                nn.ReLU(),
+                nn.Dropout(fc_dropout),
+                nn.Linear(linear_layer_size, linear_layer_size),
+                nn.Tanh(),
+                nn.Dropout(fc_dropout),
+                nn.Linear(linear_layer_size, input_size),
+                nn.Sigmoid(),
+            )
+        else:
+            print("No FC dropout!")
+            self.linear = nn.Sequential(
+                nn.Linear(lstm_hidden_size, linear_layer_size),
+                nn.ReLU(),
+                nn.Linear(linear_layer_size, linear_layer_size),
+                nn.Tanh(),
+                nn.Linear(linear_layer_size, input_size),
+                nn.Sigmoid(),
+            )
 
         print(
             f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}"

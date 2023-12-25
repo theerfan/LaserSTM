@@ -14,6 +14,7 @@ def main_lstm(
         "num_layers": args.lstm_num_layers,
         "LSTM_dropout": args.lstm_dropout,
         "fc_dropout": args.fc_dropout,
+        "has_fc_dropout": args.has_fc_dropout,
     }
 
     if args.model == "LSTM":
