@@ -85,6 +85,14 @@ def train(
 
     model, optimizer_params = load_model_params(model, model_param_path, device)
 
+    # if model param path obeys the naming convention, we can extract the epoch number
+    # and start from there
+    if model_param_path is not None:
+        try:
+            epoch_start = int(model_param_path.split("_")[-1].split(".")[0])
+        except ValueError:
+            epoch_start = 0
+
     if device == "cpu":
         Warning("GPU not available, using CPU instead.")
     elif data_parallel:
@@ -179,7 +187,8 @@ def train(
             # Save these things at checkpoints
             np.save(
                 os.path.join(
-                    out_dir, f"{model_save_name}_epoch_{epoch+1}_train_losses.npy"
+                    out_dir,
+                    f"{model_save_name}_epoch_{epoch_start + epoch + 1}_train_losses.npy",
                 ),
                 np.array(train_losses),
             )
@@ -188,7 +197,8 @@ def train(
             if val_dataset is not None:
                 np.save(
                     os.path.join(
-                        out_dir, f"{model_save_name}_epoch_{epoch+1}_val_losses.npy"
+                        out_dir,
+                        f"{model_save_name}_epoch_{epoch_start + epoch + 1}_val_losses.npy",
                     ),
                     np.array(val_losses),
                 )
@@ -203,11 +213,13 @@ def train(
                 log_str += f"Val Loss={val_loss:.18f}"
 
             this_epoch_time = time.time() - epoch_start_time
-            log_str = f"Epoch time: {this_epoch_time} seconds"
+            log_str += f"\nEpoch time: {this_epoch_time} seconds"
             # Calculate the remaining time to finish training all epochs
-            eta = (num_epochs - epoch - 1) * (this_epoch_time)   
+            eta = (num_epochs - epoch - 1) * (this_epoch_time)
             # turn it into a specific date and time
-            eta = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime(eta + initiation_time))
+            eta = time.strftime(
+                "%a, %d %b %Y %H:%M:%S", time.localtime(eta + initiation_time)
+            )
             log_str += f"\nEstimated time to finish: {eta}"
             print(log_str)
             logging.info(log_str)
@@ -324,7 +336,9 @@ def predict(
                 if is_slice:
                     expected_size = (batch_size, 10, 8264)
                     for i in range(crystal_length):  # need to predict 100 times
-                        assert X_batch.size() == expected_size, f"Tensor size should be {expected_size}, but got {X_batch.size()}"
+                        assert (
+                            X_batch.size() == expected_size
+                        ), f"Tensor size should be {expected_size}, but got {X_batch.size()}"
                         # run an inference
                         pred = model(X_batch)
                         # pop the first element of every x in the batch
@@ -625,7 +639,7 @@ def train_and_test(
     )
 
     # select model with the lowest validation loss
-    best_val_loss_idx = np.argmin(val_losses)    
+    best_val_loss_idx = np.argmin(val_losses)
     last_model_name = f"{model_save_name}_epoch_{best_val_loss_idx}"
 
     # In predict we use the path of the model that was trained the latest
