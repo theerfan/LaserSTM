@@ -174,7 +174,7 @@ class TridentLSTM(nn.Module):
         shg_lower_factor: int = 4,
         **kwargs,
     ):
-        super(BlindTridentLSTM, self).__init__()
+        super(TridentLSTM, self).__init__()
         self.input_size = input_size
         self.num_layers = num_layers
 
