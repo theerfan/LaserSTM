@@ -1,4 +1,4 @@
-from LSTM.model import LSTMModel, BlindTridentLSTM
+from LSTM.model import LSTMModel, BlindTridentLSTM, TridentLSTM
 from Utilz.loads import get_datasets
 from Utilz.main_fn import main_function
 
@@ -22,7 +22,7 @@ def main_lstm(
             **model_dict,
         )
     elif args.model == "TridentLSTM":
-        model = BlindTridentLSTM(
+        model = TridentLSTM(
             **model_dict,
         )
     elif args.model == "BlindTridentLSTM":
