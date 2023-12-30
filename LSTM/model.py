@@ -237,9 +237,11 @@ class TridentLSTM(nn.Module):
     def recombine_shg_sfg(
         self, shg1: torch.Tensor, shg2: torch.Tensor, sfg: torch.Tensor
     ) -> torch.Tensor:
+        # Get the appropriate device
+        device = shg1.device
         # Create an empty tensor with the appropriate size
         total_length = 1892 * 4 + 2 * 348
-        fields = torch.zeros((shg1.shape[0], total_length), dtype=shg1.dtype)
+        fields = torch.zeros((shg1.shape[0], total_length), dtype=shg1.dtype).to(device)
 
         # Place segments from shg1, shg2, sfg into their original positions
         fields[:, 0:1892] = shg1[:, 0:1892]
