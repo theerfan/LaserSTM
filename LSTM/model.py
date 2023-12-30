@@ -213,7 +213,9 @@ class TridentLSTM(nn.Module):
         )
 
     # TODO: Re-write this and make it clear
-    def separate_shg_sfg(self, fields: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def separate_shg_sfg(
+        self, fields: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # [shg1_int, shg2_int, sfg_int, shg1_phase, shg2_phase, sfg_phase]
         shg1 = torch.cat(
             (fields[:, 0:1892], fields[:, 1892 * 2 + 348 : 1892 * 3 + 348]), dim=1
@@ -231,22 +233,23 @@ class TridentLSTM(nn.Module):
         )
 
         return shg1, shg2, sfg
-    
-    def recombine_shg_sfg(shg1: torch.Tensor, shg2:torch.Tensor, sfg: torch.Tensor) -> torch.Tensor:
+
+    def recombine_shg_sfg(
+        self, shg1: torch.Tensor, shg2: torch.Tensor, sfg: torch.Tensor
+    ) -> torch.Tensor:
         # Create an empty tensor with the appropriate size
         total_length = 1892 * 4 + 2 * 348
         fields = torch.zeros((shg1.shape[0], total_length), dtype=shg1.dtype)
 
         # Place segments from shg1, shg2, sfg into their original positions
         fields[:, 0:1892] = shg1[:, 0:1892]
-        fields[:, 1892:1892 * 2] = shg2[:, 0:1892]
-        fields[:, 1892 * 2:1892 * 2 + 348] = sfg[:, 0:348]
-        fields[:, 1892 * 2 + 348:1892 * 3 + 348] = shg1[:, 1892:]
-        fields[:, 1892 * 3 + 348:1892 * 4 + 348] = shg2[:, 1892:]
-        fields[:, 1892 * 4 + 348:1892 * 4 + 2 * 348] = sfg[:, 348:]
+        fields[:, 1892 : 1892 * 2] = shg2[:, 0:1892]
+        fields[:, 1892 * 2 : 1892 * 2 + 348] = sfg[:, 0:348]
+        fields[:, 1892 * 2 + 348 : 1892 * 3 + 348] = shg1[:, 1892:]
+        fields[:, 1892 * 3 + 348 : 1892 * 4 + 348] = shg2[:, 1892:]
+        fields[:, 1892 * 4 + 348 : 1892 * 4 + 2 * 348] = sfg[:, 348:]
 
         return fields
-
 
     def forward(self, x):
         # Forward through LSTM
