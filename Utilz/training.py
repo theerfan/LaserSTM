@@ -92,6 +92,8 @@ def train(
             epoch_start = int(model_param_path.split("_")[-1].split(".")[0])
         except ValueError:
             epoch_start = 0
+    else:
+        epoch_start = 0
 
     if device == "cpu":
         Warning("GPU not available, using CPU instead.")
