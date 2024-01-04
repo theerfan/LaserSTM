@@ -215,6 +215,13 @@ def get_cmd_args():
         help="Whether to have the dropout layers in the post-LSTM linear layers.",
     )
 
+    parser.add_argument(
+        "--bidirectional",
+        type=int,
+        default=0,
+        help="Whether to have the LSTM model bidirectional or not.",
+    )
+
     return parser.parse_args()
 
 

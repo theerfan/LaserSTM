@@ -15,6 +15,7 @@ def main_lstm(
         "LSTM_dropout": args.lstm_dropout,
         "fc_dropout": args.fc_dropout,
         "has_fc_dropout": args.has_fc_dropout,
+        "bidirectional": args.bidirectional,
     }
 
     if args.model == "LSTM":

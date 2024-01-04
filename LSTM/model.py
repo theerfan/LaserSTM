@@ -14,9 +14,12 @@ class LSTMModel(nn.Module):
         LSTM_dropout: float = 0.0,
         fc_dropout: float = 0.0,
         has_fc_dropout: bool = True,
+        bidirectional: int = 0,
         **kwargs,
     ):
         super().__init__()
+
+        bidirectional = bool(bidirectional)
         self.input_size = input_size
         self.num_layers = num_layers
         self.hidden_size = lstm_hidden_size
@@ -26,6 +29,7 @@ class LSTMModel(nn.Module):
             batch_first=True,
             dropout=LSTM_dropout,
             num_layers=num_layers,
+            bidirectional=bidirectional,
         )
         if has_fc_dropout:
             self.linear = nn.Sequential(
@@ -50,7 +54,7 @@ class LSTMModel(nn.Module):
             )
 
         print(
-            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}"
+            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
         )
 
     def forward(
@@ -83,9 +87,12 @@ class BlindTridentLSTM(nn.Module):
         LSTM_dropout: float = 0.0,
         fc_dropout: float = 0.0,
         shg_lower_factor: int = 4,
+        bidirectional: int = 0,
         **kwargs,
     ):
         super(BlindTridentLSTM, self).__init__()
+
+        bidirectional = bool(bidirectional)
         self.input_size = input_size
         self.num_layers = num_layers
 
@@ -98,6 +105,7 @@ class BlindTridentLSTM(nn.Module):
             batch_first=True,
             dropout=LSTM_dropout,
             num_layers=num_layers,
+            bidirectional=bidirectional,
         )
 
         self.scale_up = nn.Linear(lstm_hidden_size, input_size)
@@ -122,7 +130,7 @@ class BlindTridentLSTM(nn.Module):
         )
 
         print(
-            f"Blind Trident LSTM: hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}"
+            f"Blind Trident LSTM: hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
         )
 
     # TODO: Re-write this and make it clear
@@ -172,9 +180,11 @@ class TridentLSTM(nn.Module):
         LSTM_dropout: float = 0.0,
         fc_dropout: float = 0.0,
         shg_lower_factor: int = 4,
+        bidirectional: int = 0,
         **kwargs,
     ):
         super(TridentLSTM, self).__init__()
+        bidirectional = bool(bidirectional)
         self.input_size = input_size
         self.num_layers = num_layers
 
@@ -187,6 +197,7 @@ class TridentLSTM(nn.Module):
             batch_first=True,
             dropout=LSTM_dropout,
             num_layers=num_layers,
+            bidirectional=bidirectional,
         )
 
         self.fc_sfg = nn.Sequential(
@@ -209,7 +220,7 @@ class TridentLSTM(nn.Module):
         )
 
         print(
-            f"Trident LSTM: hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}"
+            f"Trident LSTM: hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
         )
 
     # TODO: Re-write this and make it clear
