@@ -31,6 +31,12 @@ class LSTMModel(nn.Module):
             num_layers=num_layers,
             bidirectional=bidirectional,
         )
+
+        # doing it like this so it won't be saved in the state dict
+        if bidirectional:
+            self.num_layers *= 2
+            lstm_hidden_size *= 2
+
         if has_fc_dropout:
             self.linear = nn.Sequential(
                 nn.Linear(lstm_hidden_size, linear_layer_size),
@@ -56,6 +62,9 @@ class LSTMModel(nn.Module):
         print(
             f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
         )
+
+
+
 
     def forward(
         self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
