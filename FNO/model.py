@@ -18,5 +18,7 @@ class FNO_wrapper(FNO):
         # this is due to the way the data is stored
         if len(x.shape) == 3 and not self.is_slice:
             x = x[:, -1, :]
+            # make it such that the second dimension is 1
+            x = x.unsqueeze(1)
         out = super().forward(x)
         return out

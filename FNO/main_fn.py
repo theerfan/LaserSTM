@@ -23,7 +23,7 @@ def main_FNO(
         "mlp_dropout": args.fc_dropout if args.has_fc_dropout else 0,
         "use_mlp": bool(args.FNO_use_mlp),
         "n_layers": args.FNO_fourier_layers,
-        "is_slice": args.is_slice,
+        "is_slice": bool(args.is_slice),
     }
 
     train_dataset, val_dataset, test_dataset = get_datasets(args)
