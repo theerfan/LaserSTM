@@ -123,8 +123,8 @@ def get_cmd_args():
 
     parser.add_argument(
         "--is_slice",
-        type=bool,
-        default=True,
+        type=int,
+        default=1,
         help="Are we modeling a slice of the crystal or the whole crystal?",
     )
 

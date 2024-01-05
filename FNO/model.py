@@ -11,6 +11,7 @@ class FNO_wrapper(FNO):
         print("FNO_wrapper kwargs:")
         for k, v in kwargs.items():
             print(f"{k}: {v}")
+        print(f"is_slice: {is_slice}")
 
     def forward(self, x):
         # if x has a second dimension, take the last element
