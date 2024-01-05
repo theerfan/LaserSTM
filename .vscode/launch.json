@@ -37,9 +37,19 @@
         "--custom_loss",
         "weighted_MSE",
         "--output_dir",
-        "/mnt/oneterra/outputs/08-11-2023",
+        "/mnt/oneterra/outputs/04-01-2023",
         "--is_slice",
-        "0"
+        "0",
+        "--num_epochs",
+        "50",
+        "--model_save_name",
+        "FNO_attempt1",
+        "--sfg_weight",
+        "5",
+        "--shg_weight",
+        "1",
+        "--batch_size",
+        "100"
       ]
     },
     {
