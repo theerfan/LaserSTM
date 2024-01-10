@@ -171,7 +171,7 @@ def train(
         # approved.
         if save_checkpoints and epoch % epoch_save_interval == 0:
             checkpoint_path = os.path.join(
-                out_dir, f"{model_save_name}_epoch_{epoch+1}.pth"
+                out_dir, f"{model_save_name}_epoch_{epoch_start + epoch + 1}.pth"
             )
             torch.save(
                 {
