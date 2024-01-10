@@ -99,15 +99,15 @@ import matplotlib.pyplot as plt
 # first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
 # first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
 
-train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_trident_hidden_epoch_50_train_losses.npy")
-val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_trident_hidden_epoch_50_val_losses.npy")
+train_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_train_losses.npy")
+val_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_val_losses.npy")
 
 # # put the first train losses at the beginning of the train losses
 # train_losses = np.concatenate((first_train_losses, train_losses))
 # val_losses = np.concatenate((first_val_losses, val_losses))
 
-train_losses = train_losses[5:]
-val_losses = val_losses[5:]
+train_losses = train_losses[2:]
+val_losses = val_losses[2:]
 
 plt.plot(train_losses, label="Train Loss")
 plt.plot(val_losses, label="Val Loss")

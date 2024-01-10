@@ -105,15 +105,15 @@
         "--custom_loss",
         "weighted_MSE",
         "--output_dir",
-        "/mnt/oneterra/outputs/11-12-2023",
+        "/mnt/oneterra/outputs/03-01-2023",
         "--num_epochs",
         "10",
         "--sfg_weight",
         "10",
         "--shg_weight",
         "1",
-        "--lstm_num_layers",
-        "2",
+        "--bidirectional",
+        "1",
         "--batch_size",
         "2000"
       ]
