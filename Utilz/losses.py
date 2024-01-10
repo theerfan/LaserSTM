@@ -144,6 +144,11 @@ def weighted_MSE(
     reduction: str = "mean",
     **kwargs,
 ) -> torch.Tensor:
+    
+    # if the y_pred has a second dimension of 1, squeeze it
+    if y_pred.shape[1] == 1:
+        y_pred = y_pred.squeeze(1)
+
     (
         shg1_real_pred,
         shg1_complex_pred,

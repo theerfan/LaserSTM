@@ -94,26 +94,26 @@
 
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-# first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
-# first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
+# # first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
+# # first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
 
 train_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_train_losses.npy")
 val_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_val_losses.npy")
 
-# # put the first train losses at the beginning of the train losses
-# train_losses = np.concatenate((first_train_losses, train_losses))
-# val_losses = np.concatenate((first_val_losses, val_losses))
+# # # put the first train losses at the beginning of the train losses
+# # train_losses = np.concatenate((first_train_losses, train_losses))
+# # val_losses = np.concatenate((first_val_losses, val_losses))
 
 train_losses = train_losses[2:]
 val_losses = val_losses[2:]
 
-plt.plot(train_losses, label="Train Loss")
-plt.plot(val_losses, label="Val Loss")
-plt.legend()
-plt.show()
-plt.savefig("losses.png")
+# plt.plot(train_losses, label="Train Loss")
+# plt.plot(val_losses, label="Val Loss")
+# plt.legend()
+# plt.show()
+# plt.savefig("losses.png")
 
 # import pickle
 
@@ -126,3 +126,99 @@ plt.savefig("losses.png")
 
 # # Now, you can print or inspect 'data' to see what's inside the pickle file
 # print(data)
+
+###
+
+import h5py
+import numpy as np
+
+#  Path for the new HDF5 file
+x_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/X_new_data.h5'
+y_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/y_new_data.h5'
+
+# Open an HDF5 file in read mode
+# with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+#     # Get the keys of the datasets
+#     keys = list(hdf5_file.keys())
+
+#     # Get the first dataset
+#     first_dataset = hdf5_file[keys[0]]
+
+#     # Get the shape of the first dataset
+#     first_dataset_shape = first_dataset.shape
+
+#     # Get the dtype of the first dataset
+#     first_dataset_dtype = first_dataset.dtype
+
+#     print(f'First dataset shape: {first_dataset_shape}')
+#     print(f'First dataset dtype: {first_dataset_dtype}')
+
+# # Open an HDF5 file in read mode
+# with h5py.File(y_hdf5_path, 'r') as hdf5_file:
+#     # Get the keys of the datasets
+#     keys = list(hdf5_file.keys())
+
+#     # Get the first dataset
+#     first_dataset = hdf5_file[keys[0]]
+
+#     # Get the shape of the first dataset
+#     first_dataset_shape = first_dataset.shape
+
+#     # Get the dtype of the first dataset
+#     first_dataset_dtype = first_dataset.dtype
+
+#     print(f'First dataset shape: {first_dataset_shape}')
+#     print(f'First dataset dtype: {first_dataset_dtype}')
+
+
+# Go through each x dataset, then use only the last element in the second dimension and save it to a new dataset called x_reduced
+
+# Open an HDF5 file in read mode
+# with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+#     # Create a new HDF5 file in write mode
+#     with h5py.File('/mnt/oneterra/SFG_reIm_h5/X_new_reduced_data.h5', 'w') as hdf5_file_reduced:
+#         # Loop through the datasets
+#         for key in hdf5_file.keys():
+#             # Get the dataset
+#             dataset = hdf5_file[key]
+
+#             print(f'Processing dataset: {key}')
+
+#             # Perform reduction (taking the last element in the second dimension)
+#             reduced_data = dataset[:, -1, :]
+
+#             # Create a new dataset in the new HDF5 file with reduced data
+#             hdf5_file_reduced.create_dataset(key, data=reduced_data)
+# 
+# import h5py
+
+# Get the keys of the datasets from the original HDF5 file
+import logging
+
+# Configure logging
+logging.basicConfig(filename='dataset_processing.log', 
+                    level=logging.INFO, 
+                    format='%(asctime)s %(levelname)s: %(message)s', 
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
+# Get the keys of the datasets from the original HDF5 file
+with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+    keys = list(hdf5_file.keys())
+
+# Process each dataset one by one
+for key in keys:
+    logging.info(f'Processing dataset: {key}')
+
+    # Open the original HDF5 file to read the current dataset
+    with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+        dataset = hdf5_file[key]
+
+        # Perform reduction (taking the last element in the second dimension)
+        reduced_data = dataset[:, -1, :]
+
+    # Open the reduced HDF5 file to write the processed data
+    with h5py.File('/mnt/oneterra/SFG_reIm_h5/X_new_reduced_data.h5', 'a') as hdf5_file_reduced:
+        # Create a new dataset in the reduced HDF5 file with reduced data
+        hdf5_file_reduced.create_dataset(key, data=reduced_data)
+
+    logging.info(f'Completed dataset: {key}')

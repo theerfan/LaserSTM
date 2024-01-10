@@ -123,8 +123,8 @@ def get_cmd_args():
 
     parser.add_argument(
         "--is_slice",
-        type=bool,
-        default=True,
+        type=int,
+        default=1,
         help="Are we modeling a slice of the crystal or the whole crystal?",
     )
 
@@ -220,6 +220,34 @@ def get_cmd_args():
         type=int,
         default=0,
         help="Whether to have the LSTM model bidirectional or not.",
+    )
+
+    parser.add_argument(
+        "--FNO_modes",
+        type=int,
+        default=16,
+        help="Number of modes for the FNO model.",
+    )
+
+    parser.add_argument(
+        "--FNO_hidden_channels",
+        type=int,
+        default=64,
+        help="Width of the hidden channels for the FNO model.",
+    )
+
+    parser.add_argument(
+        "--FNO_fourier_layers",
+        type=int,
+        default=4,
+        help="Number of fourier layers for the FNO model.",
+    )
+
+    parser.add_argument(
+        "--FNO_use_mlp",
+        type=int,
+        default=0,
+        help="Whether to use MLP or not for the FNO model.",
     )
 
     return parser.parse_args()
