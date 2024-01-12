@@ -80,6 +80,7 @@ def train(
     model_param_path: str = None,
     learning_rate: float = 1e-4,
     shuffle: bool = True,
+    test_criterion: Callable = None,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -112,7 +113,11 @@ def train(
     # Check if the output directory exists, if not, create it
     os.makedirs(out_dir, exist_ok=True)
 
-    criterion = custom_loss or nn.MSELoss()
+    # default to MSE loss if no custom loss is provided
+    train_criterion = custom_loss or nn.MSELoss()
+    # if no test criterion is provided, use the train criterion
+    test_criterion = test_criterion or train_criterion
+
     # TODO: Other optimizers for time series?
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     if optimizer_params is not None:
@@ -129,9 +134,11 @@ def train(
 
     single_pass_fn = custom_single_pass or default_single_pass
 
-    shuffle = True if shuffle == 1 else False
+    shuffle = bool(shuffle)
     if shuffle:
         print("Everyday I'm shuffling!")
+        logging.info("Everyday I'm shuffling!")
+
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
@@ -148,7 +155,7 @@ def train(
         model.train()
 
         train_loss, last_train_loss = single_pass_fn(
-            model, train_dataloader, optimizer, criterion
+            model, train_dataloader, optimizer, train_criterion
         )
         train_losses.append(train_loss)
 
@@ -157,7 +164,7 @@ def train(
             model.eval()
             with torch.no_grad():
                 val_loss, _ = single_pass_fn(
-                    model, val_dataloader, None, criterion, verbose=False
+                    model, val_dataloader, None, test_criterion, verbose=False
                 )
                 val_losses.append(val_loss)
             # Update the learning rate if we're not improving
@@ -493,83 +500,107 @@ def tune_and_train(
     learning_rate: float = 1e-4,
     shuffle: int = 1,
 ):
-    # Generate possible values for each hyperparameter with a step size of 0.2
-    possible_values = np.arange(0.1, 1.1, 0.2)  # Include 1.0 as a possible value
+    stacked_layers_combinations = [1, 2]
+    lstm_hidden_size_combinations = [1024, 2048, 4096]
+    mlp_hidden_size_multiplier_combinations = [1, 2, 4]
 
-    # Generate all combinations where the sum of the hyperparameters equals 1
-    # combinations = [
-    #     (np.round(shg, 3), np.around(sfg, 3))
-    #     for shg in possible_values
-    #     for sfg in possible_values
-    #     if np.isclose(shg + sfg, 1.0)
-    # ]
-
-    combinations = [
-        (0.3, 0.7),
-        (0.5, 0.5),
-    ]
+    def time_domain_mse(y_real, y_pred):
+        mse = nn.MSELoss()
+        batch_size = y_real.shape[0]
+        losses = np.zeros((batch_size))
+        for i in range(batch_size):
+            (
+                sfg_time_true,
+                sfg_time_pred,
+                shg1_time_true,
+                shg1_time_pred,
+                shg2_time_true,
+                shg2_time_pred,
+            ) = do_analysis(
+                ".",
+                "/mnt/oneterra/SFG_reIm_h5/",
+                model_save_name,
+                analysis_file_idx,
+                analysis_item_idx,
+                ".",
+                100,
+                y_pred[i].cpu().numpy(),
+                y_real[i].cpu().numpy(),
+                return_vals=True,
+            )
+            losses[i] = (
+                mse(sfg_time_true, sfg_time_pred)
+                + mse(shg1_time_true, shg1_time_pred)
+                + mse(shg2_time_true, shg2_time_pred)
+            )
+        
+        return np.mean(losses)
 
     results = {}
 
-    for combo in combinations:
-        shg_weight, sfg_weight = combo
+    for num_layers in stacked_layers_combinations:
+        for lstm_hidden_size in lstm_hidden_size_combinations:
+            for mlp_hidden_size_multiplier in mlp_hidden_size_multiplier_combinations:
+                combo_str = f"nlayers_{num_layers}_lstmhs_{lstm_hidden_size}_mlphs_{mlp_hidden_size_multiplier}"
 
-        if verbose:
-            print(f"Weights combination -> SHG: {shg_weight} , SFG: {sfg_weight}")
+                model_save_name = f"{model_save_name}_{combo_str}"
 
-        model_save_name = f"{model_save_name}_shg_{shg_weight}_sfg_{sfg_weight}"
+                model_dict.lstm_hidden_size = lstm_hidden_size
+                model_dict.num_layers = num_layers
+                model_dict.linear_layer_size = (
+                    lstm_hidden_size * mlp_hidden_size_multiplier
+                )
+                # initialize a new model to train with the new hyperparameters
+                model = type(model)(**model_dict)
 
-        current_loss = partial(
-            custom_loss, shg_weight=shg_weight, sfg_weight=sfg_weight
-        )
+                # Train the model with the training dataset
+                # This assumes a train function is available and works similarly to the one in main.py
+                # We'll also need to modify the train function to accept the loss function with hyperparameters
+                trained_model, train_losses, val_losses = train(
+                    model,
+                    train_dataset,
+                    num_epochs=num_epochs,
+                    val_dataset=val_dataset,
+                    data_parallel=True,
+                    out_dir=output_dir,
+                    model_save_name=model_save_name,
+                    verbose=verbose,
+                    save_checkpoints=True,
+                    custom_loss=custom_loss,
+                    epoch_save_interval=epoch_save_interval,
+                    batch_size=batch_size,
+                    model_param_path=model_param_path,
+                    learning_rate=learning_rate,
+                    shuffle=shuffle,
+                    test_criterion=time_domain_mse,
+                )
 
-        # initialize a new model to train with the new hyperparameters
-        model = type(model)(**model_dict)
+                # select model with the lowest validation loss
+                best_val_loss_idx = np.argmin(val_losses)
+                best_iter_model_name = f"{model_save_name}_epoch_{best_val_loss_idx}"
+                combo_str = f"{combo_str}_epoch_{best_val_loss_idx}"
 
-        # Train the model with the training dataset
-        # This assumes a train function is available and works similarly to the one in main.py
-        # We'll also need to modify the train function to accept the loss function with hyperparameters
-        trained_model, train_losses, val_losses = train(
-            model,
-            train_dataset,
-            num_epochs=num_epochs,
-            val_dataset=val_dataset,
-            data_parallel=True,
-            out_dir=output_dir,
-            model_save_name=model_save_name,
-            verbose=verbose,
-            save_checkpoints=True,
-            custom_loss=current_loss,
-            epoch_save_interval=epoch_save_interval,
-            batch_size=batch_size,
-            model_param_path=model_param_path,
-            learning_rate=learning_rate,
-            shuffle=shuffle,
-        )
+                results[combo_str] = val_losses[best_val_loss_idx]
 
-        results[combo] = val_losses.flatten().mean()
+                predict(
+                    model,
+                    model_param_path=os.path.join(
+                        output_dir, best_iter_model_name + ".pth"
+                    ),
+                    test_dataset=test_dataset,
+                    output_dir=output_dir,
+                    verbose=verbose,
+                    model_save_name=model_save_name + f"_epoch_{num_epochs}",
+                    is_slice=is_slice,
+                    crystal_length=crystal_length,
+                    load_model=False,
+                )
 
-        predict(
-            model,
-            model_param_path=os.path.join(
-                output_dir, f"{model_save_name}_epoch_{num_epochs}.pth"
-            ),
-            test_dataset=test_dataset,
-            output_dir=output_dir,
-            verbose=verbose,
-            model_save_name=model_save_name + f"_epoch_{num_epochs}",
-            is_slice=is_slice,
-            crystal_length=crystal_length,
-            load_model=False,
-        )
-
-    # Find the best hyperparameters based on test loss
+    # Find the best hyperparameters based on test loss (returns the key)
     best_hyperparameters = min(results, key=results.get)
 
     # find best model's save name from the best hyperparameters
-    model_save_name = (
-        f"{model_save_name}_shg_{best_hyperparameters[0]}_sfg_{best_hyperparameters[1]}"
-    )
+    model_save_name = f"{model_save_name}_{best_hyperparameters}"
 
     log_str = f"Best hyperparameters: {best_hyperparameters}"
     print(log_str)
@@ -586,7 +617,7 @@ def tune_and_train(
     do_analysis(
         output_dir=output_dir,
         data_directory=data_dir,
-        model_save_name=model_save_name + f"_epoch_{num_epochs}",
+        model_save_name=model_save_name,
         file_idx=analysis_file_idx,
         item_idx=analysis_item_idx,
     )

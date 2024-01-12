@@ -285,6 +285,7 @@ def do_analysis(
     y_pred_trans_item: np.ndarray = None,
     y_true_trans_item: np.ndarray = None,
     file_save_name: str = None,
+    return_vals: bool = False,
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -443,6 +444,18 @@ def do_analysis(
         domain_spacing=domain_spacing_2,
         true_domain_spacing=sfg_original_time_ds,
     )
+
+    if return_vals:
+        return (
+            sfg_freq_to_time_true,
+            sfg_freq_to_time_pred,
+            shg1_freq_to_time_true,
+            shg1_freq_to_time_pred,
+            shg2_freq_to_time_true,
+            shg2_freq_to_time_pred,
+        )
+    else:
+        pass
 
     # required lists for plotting the frequency domain
     freq_vectors_sfg_list = [freq_vectors_sfg, freq_vectors_sfg]
