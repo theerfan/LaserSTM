@@ -534,7 +534,7 @@ def tune_and_train(
                 + mse(shg2_time_true, shg2_time_pred)
             )
         
-        return losses
+        return torch.from_numpy(losses)
 
     results = {}
 
