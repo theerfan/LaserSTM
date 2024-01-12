@@ -241,15 +241,15 @@
         "--data_dir",
         "/mnt/oneterra/SFG_reIm_h5/",
         "--output_dir",
-        "/mnt/oneterra/outputs/04-12-2023/",
+        "/mnt/oneterra/outputs/03-01-2024/",
         "--do_analysis",
         "1",
         "--model_param_path",
-        "/mnt/oneterra/outputs/04-12-2023/LSTM_100_cont_epoch_25.pth",
+        "/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_40.pth",
         "--lstm_hidden_size",
         "2048",
         "--analysis_file",
-        "95",
+        "91",
         "--analysis_example",
         "15"
       ]

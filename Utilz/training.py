@@ -534,7 +534,7 @@ def tune_and_train(
                 + mse(shg2_time_true, shg2_time_pred)
             )
         
-        return np.mean(losses)
+        return losses
 
     results = {}
 
@@ -545,9 +545,9 @@ def tune_and_train(
 
                 model_save_name = f"{model_save_name}_{combo_str}"
 
-                model_dict.lstm_hidden_size = lstm_hidden_size
-                model_dict.num_layers = num_layers
-                model_dict.linear_layer_size = (
+                model_dict["lstm_hidden_size"] = lstm_hidden_size
+                model_dict["num_layers"] = num_layers
+                model_dict["linear_layer_size"] = (
                     lstm_hidden_size * mlp_hidden_size_multiplier
                 )
                 # initialize a new model to train with the new hyperparameters
