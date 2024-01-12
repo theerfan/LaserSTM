@@ -528,6 +528,15 @@ def tune_and_train(
                 y_real[i].cpu().numpy(),
                 return_vals=True,
             )
+            # turn the numpy arrays into tensors
+            sfg_time_true = torch.from_numpy(sfg_time_true)
+            sfg_time_pred = torch.from_numpy(sfg_time_pred)
+            shg1_time_true = torch.from_numpy(shg1_time_true)
+            shg1_time_pred = torch.from_numpy(shg1_time_pred)
+            shg2_time_true = torch.from_numpy(shg2_time_true)
+            shg2_time_pred = torch.from_numpy(shg2_time_pred)
+            
+            # calculate the losses
             losses[i] = (
                 mse(sfg_time_true, sfg_time_pred)
                 + mse(shg1_time_true, shg1_time_pred)
