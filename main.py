@@ -230,10 +230,10 @@ def get_cmd_args():
     )
 
     parser.add_argument(
-        "--FNO_hidden_channels",
+        "--FNO_lifted_dim",
         type=int,
         default=64,
-        help="Width of the hidden channels for the FNO model.",
+        help="Lifted dimension for the FNO model",
     )
 
     parser.add_argument(
@@ -241,13 +241,6 @@ def get_cmd_args():
         type=int,
         default=4,
         help="Number of fourier layers for the FNO model.",
-    )
-
-    parser.add_argument(
-        "--FNO_use_mlp",
-        type=int,
-        default=0,
-        help="Whether to use MLP or not for the FNO model.",
     )
 
     return parser.parse_args()
