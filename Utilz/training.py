@@ -545,6 +545,8 @@ def tune_and_train(
         
         return torch.from_numpy(losses)
 
+
+    init_model_save_name = model_save_name
     results = {}
 
     for num_layers in stacked_layers_combinations:
@@ -552,7 +554,7 @@ def tune_and_train(
             for mlp_hidden_size_multiplier in mlp_hidden_size_multiplier_combinations:
                 combo_str = f"nlayers_{num_layers}_lstmhs_{lstm_hidden_size}_mlphs_{mlp_hidden_size_multiplier}"
 
-                model_save_name = f"{model_save_name}_{combo_str}"
+                model_save_name = f"{init_model_save_name}_{combo_str}"
 
                 model_dict["lstm_hidden_size"] = lstm_hidden_size
                 model_dict["num_layers"] = num_layers
