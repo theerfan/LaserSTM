@@ -11,6 +11,7 @@ class FourierLayer(nn.Module):
         self.modes = n_modes
         self.scale = 1 / (n_channels * n_modes)
         self.fc_r = nn.Linear(n_modes, n_channels)
+        self.fc_i = nn.Linear(n_modes, n_channels)
 
     def forward(self, x):
         # Apply the Fourier Transform
@@ -19,14 +20,23 @@ class FourierLayer(nn.Module):
         # Filter the Fourier modes
         x_ft = x_ft[:, : self.modes]
 
-        # Apply the learned linear transform R
-        x_ft = self.fc_r(x_ft)
+        # Separate real and imaginary parts
+        x_ft_real = x_ft.real
+        x_ft_imag = x_ft.imag
+
+        # Apply the learned linear transform R separately
+        x_ft_real = self.fc_r(x_ft_real)
+        x_ft_imag = self.fc_i(x_ft_imag)
+
+        # Recombine the real and imaginary parts
+        x_ft = torch.complex(x_ft_real, x_ft_imag)
 
         # Apply the Inverse Fourier Transform
         x = torch.fft.irfft(x_ft, n=self.n_channels)
 
         # Apply the non-linear activation function
-        return F.gelu(x)
+        # Convert to real to get rid of any trace complex values
+        return F.sigmoid(x.real)
 
 
 # Combine everything into the Neural Operator
@@ -59,7 +69,7 @@ class NeuralOperator(nn.Module):
         for layer in self.fourier_layers:
             x = layer(x)
         x = self.downscale_nn(x)
-        return x
+        return F.sigmoid(x)
 
 
 # # Example instantiation of the Neural Operator
