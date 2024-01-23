@@ -3,6 +3,8 @@ import torch.nn as nn
 
 from typing import Tuple
 
+from LSTM.custom_lstms import LayerNormLSTMCell, LSTMLayer
+
 
 class LSTMModel(nn.Module):
     def __init__(
@@ -15,32 +17,43 @@ class LSTMModel(nn.Module):
         fc_dropout: float = 0.0,
         has_fc_dropout: bool = True,
         bidirectional: int = 0,
+        layernorm: int = 0,
         **kwargs,
     ):
         super().__init__()
 
         bidirectional = bool(bidirectional)
+        layernorm = bool(layernorm)
         self.input_size = input_size
         self.num_layers = num_layers
         self.hidden_size = lstm_hidden_size
-        self.lstm = nn.LSTM(
-            input_size,
-            lstm_hidden_size,
-            batch_first=True,
-            dropout=LSTM_dropout,
-            num_layers=num_layers,
-            bidirectional=bidirectional,
-        )
 
-        # doing it like this so it won't be saved in the state dict
-        if bidirectional:
-            self.num_layers *= 2
-            lstm_hidden_size *= 2
+        if layernorm:
+            self.lstm = LSTMLayer(
+                LayerNormLSTMCell,
+                input_size,
+                lstm_hidden_size,
+            )
+        else:
+            self.lstm = nn.LSTM(
+                input_size,
+                lstm_hidden_size,
+                batch_first=True,
+                dropout=LSTM_dropout,
+                num_layers=num_layers,
+                bidirectional=bidirectional,
+            )
+
+            # doing it like this so it won't be saved in the state dict
+            if bidirectional:
+                self.num_layers *= 2
+                lstm_hidden_size *= 2
 
         if has_fc_dropout:
             self.linear = nn.Sequential(
                 nn.Linear(lstm_hidden_size, linear_layer_size),
-                nn.ReLU(),
+                # NOTE: This used to be relu, but we're trying different things
+                nn.Sigmoid(),
                 nn.Dropout(fc_dropout),
                 nn.Linear(linear_layer_size, linear_layer_size),
                 nn.Tanh(),
@@ -52,7 +65,8 @@ class LSTMModel(nn.Module):
             print("No FC dropout!")
             self.linear = nn.Sequential(
                 nn.Linear(lstm_hidden_size, linear_layer_size),
-                nn.ReLU(),
+                # NOTE: This used to be relu, but we're trying different things
+                nn.Sigmoid(),
                 nn.Linear(linear_layer_size, linear_layer_size),
                 nn.Tanh(),
                 nn.Linear(linear_layer_size, input_size),
@@ -60,7 +74,7 @@ class LSTMModel(nn.Module):
             )
 
         print(
-            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
+            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}, LayerNorm: {layernorm}"
         )
 
 

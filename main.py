@@ -223,6 +223,13 @@ def get_cmd_args():
     )
 
     parser.add_argument(
+        "--layernorm",
+        type=int,
+        default=0,
+        help="Whether to have LayerNorm in the LSTM model or not.",
+    )
+
+    parser.add_argument(
         "--FNO_modes",
         type=int,
         default=16,
