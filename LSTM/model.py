@@ -83,18 +83,7 @@ class LSTMModel(nn.Module):
     def forward(
         self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
     ):
-        # hidden state
-        if h_0 is None:
-            h_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
-                x.device
-            )
-        # cell state
-        if c_0 is None:
-            c_0 = torch.zeros(self.num_layers * 1, x.size(0), self.hidden_size).to(
-                x.device
-            )
-
-        out_1, (hn, cn) = self.lstm(x, (h_0, c_0))
+        out_1, (hn, cn) = self.lstm(x)
         out = self.linear(out_1[:, -1, :])
 
         return out

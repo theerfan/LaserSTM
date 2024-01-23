@@ -178,7 +178,8 @@ class LayerNorm(jit.ScriptModule):
         return (input - mu) / sigma * self.weight + self.bias
 
 
-class LayerNormLSTMCell(jit.ScriptModule):
+# class LayerNormLSTMCell(jit.ScriptModule):
+class LayerNormLSTMCell(nn.Module):
     def __init__(self, input_size, hidden_size, decompose_layernorm=False):
         super().__init__()
         self.input_size = input_size
@@ -196,13 +197,13 @@ class LayerNormLSTMCell(jit.ScriptModule):
         self.layernorm_h = ln(4 * hidden_size)
         self.layernorm_c = ln(hidden_size)
 
-    @jit.script_method
+    # @jit.script_method
     def forward(
-        self, input: Tensor, state: Tuple[Tensor, Tensor]
+        self, input_: Tensor, state: Tuple[Tensor, Tensor] = None
     ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
         hx, cx = state
-        igates = self.layernorm_i(torch.mm(input, self.weight_ih.t()))
-        hgates = self.layernorm_h(torch.mm(hx, self.weight_hh.t()))
+        igates = self.layernorm_i(torch.matmul(input_, self.weight_ih.t()))
+        hgates = self.layernorm_h(torch.matmul(hx, self.weight_hh.t()))
         gates = igates + hgates
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
@@ -216,17 +217,39 @@ class LayerNormLSTMCell(jit.ScriptModule):
 
         return hy, (hy, cy)
 
-
-class LSTMLayer(jit.ScriptModule):
-    def __init__(self, cell, *cell_args):
+## NOTE: This doesn't handle bidirectional / stacked LSTM
+# class LSTMLayer(jit.ScriptModule):
+class LSTMLayer(nn.Module):
+    def __init__(self, cell, input_size, hidden_size, decompose_layernorm=False):
         super().__init__()
-        self.cell = cell(*cell_args)
+        self.cell = cell(input_size, hidden_size, decompose_layernorm)
 
-    @jit.script_method
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+    # @jit.script_method
     def forward(
-        self, input_: Tensor, state: Tuple[Tensor, Tensor]
+        self, input_: Tensor, state: Tuple[Tensor, Tensor] = None
     ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
+        batch_size = input_.size(0)
         seq_len = input_.size(1)
+
+
+        if state is None:
+            h_zeros = torch.zeros(
+                batch_size,
+                self.hidden_size,
+                dtype=input_.dtype,
+                device=input_.device,
+            )
+            c_zeros = torch.zeros(
+                batch_size,
+                self.hidden_size,
+                dtype=input_.dtype,
+                device=input_.device,
+            )
+            state = (h_zeros, c_zeros)
+
         outputs = torch.jit.annotate(List[Tensor], [])
         for i in range(seq_len):
             out, state = self.cell(input_[:, i], state)
