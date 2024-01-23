@@ -148,7 +148,7 @@ def train(
     # Train
     for epoch in range(num_epochs):
         if verbose:
-            log_str = f"Epoch {epoch + 1} of {num_epochs}"
+            log_str = f"Epoch {epoch_start + epoch + 1} of {epoch_start + num_epochs}"
             print(log_str)
             logging.info(log_str)
 
