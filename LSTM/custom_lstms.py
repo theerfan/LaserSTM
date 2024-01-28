@@ -152,7 +152,7 @@ class LSTMCell(jit.ScriptModule):
         return hy, (hy, cy)
 
 
-class LayerNorm(jit.ScriptModule):
+class LayerNorm(nn.Module):
     def __init__(self, normalized_shape):
         super().__init__()
         if isinstance(normalized_shape, numbers.Integral):
@@ -166,13 +166,13 @@ class LayerNorm(jit.ScriptModule):
         self.bias = Parameter(torch.zeros(normalized_shape))
         self.normalized_shape = normalized_shape
 
-    @jit.script_method
+    # @jit.script_method
     def compute_layernorm_stats(self, input):
         mu = input.mean(-1, keepdim=True)
         sigma = input.std(-1, keepdim=True, unbiased=False)
         return mu, sigma
 
-    @jit.script_method
+    # @jit.script_method
     def forward(self, input):
         mu, sigma = self.compute_layernorm_stats(input)
         return (input - mu) / sigma * self.weight + self.bias
@@ -199,7 +199,7 @@ class LayerNormLSTMCell(nn.Module):
 
     # @jit.script_method
     def forward(
-        self, input_: Tensor, state: Tuple[Tensor, Tensor] = None
+        self, input_: Tensor, state: Tuple[Tensor, Tensor]
     ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
         hx, cx = state
         igates = self.layernorm_i(torch.matmul(input_, self.weight_ih.t()))
@@ -229,13 +229,13 @@ class LSTMLayer(nn.Module):
 
     # @jit.script_method
     def forward(
-        self, input_: Tensor, state: Tuple[Tensor, Tensor] = None
+        self, input_: Tensor, state: Tuple[Tensor, Tensor] = (torch.zeros(1), torch.zeros(1))
     ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
         batch_size = input_.size(0)
         seq_len = input_.size(1)
 
-
-        if state is None:
+        # Means it's empty
+        if state[0].size() == torch.Size([1]):
             h_zeros = torch.zeros(
                 batch_size,
                 self.hidden_size,
