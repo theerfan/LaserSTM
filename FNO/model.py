@@ -56,7 +56,7 @@ class NeuralOperator(nn.Module):
             [FourierLayer(lifted_dim, n_modes) for _ in range(num_layers)]
         )
         self.downscale_nn = nn.Linear(lifted_dim, output_dim)
-
+ 
         self.is_slice = is_slice
 
     def forward(self, x):
