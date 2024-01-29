@@ -286,6 +286,7 @@ def do_analysis(
     y_true_trans_item: np.ndarray = None,
     file_save_name: str = None,
     return_vals: bool = False,
+    labels_list: list = None,
 ):
     if fig_save_dir is None:
         fig_save_dir = os.path.join(
@@ -476,7 +477,10 @@ def do_analysis(
     shg2_freq_to_time_list = [shg2_freq_to_time_true, shg2_freq_to_time_pred]
 
     colors_list = ["red", "black"]
-    labels_list = ["true", "pred"]
+    if labels_list is None:
+        labels_list = ["true", "pred"]
+
+    print("Normalized plots")
 
     # Draw normalized plots
     plot_a_bunch_of_fields(
@@ -499,6 +503,8 @@ def do_analysis(
         file_save_name=file_save_name,
         normalize=True,
     )
+
+    print("Original plots")
 
     # Draw non-normalized plots
     plot_a_bunch_of_fields(

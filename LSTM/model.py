@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.fft
 
 from typing import Tuple
 
@@ -76,9 +77,6 @@ class LSTMModel(nn.Module):
         print(
             f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}, LayerNorm: {layernorm}"
         )
-
-
-
 
     def forward(
         self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
@@ -322,9 +320,7 @@ class BidentLSTM(nn.Module):
             f"Trident LSTM: hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}"
         )
 
-    def recombine_shg_sfg(
-        self, shg: torch.Tensor, sfg: torch.Tensor
-    ) -> torch.Tensor:
+    def recombine_shg_sfg(self, shg: torch.Tensor, sfg: torch.Tensor) -> torch.Tensor:
         # Get the appropriate device
         device = shg.device
         # Create an empty tensor with the appropriate size
@@ -356,5 +352,107 @@ class BidentLSTM(nn.Module):
         shg = self.fc_shg(lstm_out)
 
         out = self.recombine_shg_sfg(shg, sfg)
+
+        return out
+
+
+class FFLSTM(nn.Module):
+    def __init__(
+        self,
+        input_size: int,
+        lstm_hidden_size: int = 1024,
+        linear_layer_size: int = 4096,
+        num_layers: int = 1,
+        LSTM_dropout: float = 0.0,
+        fc_dropout: float = 0.0,
+        has_fc_dropout: bool = True,
+        bidirectional: int = 0,
+        layernorm: int = 0,
+        **kwargs,
+    ):
+        super().__init__()
+
+        bidirectional = bool(bidirectional)
+        layernorm = bool(layernorm)
+        self.input_size = input_size
+        self.num_layers = num_layers
+        self.hidden_size = lstm_hidden_size
+
+        if layernorm:
+            self.time_lstm = LSTMLayer(
+                LayerNormLSTMCell,
+                input_size,
+                lstm_hidden_size,
+            )
+            self.freq_lstm = LSTMLayer(
+                LayerNormLSTMCell,
+                input_size,
+                lstm_hidden_size,
+            )
+        else:
+            self.time_lstm = nn.LSTM(
+                input_size,
+                lstm_hidden_size,
+                batch_first=True,
+                dropout=LSTM_dropout,
+                num_layers=num_layers,
+                bidirectional=bidirectional,
+            )
+            self.freq_lstm = nn.LSTM(
+                input_size,
+                lstm_hidden_size,
+                batch_first=True,
+                dropout=LSTM_dropout,
+                num_layers=num_layers,
+                bidirectional=bidirectional,
+            )
+
+            # doing it like this so it won't be saved in the state dict
+            if bidirectional:
+                self.num_layers *= 2
+                lstm_hidden_size *= 2
+
+        if has_fc_dropout:
+            self.linear = nn.Sequential(
+                nn.Linear(lstm_hidden_size, linear_layer_size),
+                # NOTE: This used to be relu, but we're trying different things
+                nn.Sigmoid(),
+                nn.Dropout(fc_dropout),
+                nn.Linear(linear_layer_size, linear_layer_size),
+                nn.Tanh(),
+                nn.Dropout(fc_dropout),
+                nn.Linear(linear_layer_size, input_size),
+                nn.Sigmoid(),
+            )
+        else:
+            print("No FC dropout!")
+            self.linear = nn.Sequential(
+                nn.Linear(lstm_hidden_size, linear_layer_size),
+                # NOTE: This used to be relu, but we're trying different things
+                nn.Sigmoid(),
+                nn.Linear(linear_layer_size, linear_layer_size),
+                nn.Tanh(),
+                nn.Linear(linear_layer_size, input_size),
+                nn.Sigmoid(),
+            )
+
+        self.fft_converter = nn.Linear(input_size * 2, input_size)
+
+        print(
+            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}, LayerNorm: {layernorm}"
+        )
+
+    def forward(
+        self, x: torch.Tensor, h_0: torch.Tensor = None, c_0: torch.Tensor = None
+    ):
+        out_1, (hn_1, cn_1) = self.time_lstm(x)
+
+        fft_real_input = torch.fft.fft(x, dim=-1).real
+        fft_imag_input = torch.fft.fft(x, dim=-1).imag
+        fft_input = torch.cat((fft_real_input, fft_imag_input), dim=-1)
+        fft_input = self.fft_converter(fft_input)
+        out_2, (hn_2, cn_2) = self.freq_lstm(fft_input, (hn_1, cn_1))
+
+        out = self.linear(out_2[:, -1, :])
 
         return out
