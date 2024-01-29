@@ -1,4 +1,4 @@
-from LSTM.model import LSTMModel, BlindTridentLSTM, TridentLSTM
+from LSTM.model import LSTMModel, BlindTridentLSTM, TridentLSTM, FFLSTM
 from Utilz.loads import get_datasets
 from Utilz.main_fn import main_function
 
@@ -20,19 +20,17 @@ def main_lstm(
     }
 
     if args.model == "LSTM":
-        model = LSTMModel(
-            **model_dict,
-        )
+        model_class = LSTMModel
     elif args.model == "TridentLSTM":
-        model = TridentLSTM(
-            **model_dict,
-        )
+        model_class = TridentLSTM
     elif args.model == "BlindTridentLSTM":
-        model = BlindTridentLSTM(
-            **model_dict,
-        )
+        model_class = BlindTridentLSTM
+    elif args.model == "FFLSTM":
+        model_class = FFLSTM
     else:
         raise NotImplementedError
+    
+    model = model_class(**model_dict)
     train_dataset, val_dataset, test_dataset = get_datasets(args)
 
     main_function(

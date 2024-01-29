@@ -258,7 +258,7 @@ if __name__ == "__main__":
     # Get the args from command line
     args = get_cmd_args()
 
-    if args.model == "LSTM" or args.model == "TridentLSTM":
+    if "LSTM" in args.model:
         main_lstm(args)
     elif args.model == "Transformer":
         main_transformer(args)

@@ -439,7 +439,7 @@ class FFLSTM(nn.Module):
         self.fft_converter = nn.Linear(input_size * 2, input_size)
 
         print(
-            f"hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}, LayerNorm: {layernorm}"
+            f"FF -> hidden_size: {lstm_hidden_size}, linear size: {linear_layer_size}, n_layers: {num_layers}, LSTM dropout: {LSTM_dropout}, fc dropout: {fc_dropout}, bidirectional: {bidirectional}, LayerNorm: {layernorm}"
         )
 
     def forward(

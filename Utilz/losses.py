@@ -132,7 +132,70 @@ def pseudo_energy_loss(
 
     return shg_weight * (shg1_diff + shg2_diff) + sfg_weight * sfg_diff
 
+
+## Normalized MSE
+def normalized_weighted_MSE(
+    y_pred: torch.Tensor,
+    y_real: torch.Tensor,
+    shg_weight: float = 1,
+    sfg_weight: float = 1,
+    reduction: str = "mean",
+    **kwargs,
+) -> torch.Tensor:
     
+    # if the y_pred has a second dimension of 1, squeeze it
+    if y_pred.shape[1] == 1:
+        y_pred = y_pred.squeeze(1)
+
+    (
+        shg1_real_pred,
+        shg1_complex_pred,
+        shg2_real_pred,
+        shg2_complex_pred,
+        sfg_real_pred,
+        sfg_complex_pred,
+    ) = re_im_sep_vectors(y_pred)
+
+    (
+        shg1_real_real,
+        shg1_complex_real,
+        shg2_real_real,
+        shg2_complex_real,
+        sfg_real_real,
+        sfg_complex_real,
+    ) = re_im_sep_vectors(y_real)
+
+    mse = nn.MSELoss(reduction=reduction)
+
+    shg1_pred = torch.cat((shg1_real_pred, shg1_complex_pred), dim=1)
+    shg1_real = torch.cat((shg1_real_real, shg1_complex_real), dim=1)
+
+    shg2_pred = torch.cat((shg2_real_pred, shg2_complex_pred), dim=1)
+    shg2_real = torch.cat((shg2_real_real, shg2_complex_real), dim=1)
+
+    sfg_pred = torch.cat((sfg_real_pred, sfg_complex_pred), dim=1)
+    sfg_real = torch.cat((sfg_real_real, sfg_complex_real), dim=1)
+
+
+    shg1_numerator = mse(shg1_pred, shg1_real)
+    shg1_denominator = torch.sum(torch.square(shg1_real), dim=1)
+
+    shg2_numerator = mse(shg2_pred, shg2_real)
+    shg2_denominator = torch.sum(torch.square(shg2_real), dim=1)
+
+    sfg_numerator = mse(sfg_pred, sfg_real)
+    sfg_denominator = torch.sum(torch.square(sfg_real), dim=1)
+
+    shg1_loss_mean = torch.mean(shg1_numerator / shg1_denominator)
+    shg2_loss_mean = torch.mean(shg2_numerator / shg2_denominator)
+    sfg_loss_mean = torch.mean(sfg_numerator / sfg_denominator)
+
+    loss_val = shg_weight * (shg1_loss_mean + shg2_loss_mean) + sfg_weight * sfg_loss_mean
+
+    if loss_val > 1:
+        print("Loss value is greater than 1:", loss_val)
+    
+    return loss_val
 
 # This is a custom loss function that gives different weights
 # to the different parts of the signal

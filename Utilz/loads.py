@@ -9,6 +9,7 @@ from Utilz.losses import (
     wrapped_MSE,
     wrapped_BCE,
     wMSE_and_energy,
+    normalized_weighted_MSE
 )
 from Utilz.data import CustomSequence
 
@@ -21,7 +22,8 @@ def get_custom_loss(args: Namespace) -> Callable:
         "BCE": wrapped_BCE,
         "pseudo_energy": pseudo_energy_loss,
         "area_under_curve": area_under_curve_loss,
-        "wMSE_and_energy": wMSE_and_energy
+        "wMSE_and_energy": wMSE_and_energy,
+        "normalized_weighted_MSE": normalized_weighted_MSE,
     }
 
     def custom_loss(y_real, y_pred, shg_weight=None, sfg_weight=None):
