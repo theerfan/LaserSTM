@@ -177,18 +177,18 @@ def normalized_weighted_MSE(
     sfg_real = torch.cat((sfg_real_real, sfg_complex_real), dim=1)
 
 
-    shg1_numerator = mse(shg1_pred, shg1_real)
+    shg1_numerator = torch.sum(torch.square(shg1_pred - shg1_real), dim=1)
     shg1_denominator = torch.sum(torch.square(shg1_real), dim=1)
 
-    shg2_numerator = mse(shg2_pred, shg2_real)
+    shg2_numerator = torch.sum(torch.square(shg2_pred - shg2_real), dim=1)
     shg2_denominator = torch.sum(torch.square(shg2_real), dim=1)
 
-    sfg_numerator = mse(sfg_pred, sfg_real)
+    sfg_numerator = torch.sum(torch.square(sfg_pred - sfg_real), dim=1)
     sfg_denominator = torch.sum(torch.square(sfg_real), dim=1)
 
-    shg1_loss_mean = torch.mean(shg1_numerator / shg1_denominator)
-    shg2_loss_mean = torch.mean(shg2_numerator / shg2_denominator)
-    sfg_loss_mean = torch.mean(sfg_numerator / sfg_denominator)
+    shg1_loss_mean = torch.mean(torch.sqrt(shg1_numerator / shg1_denominator))
+    shg2_loss_mean = torch.mean(torch.sqrt(shg2_numerator / shg2_denominator))
+    sfg_loss_mean = torch.mean(torch.sqrt(sfg_numerator / sfg_denominator))
 
     loss_val = shg_weight * (shg1_loss_mean + shg2_loss_mean) + sfg_weight * sfg_loss_mean
 
