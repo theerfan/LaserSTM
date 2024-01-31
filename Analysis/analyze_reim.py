@@ -80,9 +80,7 @@ def intensity_phase_plot(
 
     axs.set_xlabel(x_label)
 
-    for i in range(len(intensities)):
-        intensity = intensities[i]
-
+    for i, intensity in enumerate(intensities):
         if y_label is None:
             y_label_1 = y_label_1
         else:
@@ -317,6 +315,10 @@ def do_analysis(
         "domain_spacing_3": domain_spacing_3,
     }  # beam radius 400 um (and circular beam)
 
+    sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
+    sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
+    sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
+
     # Loading the single file out of the test dataset
     # these are used to compare to the predictions
 
@@ -338,10 +340,6 @@ def do_analysis(
         y_true_trans_item = y_true_trans_item[None, :]
         y_true_trans_item = scaler.inverse_transform(y_true_trans_item)
         y_true_trans_item = y_true_trans_item.squeeze()
-
-    sfg_original_freq = np.load("Data/sfg_original_freq_vector.npy")
-    sfg_original_time = np.load("Data/sfg_original_time_vector.npy")
-    sfg_original_time_ds = sfg_original_time[1] - sfg_original_time[0]
 
     ### The part where we load the predictions
 

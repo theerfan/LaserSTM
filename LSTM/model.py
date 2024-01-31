@@ -60,7 +60,7 @@ class LSTMModel(nn.Module):
                 nn.Tanh(),
                 nn.Dropout(fc_dropout),
                 nn.Linear(linear_layer_size, input_size),
-                nn.Sigmoid(),
+                # nn.Sigmoid(),
             )
         else:
             print("No FC dropout!")
@@ -71,7 +71,7 @@ class LSTMModel(nn.Module):
                 nn.Linear(linear_layer_size, linear_layer_size),
                 nn.Tanh(),
                 nn.Linear(linear_layer_size, input_size),
-                nn.Sigmoid(),
+                # nn.Sigmoid(),
             )
 
         print(

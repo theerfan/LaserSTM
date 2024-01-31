@@ -97,6 +97,8 @@ def change_domains(domain, field, new_domain, domain_type):
         out_direct = fft(field)
         out = fft(resampled_vector)
     else:
+        out_direct = field
+        out = resampled_vector
         print("field type not supported")
 
     return out_direct, out
