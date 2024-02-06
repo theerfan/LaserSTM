@@ -342,22 +342,9 @@ def predict(
                 if final_shape is None:
                     final_shape = X_batch.shape[-1]
 
-                if is_slice:
-                    expected_size = (batch_size, 10, 8264)
-                    for i in range(crystal_length):  # need to predict 100 times
-                        assert (
-                            X_batch.size() == expected_size
-                        ), f"Tensor size should be {expected_size}, but got {X_batch.size()}"
-                        # run an inference
-                        pred = model(X_batch)
-                        # pop the first element of every x in the batch
-                        X_batch = X_batch[:, 1:, :]
-                        # add the inferences to the end of every x in the batch
-                        X_batch = torch.cat(
-                            (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
-                        )
-                else:
-                    pred = model(X_batch)
+                pred = one_predict_pass(
+                    model, X_batch, batch_size, final_shape, is_slice, crystal_length
+                )
 
                 current_preds.append(pred.squeeze().cpu().numpy())
 
@@ -379,6 +366,25 @@ def predict(
 
     # print elapsed time in seconds
     print(f"Elapsed time: {end_time - start_time} seconds")
+
+
+def one_predict_pass(model, X_batch, batch_size, final_shape, is_slice, crystal_length):
+    if is_slice:
+        expected_size = (batch_size, 10, 8264)
+        for i in range(crystal_length):  # need to predict 100 times
+            assert (
+                X_batch.size() == expected_size
+            ), f"Tensor size should be {expected_size}, but got {X_batch.size()}"
+            # run an inference
+            pred = model(X_batch)
+            # pop the first element of every x in the batch
+            X_batch = X_batch[:, 1:, :]
+            # add the inferences to the end of every x in the batch
+            X_batch = torch.cat((X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1)
+    else:
+        pred = model(X_batch)
+
+    return pred
 
 
 def funky_predict(
@@ -535,16 +541,15 @@ def tune_and_train(
             shg1_time_pred = torch.from_numpy(shg1_time_pred.real)
             shg2_time_true = torch.from_numpy(shg2_time_true.real)
             shg2_time_pred = torch.from_numpy(shg2_time_pred.real)
-            
+
             # calculate the losses
             losses[i] = (
                 mse(sfg_time_true, sfg_time_pred)
                 + mse(shg1_time_true, shg1_time_pred)
                 + mse(shg2_time_true, shg2_time_pred)
             )
-        
-        return torch.from_numpy(losses)
 
+        return torch.from_numpy(losses)
 
     init_model_save_name = model_save_name
     results = {}
