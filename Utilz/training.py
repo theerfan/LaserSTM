@@ -339,9 +339,6 @@ def predict(
                 if verbose:
                     print(f"On batch {j} out of {len(test_dataloader)}")
 
-                if final_shape is None:
-                    final_shape = X_batch.shape[-1]
-
                 pred = one_predict_pass(
                     model, X_batch, batch_size, final_shape, is_slice, crystal_length
                 )
@@ -368,7 +365,18 @@ def predict(
     print(f"Elapsed time: {end_time - start_time} seconds")
 
 
-def one_predict_pass(model, X_batch, batch_size, final_shape, is_slice, crystal_length):
+def one_predict_pass(
+    model,
+    X_batch,
+    batch_size,
+    final_shape,
+    is_slice,
+    crystal_length,
+    return_all_preds: bool = False,
+):
+    preds_list = []
+    if final_shape is None:
+        final_shape = X_batch.shape[-1]
     if is_slice:
         expected_size = (batch_size, 10, 8264)
         for i in range(crystal_length):  # need to predict 100 times
@@ -377,6 +385,8 @@ def one_predict_pass(model, X_batch, batch_size, final_shape, is_slice, crystal_
             ), f"Tensor size should be {expected_size}, but got {X_batch.size()}"
             # run an inference
             pred = model(X_batch)
+            if return_all_preds:
+                preds_list.append(pred)
             # pop the first element of every x in the batch
             X_batch = X_batch[:, 1:, :]
             # add the inferences to the end of every x in the batch
@@ -384,7 +394,10 @@ def one_predict_pass(model, X_batch, batch_size, final_shape, is_slice, crystal_
     else:
         pred = model(X_batch)
 
-    return pred
+    if return_all_preds:
+        return preds_list
+    else:
+        return pred
 
 
 def funky_predict(
