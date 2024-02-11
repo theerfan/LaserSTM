@@ -716,7 +716,7 @@ def train_and_test(
         crystal_length=crystal_length,
         is_slice=is_slice,
         # If it's a slice, it will need smaller batch size
-        load_model=False,
+        load_model=True,
     )
 
     do_analysis(

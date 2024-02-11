@@ -54,24 +54,24 @@ class LSTMModel(nn.Module):
             self.linear = nn.Sequential(
                 nn.Linear(lstm_hidden_size, linear_layer_size),
                 # NOTE: This used to be relu, but we're trying different things
-                nn.Sigmoid(),
-                nn.Dropout(fc_dropout),
+                nn.ReLU(),
+                # nn.Dropout(fc_dropout),
                 nn.Linear(linear_layer_size, linear_layer_size),
                 nn.Tanh(),
-                nn.Dropout(fc_dropout),
+                # nn.Dropout(fc_dropout),
                 nn.Linear(linear_layer_size, input_size),
-                # nn.Sigmoid(),
+                nn.Sigmoid(),
             )
         else:
             print("No FC dropout!")
             self.linear = nn.Sequential(
                 nn.Linear(lstm_hidden_size, linear_layer_size),
                 # NOTE: This used to be relu, but we're trying different things
-                nn.Sigmoid(),
+                nn.ReLU(),
                 nn.Linear(linear_layer_size, linear_layer_size),
                 nn.Tanh(),
                 nn.Linear(linear_layer_size, input_size),
-                # nn.Sigmoid(),
+                nn.Sigmoid(),
             )
 
         print(
