@@ -700,8 +700,16 @@ def train_and_test(
         shuffle=shuffle,
     )
 
+    if model_param_path is not None:
+        try:
+            epoch_start = int(model_param_path.split("_")[-1].split(".")[0])
+        except ValueError:
+            epoch_start = 0
+    else:
+        epoch_start = 0
+
     # select model with the lowest validation loss
-    best_val_loss_idx = np.argmin(val_losses)
+    best_val_loss_idx = np.argmin(val_losses) + epoch_start
     last_model_name = f"{model_save_name}_epoch_{best_val_loss_idx}"
 
     # In predict we use the path of the model that was trained the latest
