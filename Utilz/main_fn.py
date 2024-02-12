@@ -71,6 +71,7 @@ def main_function(
             test_dataset=test_dataset,
             output_dir=args.output_dir,
             model_save_name=model_save_name,
+            batch_size=args.batch_size,
             verbose=args.verbose,
         )
 
