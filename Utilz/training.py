@@ -400,102 +400,6 @@ def one_predict_pass(
         return pred
 
 
-def funky_predict(
-    model: nn.Module,
-    model_param_path: str = None,
-    x_dataset: X_Dataset = None,
-    y_dataset: Y_Dataset = None,
-    output_dir: str = ".",
-    output_name: str = "all_preds.h5",
-    verbose: bool = True,
-    model_save_name: str = "",
-    x_batch_size: int = None,
-    y_batch_size: int = None,
-    is_slice: bool = True,
-    crystal_length: int = 100,
-    load_model: bool = True,
-    analysis_file_idx: int = 90,
-    analysis_item_idx: int = 15,
-) -> np.ndarray:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if load_model:
-        model, _ = load_model_params(model, model_param_path, device)
-    else:
-        model = model.to(device)
-
-    x_dataloader = DataLoader(x_dataset, batch_size=x_batch_size)
-    y_dataloader = DataLoader(y_dataset, batch_size=y_batch_size)
-
-    testset_starting_point = x_dataset.file_indexes[0]
-
-    model.to(device)
-    model.eval()
-    current_preds = []
-    final_shape = None
-
-    if model_save_name != "":
-        model_save_name = f"{model_save_name}_"
-    file_save_name = f"{model_save_name}{output_name}"
-
-    start_time = time.time()
-
-    our_idx = (
-        analysis_file_idx - testset_starting_point
-    ) * x_dataset._num_samples_per_file + analysis_item_idx
-
-    with torch.no_grad():
-        for j, (X_batch, y_batch) in enumerate(zip(x_dataloader, y_dataloader)):
-            if verbose:
-                print(f"On batch {j} out of {len(y_dataloader)}")
-            # since batch size is 1 here.
-            if j == our_idx:
-                X_batch = X_batch.to(device)
-
-                if final_shape is None:
-                    final_shape = X_batch.shape[-1]
-
-                if is_slice:
-                    for i in range(crystal_length):  # need to predict 100 times
-                        pred = model(X_batch)
-
-                        if i == 0 or i == 1 or i == 50 or i == 99:
-                            do_analysis(
-                                ".",
-                                "/mnt/oneterra/SFG_reIm_h5/",
-                                model_save_name,
-                                0,
-                                0,
-                                ".",
-                                100,
-                                pred[-1].cpu().numpy(),
-                                y_batch[i].cpu().numpy(),
-                                f"analysis-scaled-file{analysis_file_idx}-item-{analysis_item_idx}-slice-{i}.jpg",
-                            )
-                            a = 12
-
-                        X_batch = X_batch[:, 1:, :]  # pop first
-
-                        # add to last
-                        X_batch = torch.cat(
-                            (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
-                        )
-                else:
-                    pred = model(X_batch)
-                current_preds.append(pred.squeeze().cpu().numpy())
-
-            else:
-                pass
-
-    end_time = time.time()
-
-    # TODO: This could be a way of trying to stop the process from getting killed for some unknown reason!
-    # del model
-
-    # print elapsed time in seconds
-    print(f"Elapsed time: {end_time - start_time} seconds")
-
-
 def tune_and_train(
     model: torch.nn.Module,
     model_save_name: str,
@@ -751,3 +655,210 @@ def train_and_test(
 # phase unwrapping (np.unwrap) [add the inverse relation of phase/intensity to the loss function]
 # (real intensity and set threshold for it to not affect the phase too much)
 # or could cut the phase vector shorter than the intensity vector
+
+
+################## [These are some parts of the code I actively dislike]
+
+def funky_predict(
+    model: nn.Module,
+    model_param_path: str = None,
+    x_dataset: X_Dataset = None,
+    y_dataset: Y_Dataset = None,
+    output_dir: str = ".",
+    output_name: str = "all_preds.h5",
+    verbose: bool = True,
+    model_save_name: str = "",
+    x_batch_size: int = None,
+    y_batch_size: int = None,
+    is_slice: bool = True,
+    crystal_length: int = 100,
+    load_model: bool = True,
+    analysis_file_idx: int = 90,
+    analysis_item_idx: int = 15,
+) -> np.ndarray:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if load_model:
+        model, _ = load_model_params(model, model_param_path, device)
+    else:
+        model = model.to(device)
+
+    x_dataloader = DataLoader(x_dataset, batch_size=x_batch_size)
+    y_dataloader = DataLoader(y_dataset, batch_size=y_batch_size)
+
+    testset_starting_point = x_dataset.file_indexes[0]
+
+    model.to(device)
+    model.eval()
+    current_preds = []
+    final_shape = None
+
+    if model_save_name != "":
+        model_save_name = f"{model_save_name}_"
+    file_save_name = f"{model_save_name}{output_name}"
+
+    start_time = time.time()
+
+    our_idx = (
+        analysis_file_idx - testset_starting_point
+    ) * x_dataset._num_samples_per_file + analysis_item_idx
+
+    with torch.no_grad():
+        for j, (X_batch, y_batch) in enumerate(zip(x_dataloader, y_dataloader)):
+            if verbose:
+                print(f"On batch {j} out of {len(y_dataloader)}")
+            # since batch size is 1 here.
+            if j == our_idx:
+                X_batch = X_batch.to(device)
+
+                if final_shape is None:
+                    final_shape = X_batch.shape[-1]
+
+                if is_slice:
+                    for i in range(crystal_length):  # need to predict 100 times
+                        pred = model(X_batch)
+
+                        if i == 0 or i == 1 or i == 50 or i == 99:
+                            do_analysis(
+                                ".",
+                                "/mnt/oneterra/SFG_reIm_h5/",
+                                model_save_name,
+                                0,
+                                0,
+                                ".",
+                                100,
+                                pred[-1].cpu().numpy(),
+                                y_batch[i].cpu().numpy(),
+                                f"analysis-scaled-file{analysis_file_idx}-item-{analysis_item_idx}-slice-{i}.jpg",
+                            )
+                            a = 12
+
+                        X_batch = X_batch[:, 1:, :]  # pop first
+
+                        # add to last
+                        X_batch = torch.cat(
+                            (X_batch, torch.reshape(pred, (-1, 1, final_shape))), 1
+                        )
+                else:
+                    pred = model(X_batch)
+                current_preds.append(pred.squeeze().cpu().numpy())
+
+            else:
+                pass
+
+    end_time = time.time()
+
+    # TODO: This could be a way of trying to stop the process from getting killed for some unknown reason!
+    # del model
+
+    # print elapsed time in seconds
+    print(f"Elapsed time: {end_time - start_time} seconds")
+
+
+def predict_timing(
+    model: nn.Module,
+    model_param_path: str = None,
+    test_dataset: CustomSequence = None,
+    output_dir: str = ".",
+    output_name: str = "all_preds.h5",
+    verbose: bool = True,
+    model_save_name: str = "",
+    batch_size: int = None,
+    is_slice: bool = True,
+    crystal_length: int = 100,
+    load_model: bool = True,
+    device: str = "cpu",
+) -> np.ndarray:
+    
+    if load_model:
+        model, _ = load_model_params(model, model_param_path, device)
+
+    batch_size = batch_size or test_dataset._num_samples_per_file
+    while test_dataset._num_samples_per_file % batch_size != 0:
+        batch_size -= 1
+
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
+
+    model.to(device)
+    model.eval()
+    final_shape = None
+
+    if model_save_name != "":
+        model_save_name = f"{model_save_name}_"
+
+    start_time = time.time()
+
+    with torch.no_grad():
+        for j, (X_batch, y_batch) in enumerate(test_dataloader):
+            X_batch = X_batch.to(device)
+
+            pred = one_predict_pass(
+                model, X_batch, batch_size, final_shape, is_slice, crystal_length
+            )
+
+    end_time = time.time()
+
+    # print elapsed time in seconds
+    print(f"Elapsed time: {end_time - start_time} seconds for {len(test_dataloader)} batches of size {batch_size}")
+
+def time_alan_code(test_dataset: CustomSequence, load_in_gpu: bool = True):
+    class LSTMModel_Alan(nn.Module): 
+        # basic one with two linear layers and final output with sigmoid
+        def __init__(self, input_size, hidden_size=1024, num_layers=1):
+            super().__init__()
+            self.input_size = input_size
+            self.num_layers = num_layers
+            self.hidden_size = hidden_size
+            self.lstm = nn.LSTM(input_size, hidden_size,
+                                batch_first=True, dropout=0, num_layers=num_layers)
+            self.fc1 = nn.Linear(hidden_size, 4000)
+            self.fc2 = nn.Linear(4000, 4000)
+            self.fc3 = nn.Linear(4000, input_size)
+            self.relu = nn.ReLU()
+            self.initialize_weights()
+
+        def forward(self, x):
+            # hidden state
+            h_0 = torch.zeros(self.num_layers * 1, x.size(0),
+                            self.hidden_size).to(x.device)  # Modified line
+            # cell state
+            c_0 = torch.zeros(self.num_layers * 1, x.size(0),
+                            self.hidden_size).to(x.device)  # Modified line
+
+            out, (hn, cn) = self.lstm(x, (h_0, c_0))
+            out = self.fc1(out[:, -1, :])
+            out = self.relu(out)
+            out = self.fc3(out)
+            out = torch.sigmoid(out)
+
+            return out
+        
+        def initialize_weights(self):
+            # Initialize LSTM weights and biases
+            for name, param in self.lstm.named_parameters():
+                if 'weight_ih' in name:
+                    nn.init.xavier_uniform_(param.data)
+                elif 'weight_hh' in name:
+                    nn.init.xavier_uniform_(param.data)
+                elif 'bias' in name:
+                    param.data.fill_(0)
+            
+                # Initialize linear layers
+                nn.init.xavier_uniform_(self.fc1.weight)
+                self.fc1.bias.data.fill_(0)
+                nn.init.xavier_uniform_(self.fc2.weight)
+                self.fc2.bias.data.fill_(0)
+                nn.init.xavier_uniform_(self.fc3.weight)
+                self.fc3.bias.data.fill_(0)
+
+    
+    print("Timing for Alan's model")
+
+    alan_model = LSTMModel_Alan(8264, 1024, 1)
+
+    if load_in_gpu:
+        print("Timing for CUDA")
+        predict_timing(model=alan_model, test_dataset=test_dataset, device="cuda")
+    else:
+        print("Timing for CPU")
+        predict_timing(model=alan_model, test_dataset=test_dataset, device="cpu")

@@ -250,6 +250,21 @@ def get_cmd_args():
         help="Number of fourier layers for the FNO model.",
     )
 
+    parser.add_argument(
+        "--custom_code",
+        type=int,
+        default=0,
+        help="If we want to run some temporary code but go through the main function.",
+    )
+
+    parser.add_argument(
+        "--load_in_gpu",
+        type=int,
+        default=1,
+        help="If we want to load the data in the GPU or not.",
+    )
+
+
     return parser.parse_args()
 
 

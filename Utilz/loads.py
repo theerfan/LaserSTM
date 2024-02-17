@@ -9,7 +9,7 @@ from Utilz.losses import (
     wrapped_MSE,
     wrapped_BCE,
     wMSE_and_energy,
-    normalized_weighted_MSE
+    normalized_weighted_MSE,
 )
 from Utilz.data import CustomSequence
 
@@ -50,22 +50,29 @@ def get_custom_loss(args: Namespace) -> Callable:
 def get_datasets(
     args: Namespace,
 ):
+    load_in_gpu = bool(args.load_in_gpu)
     train_dataset = CustomSequence(
         args.data_dir,
         range(0, 90),
         load_mode=args.train_load_mode,
         crystal_length=args.crystal_length,
+        load_in_gpu=load_in_gpu,
     )
 
     val_dataset = CustomSequence(
-        args.data_dir, [90], load_mode=args.val_load_mode, crystal_length=args.crystal_length
+        args.data_dir,
+        [90],
+        load_mode=args.val_load_mode,
+        crystal_length=args.crystal_length,
+        load_in_gpu=load_in_gpu,
     )
 
     test_dataset = CustomSequence(
         args.data_dir,
-        range(91, 100),
+        range(90, 100),
         load_mode=args.test_load_mode,
         crystal_length=args.crystal_length,
+        load_in_gpu=load_in_gpu,
     )
 
     return train_dataset, val_dataset, test_dataset

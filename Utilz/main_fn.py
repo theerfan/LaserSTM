@@ -1,4 +1,4 @@
-from Utilz.training import predict, train_and_test, tune_and_train, funky_predict
+from Utilz.training import predict, train_and_test, tune_and_train, funky_predict, time_alan_code
 from Utilz.loads import get_custom_loss
 from Utilz.data import CustomSequence, X_Dataset, Y_Dataset
 import logging
@@ -20,7 +20,10 @@ def main_function(
 ):
     custom_loss = get_custom_loss(args)
 
-    if args.do_funky == 1:
+    if args.custom_code == 1:
+        time_alan_code(test_dataset, args.load_in_gpu)
+
+    elif args.do_funky == 1:
         log_str = f"Funky prediction mode for model {args.model}"
         print(log_str)
         logging.info(log_str)
