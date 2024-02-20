@@ -1,6 +1,7 @@
 from Utilz.training import predict, train_and_test, tune_and_train, funky_predict, time_alan_code
 from Utilz.loads import get_custom_loss
 from Utilz.data import CustomSequence, X_Dataset, Y_Dataset
+from Utilz.losses import time_domain_based_MSE_metric
 import logging
 import torch.nn as nn
 import os
@@ -22,6 +23,12 @@ def main_function(
 
     if args.custom_code == 1:
         time_alan_code(test_dataset, args.load_in_gpu)
+
+    elif args.custom_code == 2:
+        pass
+
+    elif args.custom_code == 3:
+        time_domain_based_MSE_metric(args.output_dir, args.data_dir, args.model_save_name)
 
     elif args.do_funky == 1:
         log_str = f"Funky prediction mode for model {args.model}"

@@ -7,7 +7,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "justMyCode": true
+      "justMyCode": false
     },
     {
       "name": "Python: Remote Attach",
@@ -396,6 +396,26 @@
         "92",
         "--analysis_example",
         "15"
+      ]
+    },
+    {
+      "name": "LSTM - Unified Metric",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--model",
+        "LSTM",
+        "--data_dir",
+        "/mnt/twoterra/SFG_reIm_h5/",
+        "--output_dir",
+        "/mnt/twoterra/outputs/14-02-2024",
+        "--custom_code",
+        "3",
+        "--model_save_name",
+        "LSTM_200_epoch_125"
       ]
     },
   ]

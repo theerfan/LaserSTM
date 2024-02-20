@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from Analysis.analyze_reim import do_analysis
+from Analysis.util import get_intensity
+
 freq_vectors_shg = np.load("Data/shg_freq_domain_ds.npy")
 freq_vectors_sfg = np.load("Data/sfg_freq_domain_ds.npy")
 
@@ -380,3 +383,75 @@ def wMSE_and_energy(
     ) + pseudo_energy_loss(
         y_pred, y_real, shg_weight=shg_weight, sfg_weight=sfg_weight, **kwargs
     )
+
+
+
+def time_domain_based_MSE_metric(output_dir: str, data_dir: str, model_save_name: str):
+    SFG_MSE_errors = []
+    SHG1_MSE_errors = []
+    SHG2_MSE_errors = []
+
+    mse = nn.MSELoss(reduction="mean")
+
+    for file_idx in range(91, 100):
+        for example_idx in range(0, 100):
+
+            print(f"File: {file_idx}, Example: {example_idx}")
+            sfg_time_true, sfg_time_pred, shg1_time_true, shg1_time_pred, shg2_time_true, shg2_time_pred = do_analysis(
+                output_dir, data_dir, model_save_name, file_idx, example_idx, return_vals=True
+            )
+
+            sfg_time_true = torch.tensor(sfg_time_true)
+            sfg_time_pred = torch.tensor(sfg_time_pred)
+            shg1_time_true = torch.tensor(shg1_time_true)
+            shg1_time_pred = torch.tensor(shg1_time_pred)
+            shg2_time_true = torch.tensor(shg2_time_true)
+            shg2_time_pred = torch.tensor(shg2_time_pred)
+
+            sfg_time_true_intensity = get_intensity(sfg_time_true)
+            sfg_time_pred_intensity = get_intensity(sfg_time_pred)
+            shg1_time_true_intensity = get_intensity(shg1_time_true)
+            shg1_time_pred_intensity = get_intensity(shg1_time_pred)
+            shg2_time_true_intensity = get_intensity(shg2_time_true)
+            shg2_time_pred_intensity = get_intensity(shg2_time_pred)
+
+            SFG_MSE_errors.append(mse(sfg_time_true_intensity, sfg_time_pred_intensity))
+            SHG1_MSE_errors.append(mse(shg1_time_true_intensity, shg1_time_pred_intensity))
+            SHG2_MSE_errors.append(mse(shg2_time_true_intensity, shg2_time_pred_intensity))
+    
+    # convert the list of errors to a numpy array
+    SFG_MSE_errors = np.array(SFG_MSE_errors)
+    SHG1_MSE_errors = np.array(SHG1_MSE_errors)
+    SHG2_MSE_errors = np.array(SHG2_MSE_errors)
+    # save the errors to a file inside the output dir with the model name
+    np.savez(
+        f"{output_dir}/{model_save_name}_time_domain_MSE_errors.npz",
+        SFG_MSE_errors=SFG_MSE_errors,
+        SHG1_MSE_errors=SHG1_MSE_errors,
+        SHG2_MSE_errors=SHG2_MSE_errors,
+    )
+
+    # draw a histogram of the errors in 3 different axes
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+    axs[0].hist(SFG_MSE_errors, bins=20)
+    axs[0].set_title("SFG Intensity MSE Errors")
+    axs[1].hist(SHG1_MSE_errors, bins=20)
+    axs[1].set_title("SHG1 Intensity MSE Errors")
+    axs[2].hist(SHG2_MSE_errors, bins=20)
+    axs[2].set_title("SHG2 Intensity MSE Errors")
+    plt.savefig(f"{model_save_name}_time_domain_MSE_errors.png")
+
+    # print out the mean and std of the errors
+    print("SFG Intensity MSE Errors")
+    print(f"Mean: {np.mean(SFG_MSE_errors)}")
+    print(f"Std: {np.std(SFG_MSE_errors)}")
+    print("")
+    print("SHG1 Intensity MSE Errors")
+    print(f"Mean: {np.mean(SHG1_MSE_errors)}")
+    print(f"Std: {np.std(SHG1_MSE_errors)}")
+    print("")
+    print("SHG2 Intensity MSE Errors")
+    print(f"Mean: {np.mean(SHG2_MSE_errors)}")
+    print(f"Std: {np.std(SHG2_MSE_errors)}")
+    

@@ -128,10 +128,10 @@ def change_domain_and_adjust_energy(
         out, pulse_energy_calc, true_domain_spacing, beam_area
     )
 
-    print(
-        "direct, and resampled energies: ",
-        calc_energy_expanded(out_direct, domain_spacing, beam_area),
-        calc_energy_expanded(out, true_domain_spacing, beam_area),
-    )
+    # print(
+    #     "direct, and resampled energies: ",
+    #     calc_energy_expanded(out_direct, domain_spacing, beam_area),
+    #     calc_energy_expanded(out, true_domain_spacing, beam_area),
+    # )
 
     return out_direct, out
