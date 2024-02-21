@@ -1,4 +1,4 @@
-from LSTM.model import LSTMModel, BlindTridentLSTM, TridentLSTM, FFLSTM
+from LSTM.model import LSTMModel, BlindTridentLSTM, TridentLSTM, FFLSTM, BidentLSTM
 from Utilz.loads import get_datasets
 from Utilz.main_fn import main_function
 
@@ -27,6 +27,8 @@ def main_lstm(
         model_class = BlindTridentLSTM
     elif args.model == "FFLSTM":
         model_class = FFLSTM
+    elif args.model == "BidentLSTM":
+        model_class = BidentLSTM
     else:
         raise NotImplementedError
     
