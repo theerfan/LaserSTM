@@ -280,7 +280,7 @@ class BidentLSTM(nn.Module):
         bidirectional: int = 0,
         **kwargs,
     ):
-        super(TridentLSTM, self).__init__()
+        super(BidentLSTM, self).__init__()
         bidirectional = bool(bidirectional)
         self.input_size = input_size
         self.num_layers = num_layers
