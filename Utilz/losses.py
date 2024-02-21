@@ -489,12 +489,21 @@ def visualize_MSE_errors(
         (SHG2_MSE_errors, "SHG2 Intensity MSE Errors"),
     ]
     for ax, (data, title) in zip(axs, datasets):
-        ax.hist(data, bins=20)
+        ax.hist(data, bins=40)
         ax.set_title(title)
         mean = np.mean(data)
+        median = np.median(data)
         std = np.std(data)
+        
+        # Draw vertical lines for mean and median
+        ax.axvline(mean, color='r', linestyle='dashed', linewidth=1, label=f'Mean: {mean:.3e}')
+        ax.axvline(median, color='g', linestyle='dashed', linewidth=1, label=f'Median: {median:.3e}')
+        
+        # Add legend
+        ax.legend()
+
         # Text formatting in scientific notation
-        text_str = f"Mean: {mean:.3e}\nStd: {std:.3e}"
+        text_str = f"Mean: {mean:.3e}\nMedian: {median:.3e}\nStd: {std:.3e}"
         ax.text(
             0.95,
             0.95,

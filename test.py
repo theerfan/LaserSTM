@@ -93,48 +93,48 @@
 # print(f'All .npy files have been saved to {hdf5_path}')
 
 
-import numpy as np
-# import matplotlib.pyplot as plt
+# import numpy as np
+# # import matplotlib.pyplot as plt
 
-# # first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
-# # first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
+# # # first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
+# # # first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
 
-train_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_train_losses.npy")
-val_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_val_losses.npy")
+# train_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_train_losses.npy")
+# val_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_val_losses.npy")
 
-# # # put the first train losses at the beginning of the train losses
-# # train_losses = np.concatenate((first_train_losses, train_losses))
-# # val_losses = np.concatenate((first_val_losses, val_losses))
+# # # # put the first train losses at the beginning of the train losses
+# # # train_losses = np.concatenate((first_train_losses, train_losses))
+# # # val_losses = np.concatenate((first_val_losses, val_losses))
 
-train_losses = train_losses[2:]
-val_losses = val_losses[2:]
+# train_losses = train_losses[2:]
+# val_losses = val_losses[2:]
 
-# plt.plot(train_losses, label="Train Loss")
-# plt.plot(val_losses, label="Val Loss")
-# plt.legend()
-# plt.show()
-# plt.savefig("losses.png")
+# # plt.plot(train_losses, label="Train Loss")
+# # plt.plot(val_losses, label="Val Loss")
+# # plt.legend()
+# # plt.show()
+# # plt.savefig("losses.png")
 
-# import pickle
+# # import pickle
 
-# # Replace 'your_file.pkl' with the path to your pickle file
-# file_path = 'your_file.pkl'
+# # # Replace 'your_file.pkl' with the path to your pickle file
+# # file_path = 'your_file.pkl'
 
-# with open(file_path, 'rb') as file:
-#     # Load (unpickle) the contents of the file
-#     data = pickle.load(file)
+# # with open(file_path, 'rb') as file:
+# #     # Load (unpickle) the contents of the file
+# #     data = pickle.load(file)
 
-# # Now, you can print or inspect 'data' to see what's inside the pickle file
-# print(data)
+# # # Now, you can print or inspect 'data' to see what's inside the pickle file
+# # print(data)
 
-###
+# ###
 
-import h5py
-import numpy as np
+# import h5py
+# import numpy as np
 
-#  Path for the new HDF5 file
-x_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/X_new_data.h5'
-y_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/y_new_data.h5'
+# #  Path for the new HDF5 file
+# x_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/X_new_data.h5'
+# y_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/y_new_data.h5'
 
 # Open an HDF5 file in read mode
 # with h5py.File(x_hdf5_path, 'r') as hdf5_file:
@@ -193,32 +193,52 @@ y_hdf5_path = '/mnt/oneterra/SFG_reIm_h5/y_new_data.h5'
 # import h5py
 
 # Get the keys of the datasets from the original HDF5 file
-import logging
+# import logging
 
-# Configure logging
-logging.basicConfig(filename='dataset_processing.log', 
-                    level=logging.INFO, 
-                    format='%(asctime)s %(levelname)s: %(message)s', 
-                    datefmt='%Y-%m-%d %H:%M:%S')
+# # Configure logging
+# logging.basicConfig(filename='dataset_processing.log', 
+#                     level=logging.INFO, 
+#                     format='%(asctime)s %(levelname)s: %(message)s', 
+#                     datefmt='%Y-%m-%d %H:%M:%S')
 
-# Get the keys of the datasets from the original HDF5 file
-with h5py.File(x_hdf5_path, 'r') as hdf5_file:
-    keys = list(hdf5_file.keys())
+# # Get the keys of the datasets from the original HDF5 file
+# with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+#     keys = list(hdf5_file.keys())
 
-# Process each dataset one by one
-for key in keys:
-    logging.info(f'Processing dataset: {key}')
+# # Process each dataset one by one
+# for key in keys:
+#     logging.info(f'Processing dataset: {key}')
 
-    # Open the original HDF5 file to read the current dataset
-    with h5py.File(x_hdf5_path, 'r') as hdf5_file:
-        dataset = hdf5_file[key]
+#     # Open the original HDF5 file to read the current dataset
+#     with h5py.File(x_hdf5_path, 'r') as hdf5_file:
+#         dataset = hdf5_file[key]
 
-        # Perform reduction (taking the last element in the second dimension)
-        reduced_data = dataset[:, -1, :]
+#         # Perform reduction (taking the last element in the second dimension)
+#         reduced_data = dataset[:, -1, :]
 
-    # Open the reduced HDF5 file to write the processed data
-    with h5py.File('/mnt/oneterra/SFG_reIm_h5/X_new_reduced_data.h5', 'a') as hdf5_file_reduced:
-        # Create a new dataset in the reduced HDF5 file with reduced data
-        hdf5_file_reduced.create_dataset(key, data=reduced_data)
+#     # Open the reduced HDF5 file to write the processed data
+#     with h5py.File('/mnt/oneterra/SFG_reIm_h5/X_new_reduced_data.h5', 'a') as hdf5_file_reduced:
+#         # Create a new dataset in the reduced HDF5 file with reduced data
+#         hdf5_file_reduced.create_dataset(key, data=reduced_data)
 
-    logging.info(f'Completed dataset: {key}')
+#     logging.info(f'Completed dataset: {key}')
+
+
+import numpy as np
+
+path =  '/mnt/oneterra/outputs/07-02-2024/LSTM_120_epoch_42_time_domain_MSE_errors.npz'
+# path = '/mnt/twoterra/outputs/14-02-2024/LSTM_200_epoch_125_time_domain_MSE_errors.npz'
+
+f = np.load(path)
+sfg, shg1, shg2 = f['SFG_MSE_errors'], f['SHG1_MSE_errors'], f['SHG2_MSE_errors']
+
+def get(f_idx, e_idx):
+    idx = (f_idx - 91) * 100 + e_idx
+    return np.array([sfg[idx], shg1[idx], shg2[idx]])
+
+means = np.array([np.mean(sfg), np.mean(shg1), np.mean(shg2)])
+
+def norm_dist(f_idx, e_idx):
+    return (get(f_idx, e_idx) - means) / means
+
+print(norm_dist(91, 0))
