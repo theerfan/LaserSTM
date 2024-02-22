@@ -7,6 +7,7 @@ from GAN.main_fn import main_gan
 from Transformer.main_fn import main_transformer
 from FNO.main_fn import main_FNO
 
+import torch
 
 logging.basicConfig(
     filename="application_log.log", level=logging.INFO, format="%(message)s"
@@ -272,6 +273,13 @@ def get_cmd_args():
 if __name__ == "__main__":
     # Get the args from command line
     args = get_cmd_args()
+
+    # what is the meaning of life?
+    seed = 42
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
     if "LSTM" in args.model:
         main_lstm(args)

@@ -484,12 +484,24 @@ def visualize_MSE_errors(
 ):
     fig, axs = plt.subplots(3, 1, figsize=(10, 15))
     datasets = [
-        (SFG_MSE_errors, "SFG Intensity MSE Errors"),
-        (SHG1_MSE_errors, "SHG1 Intensity MSE Errors"),
-        (SHG2_MSE_errors, "SHG2 Intensity MSE Errors"),
+        (SFG_MSE_errors, f"SFG Intensity MSE Errors for {model_save_name}"),
+        (SHG1_MSE_errors, f"SHG1 Intensity MSE Errors for {model_save_name}"),
+        (SHG2_MSE_errors, f"SHG2 Intensity MSE Errors for {model_save_name}"),
     ]
+
     for ax, (data, title) in zip(axs, datasets):
-        ax.hist(data, bins=40)
+        # Determine global minimum and maximum error values across all datasets
+        min_error = min(data)  # Exclude non-positive values
+        max_error = max(data)
+        
+        # Generate log-spaced bins between the min and max error
+        bins = np.logspace(np.log10(min_error), np.log10(max_error), 60)
+        widths = (bins[1:] - bins[:-1])
+
+        histogram = np.histogram(data, bins=bins)
+        hist_norm = histogram[0] / widths
+        ax.bar(bins[:-1], hist_norm, widths, align="edge")
+
         ax.set_title(title)
         mean = np.mean(data)
         median = np.median(data)
@@ -500,7 +512,7 @@ def visualize_MSE_errors(
         ax.axvline(median, color='g', linestyle='dashed', linewidth=1, label=f'Median: {median:.3e}')
         
         # Add legend
-        ax.legend()
+        ax.legend(loc='lower right')
 
         # Text formatting in scientific notation
         text_str = f"Mean: {mean:.3e}\nMedian: {median:.3e}\nStd: {std:.3e}"

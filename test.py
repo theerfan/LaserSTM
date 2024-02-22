@@ -10,7 +10,7 @@
 #     with open(npy_file_path, 'rb') as f:
 #         version = np.lib.format.read_magic(f)
 #         shape, fortran_order, dtype = np.lib.format._read_array_header(f, version)
-#         return shape, dtype 
+#         return shape, dtype
 
 # print(get_npy_shape(os.path.join(direct, "X_new_72.npy")))
 
@@ -29,7 +29,6 @@
 #     pseudo_energy_loss(y, y)
 #     pass
 ###
-
 
 
 # from Analysis.analyze_reim import do_analysis
@@ -61,7 +60,6 @@
 # # Specify the directory to operate on
 # directory = '/mnt/oneterra/SFG_reIm_version1'
 # delete_specific_files(directory)
-
 
 
 # import numpy as np
@@ -189,16 +187,16 @@
 
 #             # Create a new dataset in the new HDF5 file with reduced data
 #             hdf5_file_reduced.create_dataset(key, data=reduced_data)
-# 
+#
 # import h5py
 
 # Get the keys of the datasets from the original HDF5 file
 # import logging
 
 # # Configure logging
-# logging.basicConfig(filename='dataset_processing.log', 
-#                     level=logging.INFO, 
-#                     format='%(asctime)s %(levelname)s: %(message)s', 
+# logging.basicConfig(filename='dataset_processing.log',
+#                     level=logging.INFO,
+#                     format='%(asctime)s %(levelname)s: %(message)s',
 #                     datefmt='%Y-%m-%d %H:%M:%S')
 
 # # Get the keys of the datasets from the original HDF5 file
@@ -227,18 +225,82 @@
 import numpy as np
 
 path =  '/mnt/oneterra/outputs/07-02-2024/LSTM_120_epoch_42_time_domain_MSE_errors.npz'
-# path = '/mnt/twoterra/outputs/14-02-2024/LSTM_200_epoch_125_time_domain_MSE_errors.npz'
+
+# path = "/mnt/twoterra/outputs/14-02-2024/LSTM_200_epoch_125_time_domain_MSE_errors.npz"
 
 f = np.load(path)
-sfg, shg1, shg2 = f['SFG_MSE_errors'], f['SHG1_MSE_errors'], f['SHG2_MSE_errors']
+sfg, shg1, shg2 = f["SFG_MSE_errors"], f["SHG1_MSE_errors"], f["SHG2_MSE_errors"]
+
 
 def get(f_idx, e_idx):
     idx = (f_idx - 91) * 100 + e_idx
     return np.array([sfg[idx], shg1[idx], shg2[idx]])
 
+
 means = np.array([np.mean(sfg), np.mean(shg1), np.mean(shg2)])
+
 
 def norm_dist(f_idx, e_idx):
     return (get(f_idx, e_idx) - means) / means
 
-print(norm_dist(91, 0))
+
+def find_percentile_of_value(arr, value):
+    # Count how many values are less than the value
+    less_than_count = np.sum(arr < value)
+
+    # Count how many values are equal to the value
+    equal_count = np.sum(arr == value)
+
+    # Calculate the rank of the value
+    rank = less_than_count + 0.5 * equal_count
+
+    # Calculate the percentile rank
+    percentile_rank = (rank / arr.size) * 100
+
+    return percentile_rank
+
+
+def calculate_percentile_cutoffs(arr, percentiles_list):
+    # Sort the array just in case it's not sorted, though for percentile calculation it's not a necessary step
+    sorted_arr = np.sort(arr)
+
+    # Calculate the percentiles
+    percentiles = np.percentile(sorted_arr, percentiles_list)
+
+    return percentiles
+
+
+file_idx = 94
+example_idx = 15
+print("For model loaded from", path)
+# print(
+#     f"For file {file_idx} and example {example_idx} the normalized distance from the mean is:"
+# )
+# print(norm_dist(94, 15))
+# print(
+#     "The percentile rank of the SFG value is:",
+#     find_percentile_of_value(sfg, sfg[(file_idx - 91) * 100 + example_idx]),
+# )
+# print(
+#     "The percentile rank of the SHG1 value is:",
+#     find_percentile_of_value(shg1, shg1[(file_idx - 91) * 100 + example_idx]),
+# )
+# print(
+#     "The percentile rank of the SHG2 value is:",
+#     find_percentile_of_value(shg2, shg2[(file_idx - 91) * 100 + example_idx]),
+# )
+
+
+percentiles = [20, 40, 60, 80]
+for p, cutoff1, cutoff2, cutoff3 in zip(
+    percentiles,
+    calculate_percentile_cutoffs(sfg, percentiles),
+    calculate_percentile_cutoffs(shg1, percentiles),
+    calculate_percentile_cutoffs(shg2, percentiles),
+):
+    # print the cutoffs in scientific notation
+    print(f"Percentile {p} cutoffs:")
+    print(f"SFG: {cutoff1:.3e}")
+    print(f"SHG1: {cutoff2:.3e}")
+    print(f"SHG2: {cutoff3:.3e}")
+    print()
