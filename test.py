@@ -224,9 +224,9 @@
 
 import numpy as np
 
-path =  '/mnt/oneterra/outputs/07-02-2024/LSTM_120_epoch_42_time_domain_MSE_errors.npz'
+# path =  '/mnt/oneterra/outputs/07-02-2024/LSTM_120_epoch_42_time_domain_MSE_errors.npz'
 
-# path = "/mnt/twoterra/outputs/14-02-2024/LSTM_200_epoch_125_time_domain_MSE_errors.npz"
+path = "/mnt/twoterra/outputs/14-02-2024/LSTM_200_epoch_125_time_domain_MSE_errors.npz"
 
 f = np.load(path)
 sfg, shg1, shg2 = f["SFG_MSE_errors"], f["SHG1_MSE_errors"], f["SHG2_MSE_errors"]
@@ -237,70 +237,162 @@ def get(f_idx, e_idx):
     return np.array([sfg[idx], shg1[idx], shg2[idx]])
 
 
-means = np.array([np.mean(sfg), np.mean(shg1), np.mean(shg2)])
+# means = np.array([np.mean(sfg), np.mean(shg1), np.mean(shg2)])
 
 
-def norm_dist(f_idx, e_idx):
-    return (get(f_idx, e_idx) - means) / means
+# def norm_dist(f_idx, e_idx):
+#     return (get(f_idx, e_idx) - means) / means
 
 
-def find_percentile_of_value(arr, value):
-    # Count how many values are less than the value
-    less_than_count = np.sum(arr < value)
+# def find_percentile_of_value(arr, value):
+#     # Count how many values are less than the value
+#     less_than_count = np.sum(arr < value)
 
-    # Count how many values are equal to the value
-    equal_count = np.sum(arr == value)
+#     # Count how many values are equal to the value
+#     equal_count = np.sum(arr == value)
 
-    # Calculate the rank of the value
-    rank = less_than_count + 0.5 * equal_count
+#     # Calculate the rank of the value
+#     rank = less_than_count + 0.5 * equal_count
 
-    # Calculate the percentile rank
-    percentile_rank = (rank / arr.size) * 100
+#     # Calculate the percentile rank
+#     percentile_rank = (rank / arr.size) * 100
 
-    return percentile_rank
-
-
-def calculate_percentile_cutoffs(arr, percentiles_list):
-    # Sort the array just in case it's not sorted, though for percentile calculation it's not a necessary step
-    sorted_arr = np.sort(arr)
-
-    # Calculate the percentiles
-    percentiles = np.percentile(sorted_arr, percentiles_list)
-
-    return percentiles
+#     return percentile_rank
 
 
-file_idx = 94
-example_idx = 15
-print("For model loaded from", path)
-# print(
-#     f"For file {file_idx} and example {example_idx} the normalized distance from the mean is:"
-# )
-# print(norm_dist(94, 15))
-# print(
-#     "The percentile rank of the SFG value is:",
-#     find_percentile_of_value(sfg, sfg[(file_idx - 91) * 100 + example_idx]),
-# )
-# print(
-#     "The percentile rank of the SHG1 value is:",
-#     find_percentile_of_value(shg1, shg1[(file_idx - 91) * 100 + example_idx]),
-# )
-# print(
-#     "The percentile rank of the SHG2 value is:",
-#     find_percentile_of_value(shg2, shg2[(file_idx - 91) * 100 + example_idx]),
-# )
+# def calculate_percentile_cutoffs(arr, percentiles_list):
+#     # Sort the array just in case it's not sorted, though for percentile calculation it's not a necessary step
+#     sorted_arr = np.sort(arr)
+
+#     # Calculate the percentiles
+#     percentiles = np.percentile(sorted_arr, percentiles_list)
+
+#     return percentiles
 
 
-percentiles = [20, 40, 60, 80]
-for p, cutoff1, cutoff2, cutoff3 in zip(
-    percentiles,
-    calculate_percentile_cutoffs(sfg, percentiles),
-    calculate_percentile_cutoffs(shg1, percentiles),
-    calculate_percentile_cutoffs(shg2, percentiles),
-):
-    # print the cutoffs in scientific notation
-    print(f"Percentile {p} cutoffs:")
-    print(f"SFG: {cutoff1:.3e}")
-    print(f"SHG1: {cutoff2:.3e}")
-    print(f"SHG2: {cutoff3:.3e}")
-    print()
+# file_idx = 94
+# example_idx = 15
+# print("For model loaded from", path)
+# # print(
+# #     f"For file {file_idx} and example {example_idx} the normalized distance from the mean is:"
+# # )
+# # print(norm_dist(94, 15))
+# # print(
+# #     "The percentile rank of the SFG value is:",
+# #     find_percentile_of_value(sfg, sfg[(file_idx - 91) * 100 + example_idx]),
+# # )
+# # print(
+# #     "The percentile rank of the SHG1 value is:",
+# #     find_percentile_of_value(shg1, shg1[(file_idx - 91) * 100 + example_idx]),
+# # )
+# # print(
+# #     "The percentile rank of the SHG2 value is:",
+# #     find_percentile_of_value(shg2, shg2[(file_idx - 91) * 100 + example_idx]),
+# # )
+
+
+# percentiles = [20, 40, 60, 80]
+# for p, cutoff1, cutoff2, cutoff3 in zip(
+#     percentiles,
+#     calculate_percentile_cutoffs(sfg, percentiles),
+#     calculate_percentile_cutoffs(shg1, percentiles),
+#     calculate_percentile_cutoffs(shg2, percentiles),
+# ):
+#     # print the cutoffs in scientific notation
+#     print(f"Percentile {p} cutoffs:")
+#     print(f"SFG: {cutoff1:.3e}")
+#     print(f"SHG1: {cutoff2:.3e}")
+#     print(f"SHG2: {cutoff3:.3e}")
+#     print()
+
+
+def find_percentile_indices(errors):
+    """
+    Find indices of samples within each 10-percentile range for a given error array.
+
+    Parameters:
+    - errors: numpy array of errors.
+
+    Returns:
+    - A dictionary where keys are percentile ranges (as strings) and
+      values are lists of indices within those ranges.
+    """
+    percentile_indices = {}
+    for i in range(0, 100, 10):
+        # Define percentile range
+        low_percentile = np.percentile(errors, i)
+        high_percentile = np.percentile(errors, i + 10)
+
+        # Find indices of samples within the current percentile range
+        indices = np.where((errors >= low_percentile) & (errors < high_percentile))[0]
+
+        # Add indices to the dictionary
+        percentile_range = f'{i}-{i+10}'
+        percentile_indices[percentile_range] = indices
+
+    return percentile_indices
+
+def select_random_index_per_percentile(percentile_indices):
+    """
+    Select a random index from each percentile range.
+
+    Parameters:
+    - percentile_indices: Dictionary of percentile ranges to indices.
+
+    Returns:
+    - A dictionary with the same keys but a single, randomly selected index as values.
+    """
+    selected_indices = {}
+    for percentile_range, indices in percentile_indices.items():
+        if len(indices) > 0:
+            selected_indices[percentile_range] = np.random.choice(indices)
+        else:
+            selected_indices[percentile_range] = None  # No index available for this range
+    return selected_indices
+
+def reverse_get_formula(idx):
+    """
+    Reverse engineers the 'get' function formula to find f_idx and e_idx.
+
+    Parameters:
+    - idx: Combined index as used in the 'get' function.
+
+    Returns:
+    - Tuple of (f_idx, e_idx)
+    """
+    f_idx = idx // 100 + 91  # Integer division to reverse-engineer f_idx
+    e_idx = idx % 100  # Remainder gives e_idx
+    return (f_idx, e_idx)
+
+# Find percentile indices for each error array
+sfg_percentiles = find_percentile_indices(sfg)
+shg1_percentiles = find_percentile_indices(shg1)
+shg2_percentiles = find_percentile_indices(shg2)
+
+# Assuming the percentile_indices dictionaries are already computed
+sfg_selected = select_random_index_per_percentile(sfg_percentiles)
+shg1_selected = select_random_index_per_percentile(shg1_percentiles)
+shg2_selected = select_random_index_per_percentile(shg2_percentiles)
+
+# Assuming the `get` function and previously defined functions are available in the context
+def print_example_indices_for_all_percentiles(selected_indices, errors_name):
+    """
+    Prints example indices and corresponding errors for all percentiles for a given error array.
+
+    Parameters:
+    - selected_indices: Dictionary of selected indices per percentile.
+    - errors_name: Name of the error array (for printing purposes).
+    """
+    for percentile_range, idx in selected_indices.items():
+        if idx is not None:
+            f_idx, e_idx = reverse_get_formula(idx)
+            example_errors = get(f_idx, e_idx)
+            print(f"{errors_name} {percentile_range}th percentile example: f_idx={f_idx}, e_idx={e_idx}, errors={example_errors}")
+        else:
+            print(f"No {errors_name} index available for {percentile_range}th percentile.")
+
+# Function calls for sfg, shg1, and shg2
+print_example_indices_for_all_percentiles(sfg_selected, "SFG")
+# print_example_indices_for_all_percentiles(shg1_selected, "SHG1")
+# print_example_indices_for_all_percentiles(shg2_selected, "SHG2")
+
