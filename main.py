@@ -265,6 +265,13 @@ def get_cmd_args():
         help="If we want to load the data in the GPU or not.",
     )
 
+    parser.add_argument(
+        "--max_norm",
+        type=float,
+        default=1.0,
+        help="The maxium gradient norm for our clipper.",
+    )
+
 
     return parser.parse_args()
 

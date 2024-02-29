@@ -125,4 +125,5 @@ def main_function(
             model_dict=model_dict,
             learning_rate=args.lr,
             shuffle=args.shuffle,
+            max_norm=args.max_norm
         )

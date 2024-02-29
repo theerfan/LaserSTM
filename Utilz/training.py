@@ -32,6 +32,7 @@ def default_single_pass(
     optimizer: torch.optim,
     loss_fn: Callable,
     verbose: bool = True,
+    max_norm: float = 1.0,
 ) -> Tuple[float, float]:
     pass_loss = 0
     pass_len = len(dataloader)
@@ -57,6 +58,9 @@ def default_single_pass(
                 for l in loss:
                     l.backward(retain_graph=True)
                 optimizer.step()
+        
+            # do gradient clipping because we ran into exploding gradients
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
 
         pass_loss += loss.mean().item()
 
@@ -81,6 +85,7 @@ def train(
     learning_rate: float = 1e-4,
     shuffle: bool = True,
     test_criterion: Callable = None,
+    max_norm: float = 1.0,
 ) -> Tuple[nn.Module, np.ndarray, np.ndarray]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -155,7 +160,7 @@ def train(
         model.train()
 
         train_loss, last_train_loss = single_pass_fn(
-            model, train_dataloader, optimizer, train_criterion
+            model, train_dataloader, optimizer, train_criterion, max_norm
         )
         train_losses.append(train_loss)
 
@@ -422,6 +427,7 @@ def tune_and_train(
     model_dict: dict = None,
     learning_rate: float = 1e-4,
     shuffle: int = 1,
+    max_norm: float = 1.0,
 ):
     stacked_layers_combinations = [1, 2]
     lstm_hidden_size_combinations = [1024, 2048, 4096]
@@ -506,6 +512,7 @@ def tune_and_train(
                     learning_rate=learning_rate,
                     shuffle=shuffle,
                     test_criterion=time_domain_mse,
+                    max_norm=max_norm
                 )
 
                 # select model with the lowest validation loss
@@ -584,6 +591,7 @@ def train_and_test(
     model_dict: dict = None,
     learning_rate: float = 1e-4,
     shuffle: int = 1,
+    max_norm: float = 1.0,
 ) -> Tuple[torch.nn.Module, np.ndarray, np.ndarray, np.ndarray]:
     trained_model, train_losses, val_losses = train(
         model,
@@ -602,6 +610,7 @@ def train_and_test(
         model_param_path=model_param_path,
         learning_rate=learning_rate,
         shuffle=shuffle,
+        max_norm=max_norm
     )
 
     if model_param_path is not None:
