@@ -282,11 +282,11 @@ if __name__ == "__main__":
     args = get_cmd_args()
 
     # what is the meaning of life?
-    seed = 42
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
+    # seed = 42
+    # torch.manual_seed(seed)
+    # if torch.cuda.is_available():
+    #     torch.cuda.manual_seed(seed)
+    #     torch.cuda.manual_seed_all(seed)
 
     if "LSTM" in args.model:
         main_lstm(args)

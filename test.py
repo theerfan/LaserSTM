@@ -92,26 +92,29 @@
 
 
 # import numpy as np
-# # import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-# # # first_train_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_train_losses.npy")
-# # # first_val_losses = np.load("/mnt/oneterra/outputs/23-12-2023/LSTM_100_epoch_55_val_losses.npy")
+# first_train_losses = np.load("/mnt/twoterra/outputs/21-02-2024/LSTM_200_anew_epoch_103_train_losses.npy")
+# first_val_losses = np.load("/mnt/twoterra/outputs/21-02-2024/LSTM_200_anew_epoch_103_val_losses.npy")
 
-# train_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_train_losses.npy")
-# val_losses = np.load("/mnt/oneterra/outputs/03-01-2024/LSTM_bi_epoch_26_val_losses.npy")
+# model_path = "/mnt/twoterra/outputs/28-02-2024/"
+# model_name = "LSTM_200_anew_epoch_187"
+
+# train_losses = np.load(f"{model_path}{model_name}_train_losses.npy")
+# val_losses = np.load(f"{model_path}{model_name}_val_losses.npy")
 
 # # # # put the first train losses at the beginning of the train losses
-# # # train_losses = np.concatenate((first_train_losses, train_losses))
-# # # val_losses = np.concatenate((first_val_losses, val_losses))
+# train_losses = np.concatenate((first_train_losses, train_losses))
+# val_losses = np.concatenate((first_val_losses, val_losses))
 
-# train_losses = train_losses[2:]
-# val_losses = val_losses[2:]
+# train_losses = train_losses[10:]
+# val_losses = val_losses[10:]
 
-# # plt.plot(train_losses, label="Train Loss")
-# # plt.plot(val_losses, label="Val Loss")
-# # plt.legend()
-# # plt.show()
-# # plt.savefig("losses.png")
+# plt.plot(train_losses, label="Train Loss")
+# plt.plot(val_losses, label="Val Loss")
+# plt.legend()
+# plt.show()
+# plt.savefig(f"{model_name}_losses.png")
 
 # # import pickle
 
@@ -327,10 +330,11 @@ def find_percentile_indices(errors):
         indices = np.where((errors >= low_percentile) & (errors < high_percentile))[0]
 
         # Add indices to the dictionary
-        percentile_range = f'{i}-{i+10}'
+        percentile_range = f"{i}-{i+10}"
         percentile_indices[percentile_range] = indices
 
     return percentile_indices
+
 
 def select_random_index_per_percentile(percentile_indices):
     """
@@ -347,8 +351,37 @@ def select_random_index_per_percentile(percentile_indices):
         if len(indices) > 0:
             selected_indices[percentile_range] = np.random.choice(indices)
         else:
-            selected_indices[percentile_range] = None  # No index available for this range
+            selected_indices[percentile_range] = (
+                None  # No index available for this range
+            )
     return selected_indices
+
+
+def select_very_good_example(
+    sfg_percentiles,
+    shg1_percentiles,
+    shg2_percentiles,
+    percentile_indices="90-100",
+    return_all=False,
+):
+    """
+    Selects an example which is in the selected percentile range for all three error arrays.
+    """
+    sfg_indices = sfg_percentiles[percentile_indices]
+    shg1_indices = shg1_percentiles[percentile_indices]
+    shg2_indices = shg2_percentiles[percentile_indices]
+
+    shg_indices = np.intersect1d(shg1_indices, shg2_indices)
+    common_indices = np.intersect1d(sfg_indices, shg_indices)
+
+    if len(common_indices) > 0:
+        if return_all:
+            return common_indices
+        else:
+            return np.random.choice(common_indices)
+    else:
+        return None  # No common index available for this range
+
 
 def reverse_get_formula(idx):
     """
@@ -364,6 +397,7 @@ def reverse_get_formula(idx):
     e_idx = idx % 100  # Remainder gives e_idx
     return (f_idx, e_idx)
 
+
 # Find percentile indices for each error array
 sfg_percentiles = find_percentile_indices(sfg)
 shg1_percentiles = find_percentile_indices(shg1)
@@ -373,6 +407,7 @@ shg2_percentiles = find_percentile_indices(shg2)
 sfg_selected = select_random_index_per_percentile(sfg_percentiles)
 shg1_selected = select_random_index_per_percentile(shg1_percentiles)
 shg2_selected = select_random_index_per_percentile(shg2_percentiles)
+
 
 # Assuming the `get` function and previously defined functions are available in the context
 def print_example_indices_for_all_percentiles(selected_indices, errors_name):
@@ -387,12 +422,118 @@ def print_example_indices_for_all_percentiles(selected_indices, errors_name):
         if idx is not None:
             f_idx, e_idx = reverse_get_formula(idx)
             example_errors = get(f_idx, e_idx)
-            print(f"{errors_name} {percentile_range}th percentile example: f_idx={f_idx}, e_idx={e_idx}, errors={example_errors}")
+            print(
+                f"{errors_name} {percentile_range}th percentile example: f_idx={f_idx}, e_idx={e_idx}, errors={example_errors}"
+            )
         else:
-            print(f"No {errors_name} index available for {percentile_range}th percentile.")
+            print(
+                f"No {errors_name} index available for {percentile_range}th percentile."
+            )
+
+
+def print_good_indices_for_all_percentiles(
+    sfg_percentiles, shg1_percentiles, shg2_percentiles
+):
+    for i in range(0, 100, 10):
+        key = f"{i}-{i+10}"
+        idx = select_very_good_example(
+            sfg_percentiles, shg1_percentiles, shg2_percentiles, key
+        )
+        if idx is not None:
+            f_idx, e_idx = reverse_get_formula(idx)
+            example_errors = get(f_idx, e_idx)
+            print(
+                f"{key}th percentile example: f_idx={f_idx}, e_idx={e_idx}, errors={example_errors}"
+            )
+        else:
+            print(f"No index available for {key}th percentile.")
+
+
+def plot_error_bars_for_all_percentiles(
+    sfg_percentiles, shg1_percentiles, shg2_percentiles
+):
+    import matplotlib.pyplot as plt
+    # Setup the figure and axis for the plot
+    # plt.figure(figsize=(10, 6))
+
+    percentiles_range = list(range(0, 100, 10))
+    n_percentiles = len(percentiles_range)
+    means = []
+    std_devs = []
+    max_errors = []
+
+    fig, axes = plt.subplots(1, n_percentiles, figsize=(15, 5))
+
+    for i, idx in enumerate(percentiles_range):
+        key = f"{idx}-{idx+10}"
+        indexes = select_very_good_example(
+            sfg_percentiles, shg1_percentiles, shg2_percentiles, key, return_all=True
+        )
+        errors = np.array([get(*reverse_get_formula(idx)) for idx in indexes])
+
+        # Calculate mean, standard deviation (mean error), and max error
+        mean_error = np.mean(errors)
+        std_dev = np.std(errors)
+        max_error = np.max(errors) - mean_error
+
+        # Save the calculations for plotting
+        means.append(mean_error)
+        std_devs.append(std_dev)
+        max_errors.append(max_error)
+
+        # Plot the error bars and means as circles
+        current_percentile = [percentiles_range[i]]
+        current_mean = [means[i]]
+        current_std_dev = [[std_devs[i]], [max_errors[i]]]
+        axes[i].errorbar(
+            current_percentile,
+            current_mean,
+            yerr=current_std_dev,
+            fmt="o",
+            linestyle="-",
+            ecolor="r",
+            capsize=5,
+            capthick=2,
+            marker="o",
+            markersize=5,
+            label="Mean & Errors" if i == 0 else "",
+        )
+
+        # Calculate min and max y values for this subplot
+        y_min = mean_error - std_dev
+        y_max = mean_error + max(max_error, std_dev)
+
+        # Optionally, add some padding to min and max y values
+        padding = 0.1 * (y_max - y_min)
+        y_min -= padding
+        y_max += padding
+
+        # Set y-axis limits for this subplot
+        axes[i].set_ylim(y_min, y_max)
+
+        axes[i].set_xticks([]) 
+        axes[i].text(0.5, -0.1, key, ha='center', va='top', transform=axes[i].transAxes)
+        # axes[i].set_xticklabels([key], rotation=45, ha='center')
+
+    # Adjust the spacing between the subplots
+    plt.subplots_adjust(
+        wspace=0.8
+    )  # Adjust this value as needed to increase horizontal spacing
+
+    # Adjust figure-level attributes and display the plot
+    fig.suptitle("Error Bars for Each Percentile")
+    axes[n_percentiles // 2].set_xlabel("Percentiles")
+    fig.text(0.04, 0.5, "Error Values", va="center", rotation="vertical")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper right")
+    plt.show()
+
+    plt.savefig("error_bars.png")
+
 
 # Function calls for sfg, shg1, and shg2
-print_example_indices_for_all_percentiles(sfg_selected, "SFG")
+# print_example_indices_for_all_percentiles(sfg_selected, "SFG")
 # print_example_indices_for_all_percentiles(shg1_selected, "SHG1")
 # print_example_indices_for_all_percentiles(shg2_selected, "SHG2")
 
+# print_good_indices_for_all_percentiles(sfg_percentiles, shg1_percentiles, shg2_percentiles)
