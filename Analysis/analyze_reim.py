@@ -3,6 +3,7 @@ import pickle
 import os
 import h5py
 
+import matplotlib
 import matplotlib.pyplot as plt
 from Analysis.util import (
     get_intensity,
@@ -11,6 +12,7 @@ from Analysis.util import (
     change_domain_and_adjust_energy,
 )
 
+matplotlib.rcParams['pdf.fonttype']=42
 
 def save_figure(save_name, save_format, save_dir):
     if save_name is None:
@@ -269,7 +271,8 @@ def plot_a_bunch_of_fields(
         or model_save_name + f"_All_{'normalized' if normalize else 'orig'}.jpg"
     )
 
-    save_figure(file_save_name, "jpg", fig_save_dir)
+    save_figure(file_save_name, "pdf", fig_save_dir)
+    # save_figure(file_save_name, "jpg", fig_save_dir)
 
 
 def do_analysis(
@@ -444,7 +447,7 @@ def do_analysis(
         true_domain_spacing=sfg_original_time_ds,
     )
 
-    if return_vals:
+    if return_vals == True or return_vals == 1:
         return (
             sfg_freq_to_time_true,
             sfg_freq_to_time_pred,
@@ -452,6 +455,15 @@ def do_analysis(
             shg1_freq_to_time_pred,
             shg2_freq_to_time_true,
             shg2_freq_to_time_pred,
+        )
+    elif return_vals == 2:
+        return (
+            y_true_trans_sfg,
+            y_pred_trans_sfg,
+            y_true_trans_shg1,
+            y_pred_trans_shg1,
+            y_true_trans_shg2,
+            y_pred_trans_shg2
         )
     else:
         pass
